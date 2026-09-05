@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  /* Light Mode */
+  --bg-base: #F8F9FA;
+  --surface-primary: #FFFFFF;
+  --surface-secondary: #F1F5F9;
+  --border-soft: #E2E8F0;
+  
+  --brand-primary: #0052FF;
+  --positive: #00A870;
+  --negative: #E53935;
+
+  --text-primary: #121721;
+  --text-secondary: #64748B;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark Mode */
+    --bg-base: #0A0D12;
+    --surface-primary: #121721;
+    --surface-secondary: #1B2230;
+    --border-soft: #263040;
+    
+    --brand-primary: #0052FF;
+    --positive: #00D395;
+    --negative: #FF4D4D;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #94A3B8;
+  }
+}
+
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-surface-primary: var(--surface-primary);
+  --color-surface-secondary: var(--surface-secondary);
+  --color-border-soft: var(--border-soft);
+  --color-brand-primary: var(--brand-primary);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+
+  --font-sans: "Inter", "SF Pro Display", system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  /* Force tabular numerals for financial numbers via utility classes, but good to have system defaults clean */
+}
