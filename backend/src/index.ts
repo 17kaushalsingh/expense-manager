@@ -1,0 +1,39 @@
+import express, { Request, Response } from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+app.use(cors());
+app.use(express.json());
+
+import authRouter from './routes/auth.routes';
+import userRouter from './routes/user.routes';
+import accountRouter from './routes/account.routes';
+import categoryRouter from './routes/category.routes';
+import transactionRouter from './routes/transaction.routes';
+import groupRouter from './routes/group.routes';
+import splitRouter from './routes/split.routes';
+import settlementRouter from './routes/settlement.routes';
+import analyticsRouter from './routes/analytics.routes';
+
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
+app.use('/api/accounts', accountRouter);
+app.use('/api/categories', categoryRouter);
+app.use('/api/transactions', transactionRouter);
+app.use('/api/groups', groupRouter);
+app.use('/api/splits', splitRouter);
+app.use('/api/settlements', settlementRouter);
+app.use('/api/analytics', analyticsRouter);
+
+app.get('/api/health', (req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', message: 'Expense Manager Backend is running' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
