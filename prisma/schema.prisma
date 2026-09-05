@@ -8,16 +8,47 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  email           String   @unique
-  passwordHash    String?
-  googleId        String?  @unique
-  name            String
-  
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String?
+  googleId     String? @unique
+  name         String
+
   // Settings
-  displayCurrency String   @default("USD")
-  timezone        String   @default("UTC")
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  displayCurrency String @default("USD")
+  timezone        String @default("UTC")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+}
+
+enum AccountType {
+  CASH
+  BANK_ACCOUNT
+  DEBIT_CARD
+  CREDIT_CARD
+  PREPAID_CARD
+  INVESTMENT
+  LOAN
+  INSURANCE
+  OTHER
+}
+
+model Account {
+  id       String      @id @default(uuid())
+  userId   String
+  name     String
+  type     AccountType
+  currency String? // null means use user's default currency
+  balance  Float       @default(0.0) // simplified to Float for now, Decimal might be better for prod
+
+  // Optional meta-data (like credit card due date, etc.) can be stored in JSON or relations
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
