@@ -8,6 +8,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
+import authRouter from './routes/auth.routes';
+import userRouter from './routes/user.routes';
+
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
+
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Expense Manager Backend is running' });
 });
