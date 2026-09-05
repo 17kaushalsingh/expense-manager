@@ -4,9 +4,24 @@ import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ArrowUpRight, ArrowDownRight, Plus, CreditCard } from "lucide-react";
 import { SplitBuilder } from "@/components/split/SplitBuilder";
+import { useNetWorth, useAccounts, useDebtSummary } from "@/hooks/useDashboard";
+import { useAuthStore } from "@/store/auth";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [isSplitBuilderOpen, setIsSplitBuilderOpen] = useState(false);
+  
+  // For demo/testing without login page yet
+  const { token, setAuth } = useAuthStore();
+  
+  // Fetch real data
+  const { data: netWorthData, isLoading: isNetWorthLoading } = useNetWorth();
+  const { data: accounts, isLoading: isAccountsLoading } = useAccounts();
+  const { data: debtSummary, isLoading: isDebtLoading } = useDebtSummary();
+
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
   return (
     <DashboardLayout>
@@ -15,18 +30,16 @@ export default function Home() {
         <div className="space-y-2">
           <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">Total Net Worth</h2>
           <div className="flex items-baseline space-x-3">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight tabular-nums">$42,850.50</h1>
-            <span className="text-positive font-medium flex items-center bg-positive/10 px-2 py-1 rounded-md text-sm">
-              <ArrowUpRight className="w-4 h-4 mr-1" />
-              4.2%
-            </span>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight tabular-nums">
+              {isNetWorthLoading ? "..." : formatCurrency(netWorthData?.netWorth || 0)}
+            </h1>
           </div>
         </div>
 
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border-soft pt-6">
-          <BalanceMetric label="Assets" amount="$50,000.00" />
-          <BalanceMetric label="Liabilities" amount="-$10,000.00" negative />
-          <BalanceMetric label="Group Balances" amount="+$2,850.50" positive />
+          <BalanceMetric label="Assets" amount={isNetWorthLoading ? "..." : formatCurrency(netWorthData?.breakdown?.assets || 0)} />
+          <BalanceMetric label="Liabilities" amount={isNetWorthLoading ? "..." : formatCurrency(netWorthData?.breakdown?.liabilities || 0)} negative />
+          <BalanceMetric label="Group Balances" amount={isNetWorthLoading ? "..." : formatCurrency((netWorthData?.breakdown?.receivables || 0) - (netWorthData?.breakdown?.payables || 0))} positive />
         </div>
       </section>
 
@@ -39,9 +52,21 @@ export default function Home() {
             <button className="text-sm text-brand-primary font-medium hover:underline">View All</button>
           </div>
           <div className="space-y-3">
-            <AccountCard name="HDFC Bank" type="Checking" balance="$12,400.00" />
-            <AccountCard name="AMEX Credit" type="Credit Card" balance="-$1,200.00" isLiability />
-            <AccountCard name="Groww ETFs" type="Investment" balance="$31,000.00" />
+            {isAccountsLoading ? (
+               <div className="p-4 text-center text-text-secondary animate-pulse">Loading accounts...</div>
+            ) : accounts && accounts.length > 0 ? (
+               accounts.filter((a: any) => !['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE'].includes(a.type)).map((acc: any) => (
+                 <AccountCard 
+                   key={acc.id} 
+                   name={acc.name} 
+                   type={acc.type.replace('_', ' ')} 
+                   balance={formatCurrency(acc.balance)} 
+                   isLiability={['CREDIT_CARD', 'LOAN'].includes(acc.type)} 
+                 />
+               ))
+            ) : (
+               <div className="p-4 text-center text-text-secondary border border-border-soft rounded-xl border-dashed">No accounts found</div>
+            )}
           </div>
         </section>
 
@@ -54,8 +79,10 @@ export default function Home() {
             </button>
           </div>
           <div className="bg-surface-primary border border-border-soft rounded-2xl p-5 shadow-sm space-y-4">
-            <DebtItem name="Alex" description="Owes you for Dinner" amount="$120.00" type="receivable" />
-            <DebtItem name="Group Trip" description="You owe for Airbnb" amount="$45.00" type="payable" />
+            
+            <DebtItem name="Receivables" description="Total owed to you" amount={isDebtLoading ? "..." : formatCurrency(debtSummary?.totalOwedToYou || 0)} type="receivable" />
+            <DebtItem name="Payables" description="Total you owe" amount={isDebtLoading ? "..." : formatCurrency(debtSummary?.totalYouOwe || 0)} type="payable" />
+
             
             <div className="pt-4 border-t border-border-soft flex space-x-3">
               <button 
