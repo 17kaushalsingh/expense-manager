@@ -1,8 +1,24 @@
+"use client";
+
 import { Sidebar } from "./Sidebar";
 import { Home, CreditCard, Users, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { token } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/login');
+    }
+  }, [token, router]);
+
+  if (!token) return null; // Prevent flash of content
+
   return (
     <div className="min-h-screen bg-bg-base text-text-primary flex flex-col md:flex-row">
       {/* Desktop Sidebar */}
