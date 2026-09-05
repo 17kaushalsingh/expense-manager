@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -28,30 +28,16 @@ model User {
   splitParticipants SplitParticipant[]
 }
 
-enum AccountType {
-  CASH
-  BANK_ACCOUNT
-  DEBIT_CARD
-  CREDIT_CARD
-  PREPAID_CARD
-  INVESTMENT
-  LOAN
-  INSURANCE
-  OTHER
-  ACCOUNTS_RECEIVABLE
-  ACCOUNTS_PAYABLE
-}
-
 model Account {
   id       String      @id @default(uuid())
   userId   String
   name     String
-  type     AccountType
+  type     String      // Was AccountType enum
   currency String? // null means use user's default currency
   balance  Float       @default(0.0) // simplified to Float for now, Decimal might be better for prod
 
   // Optional meta-data (like credit card due date, etc.) can be stored in JSON or relations
-  metadata Json?
+  // metadata Json? // SQLite doesn't natively support JSON but Prisma maps it to Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,7 +50,7 @@ model Category {
   id     String          @id @default(uuid())
   userId String? // null if it's a system default category
   name   String
-  type   TransactionType // income, expense, transfer
+  type   String // Was TransactionType // income, expense, transfer
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,23 +59,18 @@ model Category {
   transactions Transaction[]
 }
 
-enum TransactionType {
-  INCOME
-  EXPENSE
-  TRANSFER
-}
 
 model Transaction {
   id          String          @id @default(uuid())
   userId      String
   accountId   String
   categoryId  String?
-  type        TransactionType
+  type        String // Was TransactionType
   amount      Float
   dateTime    DateTime
-  tags        String[]
+  tags        String?
   notes       String?
-  attachments String[] // array of file URLs
+  attachments String? // serialized json array of file URLs
 
   // Future Splitwise support fields can be added here
 
@@ -123,20 +104,13 @@ model GroupMember {
   @@unique([groupId, userId])
 }
 
-enum SplitType {
-  EQUAL
-  EXACT
-  PERCENTAGE
-  SHARES
-  ITEMIZED
-}
 
 model SplitExpense {
   id          String    @id @default(uuid())
   groupId     String? // null means 1-on-1 or ad-hoc
   description String
   totalAmount Float
-  splitType   SplitType
+  splitType   String // Was SplitType
   date        DateTime  @default(now())
 
   createdAt DateTime @default(now())
@@ -167,3 +141,4 @@ model SplitParticipant {
   splitExpense SplitExpense @relation(fields: [splitExpenseId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
 }
+
