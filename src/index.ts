@@ -13,12 +13,16 @@ import userRouter from './routes/user.routes';
 import accountRouter from './routes/account.routes';
 import categoryRouter from './routes/category.routes';
 import transactionRouter from './routes/transaction.routes';
+import groupRouter from './routes/group.routes';
+import splitRouter from './routes/split.routes';
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
 app.use('/api/accounts', accountRouter);
 app.use('/api/categories', categoryRouter);
 app.use('/api/transactions', transactionRouter);
+app.use('/api/groups', groupRouter);
+app.use('/api/splits', splitRouter);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Expense Manager Backend is running' });

@@ -18,12 +18,14 @@ model User {
   displayCurrency String @default("USD")
   timezone        String @default("UTC")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  groupMembers      GroupMember[]
+  splitPayers       SplitPayer[]
+  splitParticipants SplitParticipant[]
 }
 
 enum AccountType {
@@ -36,6 +38,8 @@ enum AccountType {
   LOAN
   INSURANCE
   OTHER
+  ACCOUNTS_RECEIVABLE
+  ACCOUNTS_PAYABLE
 }
 
 model Account {
@@ -95,4 +99,71 @@ model Transaction {
   user     User      @relation(fields: [userId], references: [id])
   account  Account   @relation(fields: [accountId], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       GroupMember[]
+  splitExpenses SplitExpense[]
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  groupId  String
+  userId   String
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+enum SplitType {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+  ITEMIZED
+}
+
+model SplitExpense {
+  id          String    @id @default(uuid())
+  groupId     String? // null means 1-on-1 or ad-hoc
+  description String
+  totalAmount Float
+  splitType   SplitType
+  date        DateTime  @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group        Group?             @relation(fields: [groupId], references: [id])
+  payers       SplitPayer[]
+  participants SplitParticipant[]
+}
+
+model SplitPayer {
+  id             String @id @default(uuid())
+  splitExpenseId String
+  userId         String
+  amountPaid     Float
+
+  splitExpense SplitExpense @relation(fields: [splitExpenseId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+}
+
+model SplitParticipant {
+  id             String @id @default(uuid())
+  splitExpenseId String
+  userId         String
+  shareValue     Float? // Depends on splitType (e.g. 50%, 2 shares)
+  amountOwed     Float // The calculated exact amount this user owes
+
+  splitExpense SplitExpense @relation(fields: [splitExpenseId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
 }
