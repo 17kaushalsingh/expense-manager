@@ -1,0 +1,3 @@
+Develop features and flows one at a time.
+Each feature, fix, or enhancement should be developed in isolation, with its own dedicated branch in the version control system. This approach allows for focused development, easier testing, and clearer documentation of changes.
+Write atomic commits with clear, descriptive messages. Each commit should represent a single logical change, making it easier to understand the history of the project and facilitating code reviews.
