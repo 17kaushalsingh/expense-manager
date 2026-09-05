@@ -17,7 +17,7 @@ FR-2.3 There are three types of transactions: Income, Expense, and Transfer. Eac
 
 ## 3. Personal Transaction Management
 FR-3.1 Income & Expense Logging:
-Fields: Date/Time, Amount, Source/Target Account, Category, Subcategory, Tags, Notes, Attachments (Receipts).
+Fields: Date/Time, Amount, Account, Category, Tags, Notes, Attachments (Receipts).
 FR-3.2 Category Engine: System defaults with support for hierarchical user-customizable categories (e.g., Food > Groceries, Housing > Rent).
 FR-3.3 Recurring Transactions: Automate daily, weekly, monthly, or yearly recurring entries (e.g., Subscriptions, Salary, EMIs).
 
@@ -31,7 +31,7 @@ Shares/Proportions: Weighted ratio split (e.g., 2 shares vs. 1 share).
 Itemized: Item-by-item breakdown with tax and tip proportional distribution.
 FR-4.3 Multi-Payer Support: Allow expenses to be paid by one or multiple users simultaneously.
 FR-4.4 Debt Simplification (Min-Cash-Flow): Implement a graph reduction algorithm within groups to minimize the total number of transactions needed to resolve balances.
-FR-4.5 Settlement Engine: Record settlements between users with direct payment gateway integration (e.g., UPI, Stripe) or manual logging.
+FR-4.5 Settlement Engine: Record settlements between users with direct payment gateway integration (e.g., UPI, Stripe #future-task) or manual logging.
 
 ## 5. Unified Hybrid Ledger (Personal + Splitwise Integration)
 FR-5.1 Automated Ledger Mapping: When a user creates or participates in a split transaction, the system must perform a dual-ledger update:
