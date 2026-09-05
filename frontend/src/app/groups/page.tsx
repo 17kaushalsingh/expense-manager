@@ -4,15 +4,21 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, Plus } from "lucide-react";
 import { useGroups } from "@/hooks/useGroups";
 import Link from "next/link";
+import { useState } from "react";
+import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 
 export default function GroupsPage() {
   const { data: groups, isLoading } = useGroups();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <DashboardLayout>
       <div className="flex items-center justify-between pb-4 border-b border-border-soft">
         <h1 className="text-2xl font-bold tracking-tight">Your Groups</h1>
-        <button className="flex items-center bg-brand-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center bg-brand-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors"
+        >
           <Plus className="w-4 h-4 mr-2" />
           New Group
         </button>
@@ -41,6 +47,8 @@ export default function GroupsPage() {
           </div>
         )}
       </div>
+
+      <CreateGroupModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </DashboardLayout>
   );
 }

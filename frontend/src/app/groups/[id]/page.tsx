@@ -6,6 +6,7 @@ import { useGroupSplits, useGroupSimplification, useGroups } from "@/hooks/useGr
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuthStore } from "@/store/auth";
+import { SplitBuilder } from "@/components/split/SplitBuilder";
 
 export default function GroupDetails() {
   const params = useParams();
@@ -14,6 +15,7 @@ export default function GroupDetails() {
   const { user } = useAuthStore();
   
   const [viewMode, setViewMode] = useState<'LEDGER' | 'BALANCES'>('LEDGER');
+  const [isSplitBuilderOpen, setIsSplitBuilderOpen] = useState(false);
 
   const { data: groups } = useGroups();
   const group = groups?.find((g: any) => g.id === groupId);
@@ -146,10 +148,20 @@ export default function GroupDetails() {
 
       {/* FLOATING ACTION BUTTON */}
       <div className="fixed bottom-20 md:bottom-10 right-4 md:right-10">
-        <button className="bg-brand-primary text-white shadow-lg rounded-full p-4 hover:bg-brand-primary/90 hover:scale-105 active:scale-95 transition-all">
+        <button 
+          onClick={() => setIsSplitBuilderOpen(true)}
+          className="bg-brand-primary text-white shadow-lg rounded-full p-4 hover:bg-brand-primary/90 hover:scale-105 active:scale-95 transition-all"
+        >
           <Receipt className="w-6 h-6" />
         </button>
       </div>
+      
+      <SplitBuilder 
+        isOpen={isSplitBuilderOpen} 
+        onClose={() => setIsSplitBuilderOpen(false)} 
+        groupId={groupId}
+        groupMembers={group?.members || []}
+      />
     </DashboardLayout>
   );
 }

@@ -2,10 +2,48 @@
 
 import { useState } from "react";
 import { X, Check } from "lucide-react";
+import { apiClient } from "@/lib/api/client";
+import { useAuthStore } from "@/store/auth";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-export function SplitBuilder({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function SplitBuilder({ isOpen, onClose, groupId, groupMembers = [] }: { isOpen: boolean, onClose: () => void, groupId?: string, groupMembers?: any[] }) {
   const [splitMode, setSplitMode] = useState<'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'SHARES'>('EQUAL');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
   
+  const { user, token } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const parsedAmount = parseFloat(amount || '0');
+      
+      // Default: You paid for everything, everyone splits equally
+      const payers = [{ userId: user?.id, amountPaid: parsedAmount }];
+      const participants = groupMembers.length > 0 
+        ? groupMembers.map(m => ({ userId: m.userId, shareValue: splitMode === 'EQUAL' ? 1 : 0 }))
+        : [{ userId: user?.id, shareValue: 1 }]; // fallback if no members
+
+      return apiClient.post('/splits', {
+        groupId: groupId || null,
+        description,
+        totalAmount: parsedAmount,
+        splitType: splitMode,
+        payers,
+        participants
+      }, token || undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groupSplits'] });
+      queryClient.invalidateQueries({ queryKey: ['groupSimplification'] });
+      queryClient.invalidateQueries({ queryKey: ['netWorth'] });
+      queryClient.invalidateQueries({ queryKey: ['debtSummary'] });
+      onClose();
+      setAmount("");
+      setDescription("");
+    }
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -28,7 +66,9 @@ export function SplitBuilder({ isOpen, onClose }: { isOpen: boolean, onClose: ()
             <div className="flex items-center justify-center text-5xl font-bold tabular-nums text-text-primary">
               <span className="text-text-secondary mr-1">$</span>
               <input 
-                type="text" 
+                type="number" 
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00" 
                 className="bg-transparent border-none outline-none text-center w-48 focus:ring-0 p-0 placeholder:text-border-soft"
                 autoFocus
@@ -38,15 +78,15 @@ export function SplitBuilder({ isOpen, onClose }: { isOpen: boolean, onClose: ()
 
           <div className="space-y-4 pt-4 border-t border-border-soft">
             <input 
-              type="text" 
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="What was this for?" 
               className="w-full bg-surface-secondary border border-border-soft rounded-xl px-4 py-3 text-text-primary outline-none focus:border-brand-primary transition-colors"
             />
             
             <select className="w-full bg-surface-secondary border border-border-soft rounded-xl px-4 py-3 text-text-primary outline-none focus:border-brand-primary transition-colors appearance-none">
-              <option value="">Paid by You (HDFC Bank)</option>
-              <option value="">Paid by Alex</option>
-              <option value="">Multiple Payers...</option>
+              <option value="you">Paid by You</option>
             </select>
           </div>
 
@@ -70,24 +110,26 @@ export function SplitBuilder({ isOpen, onClose }: { isOpen: boolean, onClose: ()
             </div>
           </div>
 
-          {/* Members List (Mocked) */}
+          {/* Members List (Mocked simplified) */}
           <div className="space-y-2">
-             <MemberSplitRow name="You" splitMode={splitMode} />
-             <MemberSplitRow name="Alex" splitMode={splitMode} />
-             <MemberSplitRow name="Sarah" splitMode={splitMode} />
-             <MemberSplitRow name="Mike" splitMode={splitMode} />
+            {groupMembers.length > 0 ? (
+              groupMembers.map(m => (
+                <MemberSplitRow key={m.userId} name={m.user?.name || 'User'} splitMode={splitMode} />
+              ))
+            ) : (
+              <MemberSplitRow name="You" splitMode={splitMode} />
+            )}
           </div>
         </div>
 
         {/* Real-Time Math Guardrails Footer */}
         <div className="p-4 border-t border-border-soft bg-surface-secondary/50 backdrop-blur-md sticky bottom-0">
-          <div className="flex items-center justify-between mb-4 px-2">
-             <span className="text-sm text-text-secondary font-medium">Unallocated</span>
-             <span className="text-sm font-bold text-positive tabular-nums">$0.00 left</span>
-          </div>
-          <button className="w-full bg-brand-primary text-white font-semibold py-3.5 rounded-xl hover:bg-brand-primary/90 active:scale-[0.98] transition-all flex justify-center items-center">
-            <Check className="w-5 h-5 mr-2" />
-            Save Split
+          <button 
+            onClick={() => mutation.mutate()}
+            disabled={mutation.isPending || !amount || !description}
+            className="w-full bg-brand-primary text-white font-semibold py-3.5 rounded-xl hover:bg-brand-primary/90 disabled:opacity-50 active:scale-[0.98] transition-all flex justify-center items-center"
+          >
+            {mutation.isPending ? "Saving..." : <><Check className="w-5 h-5 mr-2" /> Save Split</>}
           </button>
         </div>
         

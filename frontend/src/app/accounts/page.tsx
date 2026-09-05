@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreditCard, Plus, ArrowUpRight, ArrowDownRight, Landmark, Wallet } from "lucide-react";
 import { useAccounts } from "@/hooks/useDashboard";
 import { useState } from "react";
+import { AddAccountModal } from "@/components/accounts/AddAccountModal";
 
 export default function AccountsPage() {
   const { data: accounts, isLoading } = useAccounts();
@@ -63,6 +64,8 @@ export default function AccountsPage() {
         />
 
       </div>
+      
+      <AddAccountModal isOpen={isAddAccountOpen} onClose={() => setIsAddAccountOpen(false)} />
     </DashboardLayout>
   );
 }
