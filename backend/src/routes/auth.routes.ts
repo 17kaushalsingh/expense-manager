@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { config } from '../config';
 import { prisma } from '../db';
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
 
 // Register with email/password
 router.post('/register', async (req: Request, res: Response) => {
@@ -30,7 +30,7 @@ router.post('/register', async (req: Request, res: Response) => {
       }
     });
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
     res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });
@@ -58,7 +58,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
     res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' });

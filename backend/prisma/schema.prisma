@@ -37,7 +37,7 @@ model Account {
   balance  Float       @default(0.0) // simplified to Float for now, Decimal might be better for prod
 
   // Optional meta-data (like credit card due date, etc.) can be stored in JSON or relations
-  // metadata Json?
+  metadata Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,9 +68,9 @@ model Transaction {
   type        String // Was TransactionType
   amount      Float
   dateTime    DateTime
-  tags        String?
+  tags        Json?
   notes       String?
-  attachments String? // serialized json array of file URLs
+  attachments Json?
 
   // Future Splitwise support fields can be added here
 
