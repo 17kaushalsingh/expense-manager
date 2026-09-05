@@ -83,4 +83,54 @@ router.post('/:id/members', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
+import { simplifyDebts } from '../services/debtSimplification';
+
+// FR-4.4 Debt Simplification (Min-Cash-Flow)
+router.get('/:id/simplify-debts', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    // verify group access
+    const group = await prisma.group.findFirst({
+      where: { id: req.params.id as string, members: { some: { userId: req.userId } } }
+    });
+
+    if (!group) {
+      res.status(404).json({ error: 'Group not found' });
+      return;
+    }
+
+    // Fetch all splits for this group
+    const splits = await prisma.splitExpense.findMany({
+      where: { groupId: req.params.id as string },
+      include: {
+        payers: true,
+        participants: true
+      }
+    });
+
+    // Calculate net balances for everyone in the group
+    const balances: Record<string, number> = {};
+
+    for (const split of splits) {
+      // Credited for what they paid
+      for (const payer of split.payers) {
+        balances[payer.userId] = (balances[payer.userId] || 0) + payer.amountPaid;
+      }
+      // Debited for what they owe
+      for (const participant of split.participants) {
+        balances[participant.userId] = (balances[participant.userId] || 0) - participant.amountOwed;
+      }
+    }
+
+    // Run simplification algorithm
+    const simplifiedTransactions = simplifyDebts(balances);
+
+    res.status(200).json({
+      groupBalances: balances,
+      simplifiedTransactions: simplifiedTransactions
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;
