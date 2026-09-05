@@ -15,6 +15,8 @@ import categoryRouter from './routes/category.routes';
 import transactionRouter from './routes/transaction.routes';
 import groupRouter from './routes/group.routes';
 import splitRouter from './routes/split.routes';
+import settlementRouter from './routes/settlement.routes';
+import analyticsRouter from './routes/analytics.routes';
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
@@ -23,6 +25,8 @@ app.use('/api/categories', categoryRouter);
 app.use('/api/transactions', transactionRouter);
 app.use('/api/groups', groupRouter);
 app.use('/api/splits', splitRouter);
+app.use('/api/settlements', settlementRouter);
+app.use('/api/analytics', analyticsRouter);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Expense Manager Backend is running' });
