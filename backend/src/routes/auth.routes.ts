@@ -3,16 +3,14 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { prisma } from '../db';
+import { validateBody } from '../middleware/validate';
+import { loginSchema, registerSchema } from '../validation/schemas';
 
 const router = Router();
 
 // Register with email/password
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
-  if (!email || !password || !name) {
-    res.status(400).json({ error: 'Missing required fields' });
-    return;
-  }
 
   try {
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -38,12 +36,8 @@ router.post('/register', async (req: Request, res: Response) => {
 });
 
 // Login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    res.status(400).json({ error: 'Missing credentials' });
-    return;
-  }
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });

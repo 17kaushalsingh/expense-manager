@@ -1,17 +1,14 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { createCategorySchema } from '../validation/schemas';
 
 const router = Router();
 
 // Create Category
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, validateBody(createCategorySchema), async (req: AuthRequest, res: Response) => {
   const { name, type } = req.body;
-
-  if (!name || !type) {
-    res.status(400).json({ error: 'Name and type are required' });
-    return;
-  }
 
   try {
     const category = await prisma.category.create({

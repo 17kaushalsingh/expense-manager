@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { toNumber } from '../utils/money';
 
 const router = Router();
 
@@ -18,13 +19,13 @@ router.get('/net-worth', authenticate, async (req: AuthRequest, res: Response) =
 
     for (const acc of accounts) {
       if (['CASH', 'BANK_ACCOUNT', 'PREPAID_CARD', 'INVESTMENT'].includes(acc.type)) {
-        assets += acc.balance;
+        assets += toNumber(acc.balance);
       } else if (['CREDIT_CARD', 'LOAN'].includes(acc.type)) {
-        liabilities += acc.balance; // assuming balance is positive number for liability
+        liabilities += toNumber(acc.balance); // assuming balance is positive number for liability
       } else if (acc.type === 'ACCOUNTS_RECEIVABLE') {
-        receivables += acc.balance;
+        receivables += toNumber(acc.balance);
       } else if (acc.type === 'ACCOUNTS_PAYABLE') {
-        payables += acc.balance;
+        payables += toNumber(acc.balance);
       }
     }
 
@@ -53,8 +54,8 @@ router.get('/cash-flow', authenticate, async (req: AuthRequest, res: Response) =
     let totalExpense = 0;
 
     for (const txn of transactions) {
-      if (txn.type === 'INCOME') totalIncome += txn.amount;
-      else if (txn.type === 'EXPENSE') totalExpense += txn.amount;
+      if (txn.type === 'INCOME') totalIncome += toNumber(txn.amount);
+      else if (txn.type === 'EXPENSE') totalExpense += toNumber(txn.amount);
     }
 
     res.status(200).json({
@@ -81,8 +82,8 @@ router.get('/debt-summary', authenticate, async (req: AuthRequest, res: Response
     });
 
     const summary = {
-      totalOwedToYou: accounts.find(a => a.type === 'ACCOUNTS_RECEIVABLE')?.balance || 0,
-      totalYouOwe: accounts.find(a => a.type === 'ACCOUNTS_PAYABLE')?.balance || 0
+      totalOwedToYou: toNumber(accounts.find(a => a.type === 'ACCOUNTS_RECEIVABLE')?.balance || 0),
+      totalYouOwe: toNumber(accounts.find(a => a.type === 'ACCOUNTS_PAYABLE')?.balance || 0)
     };
 
     res.status(200).json(summary);

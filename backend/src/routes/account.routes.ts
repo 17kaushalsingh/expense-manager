@@ -1,17 +1,14 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { createAccountSchema, updateAccountSchema } from '../validation/schemas';
 
 const router = Router();
 
 // Create Account
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, validateBody(createAccountSchema), async (req: AuthRequest, res: Response) => {
   const { name, type, currency, balance, metadata } = req.body;
-
-  if (!name || !type) {
-    res.status(400).json({ error: 'Name and type are required' });
-    return;
-  }
 
   try {
     const account = await prisma.account.create({
@@ -20,8 +17,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         name,
         type,
         currency,
-        balance: balance || 0.0,
-        metadata: metadata || {}
+        balance: balance ?? 0.0,
+        metadata
       }
     });
 
@@ -63,7 +60,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Update Account
-router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticate, validateBody(updateAccountSchema), async (req: AuthRequest, res: Response) => {
   const { name, type, currency, balance, metadata } = req.body;
 
   try {
@@ -84,7 +81,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         ...(type && { type }),
         ...(currency !== undefined && { currency }),
         ...(balance !== undefined && { balance }),
-        ...(metadata && { metadata })
+        ...(metadata !== undefined && { metadata })
       }
     });
 

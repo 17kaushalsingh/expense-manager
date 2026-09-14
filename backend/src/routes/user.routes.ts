@@ -1,6 +1,8 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { updateProfileSchema } from '../validation/schemas';
 
 const router = Router();
 
@@ -25,7 +27,7 @@ router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => 
 });
 
 // Update Profile (Currency & Timezone)
-router.put('/profile', authenticate, async (req: AuthRequest, res: Response) => {
+router.put('/profile', authenticate, validateBody(updateProfileSchema), async (req: AuthRequest, res: Response) => {
   const { displayCurrency, timezone, name } = req.body;
 
   try {

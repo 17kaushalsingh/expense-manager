@@ -1,17 +1,14 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { createTransactionSchema, transferSchema } from '../validation/schemas';
 
 const router = Router();
 
 // Create Transaction
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, validateBody(createTransactionSchema), async (req: AuthRequest, res: Response) => {
   const { accountId, categoryId, type, amount, dateTime, tags, notes, attachments } = req.body;
-
-  if (!accountId || !type || amount === undefined || !dateTime) {
-    res.status(400).json({ error: 'accountId, type, amount, and dateTime are required' });
-    return;
-  }
 
   try {
     // Verify account belongs to user
@@ -28,10 +25,10 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         categoryId,
         type,
         amount,
-        dateTime: new Date(dateTime),
-        tags: tags || [],
+        dateTime,
+        tags,
         notes,
-        attachments: attachments || []
+        attachments
       }
     });
 
@@ -72,13 +69,8 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Transfer between accounts (FR-2.2)
-router.post('/transfer', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/transfer', authenticate, validateBody(transferSchema), async (req: AuthRequest, res: Response) => {
   const { sourceAccountId, targetAccountId, amount, dateTime, notes } = req.body;
-
-  if (!sourceAccountId || !targetAccountId || !amount || !dateTime) {
-    res.status(400).json({ error: 'sourceAccountId, targetAccountId, amount, and dateTime are required' });
-    return;
-  }
 
   try {
     // Verify accounts
@@ -99,7 +91,7 @@ router.post('/transfer', authenticate, async (req: AuthRequest, res: Response) =
           accountId: sourceAccountId,
           type: 'TRANSFER',
           amount: amount,
-          dateTime: new Date(dateTime),
+          dateTime,
           notes: notes || `Transfer to ${targetAccount.name}`,
         }
       });
@@ -110,7 +102,7 @@ router.post('/transfer', authenticate, async (req: AuthRequest, res: Response) =
           accountId: targetAccountId,
           type: 'TRANSFER',
           amount: amount,
-          dateTime: new Date(dateTime),
+          dateTime,
           notes: notes || `Transfer from ${sourceAccount.name}`,
         }
       });

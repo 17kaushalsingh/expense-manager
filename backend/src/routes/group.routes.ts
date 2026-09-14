@@ -1,17 +1,15 @@
 import { Router, Response } from 'express';
 import { prisma } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { validateBody } from '../middleware/validate';
+import { addGroupMemberSchema, createGroupSchema } from '../validation/schemas';
+import { toNumber } from '../utils/money';
 
 const router = Router();
 
 // Create Group
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticate, validateBody(createGroupSchema), async (req: AuthRequest, res: Response) => {
   const { name, memberIds } = req.body;
-
-  if (!name) {
-    res.status(400).json({ error: 'Group name is required' });
-    return;
-  }
 
   try {
     const members = memberIds ? [req.userId, ...memberIds] : [req.userId];
@@ -56,7 +54,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 // Add Member to Group
-router.post('/:id/members', authenticate, async (req: AuthRequest, res: Response) => {
+router.post('/:id/members', authenticate, validateBody(addGroupMemberSchema), async (req: AuthRequest, res: Response) => {
   const { userId } = req.body;
 
   try {
@@ -113,11 +111,11 @@ router.get('/:id/simplify-debts', authenticate, async (req: AuthRequest, res: Re
     for (const split of splits) {
       // Credited for what they paid
       for (const payer of split.payers) {
-        balances[payer.userId] = (balances[payer.userId] || 0) + payer.amountPaid;
+        balances[payer.userId] = (balances[payer.userId] || 0) + toNumber(payer.amountPaid);
       }
       // Debited for what they owe
       for (const participant of split.participants) {
-        balances[participant.userId] = (balances[participant.userId] || 0) - participant.amountOwed;
+        balances[participant.userId] = (balances[participant.userId] || 0) - toNumber(participant.amountOwed);
       }
     }
 

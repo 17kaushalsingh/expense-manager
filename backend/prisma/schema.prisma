@@ -26,6 +26,7 @@ model User {
   groupMembers      GroupMember[]
   splitPayers       SplitPayer[]
   splitParticipants SplitParticipant[]
+  reminders         Reminder[]
 }
 
 model Account {
@@ -34,7 +35,7 @@ model Account {
   name     String
   type     String      // Was AccountType enum
   currency String? // null means use user's default currency
-  balance  Float       @default(0.0) // simplified to Float for now, Decimal might be better for prod
+  balance  Decimal     @default(0.0) @db.Decimal(14, 2)
 
   // Optional meta-data (like credit card due date, etc.) can be stored in JSON or relations
   metadata Json?
@@ -66,7 +67,7 @@ model Transaction {
   accountId   String
   categoryId  String?
   type        String // Was TransactionType
-  amount      Float
+  amount      Decimal  @db.Decimal(14, 2)
   dateTime    DateTime
   tags        Json?
   notes       String?
@@ -109,7 +110,7 @@ model SplitExpense {
   id          String    @id @default(uuid())
   groupId     String? // null means 1-on-1 or ad-hoc
   description String
-  totalAmount Float
+  totalAmount Decimal   @db.Decimal(14, 2)
   splitType   String // Was SplitType
   date        DateTime  @default(now())
 
@@ -125,7 +126,7 @@ model SplitPayer {
   id             String @id @default(uuid())
   splitExpenseId String
   userId         String
-  amountPaid     Float
+  amountPaid     Decimal @db.Decimal(14, 2)
 
   splitExpense SplitExpense @relation(fields: [splitExpenseId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
@@ -135,9 +136,25 @@ model SplitParticipant {
   id             String @id @default(uuid())
   splitExpenseId String
   userId         String
-  shareValue     Float? // Depends on splitType (e.g. 50%, 2 shares)
-  amountOwed     Float // The calculated exact amount this user owes
+  shareValue     Decimal? @db.Decimal(14, 4) // Depends on splitType (e.g. 50%, 2 shares)
+  amountOwed     Decimal  @db.Decimal(14, 2) // The calculated exact amount this user owes
 
   splitExpense SplitExpense @relation(fields: [splitExpenseId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  type        String   // e.g. "CREDIT_CARD_BILL", "DEBT", "CUSTOM"
+  dueDate     DateTime
+  isRead      Boolean  @default(false)
+  isCompleted Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
 }
