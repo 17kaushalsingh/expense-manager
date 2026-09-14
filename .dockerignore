@@ -1,0 +1,7 @@
+node_modules
+*/node_modules
+.git
+frontend/.next
+backend/dist
+backend/dev.db
+backend/dev.db-journal
