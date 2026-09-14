@@ -137,8 +137,28 @@ export async function createSplitExpense(input: CreateSplitExpenseInput) {
 
         const net = paid.minus(owed);
         if (net.greaterThan(0)) {
+          await tx.transaction.create({
+            data: {
+              userId,
+              accountId: receivableAccount.id,
+              type: 'INCOME', // increasing asset
+              amount: toNumber(net),
+              dateTime: input.date ?? new Date(),
+              notes: `Receivable from ${input.description}`,
+            },
+          });
           await tx.account.update({ where: { id: receivableAccount.id }, data: { balance: { increment: toNumber(net) } } });
         } else if (net.lessThan(0)) {
+          await tx.transaction.create({
+            data: {
+              userId,
+              accountId: payableAccount.id,
+              type: 'EXPENSE', // increasing liability
+              amount: toNumber(net.abs()),
+              dateTime: input.date ?? new Date(),
+              notes: `Payable for ${input.description}`,
+            },
+          });
           await tx.account.update({ where: { id: payableAccount.id }, data: { balance: { increment: toNumber(net.abs()) } } });
         }
       } else if (owed.greaterThan(0)) {
@@ -155,6 +175,21 @@ export async function createSplitExpense(input: CreateSplitExpenseInput) {
         await tx.account.update({ where: { id: payableAccount.id }, data: { balance: { increment: toNumber(owed) } } });
       }
     }
+    
+    // FR-7.2 Audit Log
+    await tx.auditLog.create({
+      data: {
+        entityType: 'SplitExpense',
+        entityId: splitExpense.id,
+        userId: input.payers[0]?.userId, // fallback creator
+        action: 'CREATE',
+        changes: {
+          description: input.description,
+          totalAmount: toNumber(totalAmount),
+          splitType: input.splitType
+        }
+      }
+    });
 
     return splitExpense;
   });

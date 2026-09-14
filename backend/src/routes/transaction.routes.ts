@@ -85,7 +85,7 @@ router.post('/transfer', authenticate, validateBody(transferSchema), async (req:
     // Execute transfer in a transaction
     await prisma.$transaction(async (prisma) => {
       // 1. Create expense transaction on source
-      await prisma.transaction.create({
+      const sourceTx = await prisma.transaction.create({
         data: {
           userId: req.userId as string,
           accountId: sourceAccountId,
@@ -95,7 +95,7 @@ router.post('/transfer', authenticate, validateBody(transferSchema), async (req:
           notes: notes || `Transfer to ${targetAccount.name}`,
         }
       });
-      // 2. Create income transaction on target
+      // 2. Create income transaction on target linked to source
       await prisma.transaction.create({
         data: {
           userId: req.userId as string,
@@ -104,6 +104,7 @@ router.post('/transfer', authenticate, validateBody(transferSchema), async (req:
           amount: amount,
           dateTime,
           notes: notes || `Transfer from ${sourceAccount.name}`,
+          linkedTransactionId: sourceTx.id
         }
       });
       

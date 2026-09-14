@@ -25,8 +25,11 @@ model User {
   transactions      Transaction[]
   groupMembers      GroupMember[]
   splitPayers       SplitPayer[]
-  splitParticipants SplitParticipant[]
-  reminders         Reminder[]
+  splitParticipants   SplitParticipant[]
+  reminders           Reminder[]
+  settlementsPaid     Settlement[]       @relation("SettlementsPaid")
+  settlementsReceived Settlement[]       @relation("SettlementsReceived")
+  auditLogs           AuditLog[]
 }
 
 model Account {
@@ -81,6 +84,10 @@ model Transaction {
   user     User      @relation(fields: [userId], references: [id])
   account  Account   @relation(fields: [accountId], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
+
+  linkedTransactionId String?      @unique
+  linkedTransaction   Transaction? @relation("LinkedTransfer", fields: [linkedTransactionId], references: [id])
+  linkedFrom          Transaction? @relation("LinkedTransfer")
 }
 
 model Group {
@@ -157,4 +164,30 @@ model Reminder {
   updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id])
+}
+
+model Settlement {
+  id        String   @id @default(uuid())
+  payerId   String
+  payeeId   String
+  amount    Decimal  @db.Decimal(14, 2)
+  date      DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payer User @relation("SettlementsPaid", fields: [payerId], references: [id])
+  payee User @relation("SettlementsReceived", fields: [payeeId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   // e.g., "SplitExpense"
+  entityId   String
+  userId     String   // Who made the change
+  action     String   // CREATE, UPDATE, DELETE
+  changes    Json?    // Before/after state snapshot
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
