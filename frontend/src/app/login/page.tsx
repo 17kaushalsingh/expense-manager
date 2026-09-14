@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/auth";
 import { apiClient } from "@/lib/api/client";
 import Link from "next/link";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -78,6 +79,35 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        <div className="my-6 flex items-center before:flex-1 before:border-t before:border-border-soft after:flex-1 after:border-t after:border-border-soft">
+          <span className="px-4 text-xs font-medium text-text-secondary uppercase">Or</span>
+        </div>
+
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                setIsLoading(true);
+                const data = await apiClient.post("/auth/google", { credential: credentialResponse.credential });
+                setAuth(data.token, data.user);
+                router.push("/");
+              } catch (err: any) {
+                setError(err.message || "Google auth failed");
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            onError={() => {
+              setError("Google login failed");
+            }}
+            theme="filled_black"
+            shape="rectangular"
+            size="large"
+            text="signin_with"
+            width="100%"
+          />
+        </div>
 
         <p className="mt-8 text-center text-sm text-text-secondary">
           Don't have an account?{' '}
