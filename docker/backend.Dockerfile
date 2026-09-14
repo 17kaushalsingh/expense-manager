@@ -1,10 +1,9 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # Copy backend package files
 COPY backend/package.json backend/package-lock.json* ./
-# We can just run npm install here.
 RUN npm install
 
 # Copy backend source
@@ -14,7 +13,7 @@ COPY backend/ ./
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 COPY --from=builder /app/package.json ./
