@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { RemindersWidget } from "@/components/reminders/RemindersWidget";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -25,8 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar />
       
       {/* Main Content Area */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 md:pb-8">
-        <div className="max-w-5xl mx-auto space-y-6">
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pb-24 md:pb-8 relative">
+        <div className="absolute top-4 right-4 md:top-8 md:right-8 z-40">
+          <RemindersWidget />
+        </div>
+        <div className="max-w-5xl mx-auto space-y-6 pt-12 md:pt-0">
           {children}
         </div>
       </main>
