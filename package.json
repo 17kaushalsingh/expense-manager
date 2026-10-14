@@ -16,6 +16,6 @@
     "db:push": "npm run db:push -w backend"
   },
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.6"
   }
 }
