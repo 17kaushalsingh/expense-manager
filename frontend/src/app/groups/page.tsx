@@ -1,5 +1,6 @@
 "use client";
 
+import { ErrorMessage } from '@/components/ui/Controls';
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, Plus } from "lucide-react";
 import { useGroups } from "@/hooks/useGroups";
@@ -8,7 +9,7 @@ import { useState } from "react";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 
 export default function GroupsPage() {
-  const { data: groups, isLoading } = useGroups();
+  const { data: groups, isLoading, error } = useGroups();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -24,11 +25,11 @@ export default function GroupsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+      <ErrorMessage error={error}/><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
         {isLoading ? (
           <div className="text-text-secondary p-4">Loading groups...</div>
         ) : groups && groups.length > 0 ? (
-          groups.map((group: any) => (
+          groups.map((group) => (
             <Link key={group.id} href={`/groups/${group.id}`}>
               <div className="bg-surface-primary border border-border-soft rounded-2xl p-5 hover:bg-surface-secondary transition-colors cursor-pointer shadow-sm h-full">
                 <div className="flex items-center justify-between mb-4">
@@ -48,7 +49,7 @@ export default function GroupsPage() {
         )}
       </div>
 
-      <CreateGroupModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {isModalOpen && <CreateGroupModal isOpen onClose={() => setIsModalOpen(false)} />}
     </DashboardLayout>
   );
 }

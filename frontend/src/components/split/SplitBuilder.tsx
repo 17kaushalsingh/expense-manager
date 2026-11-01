@@ -1,164 +1,29 @@
-"use client";
-
-import { useState } from "react";
-import { X, Check } from "lucide-react";
-import { apiClient } from "@/lib/api/client";
-import { useAuthStore } from "@/store/auth";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-
-export function SplitBuilder({ isOpen, onClose, groupId, groupMembers = [] }: { isOpen: boolean, onClose: () => void, groupId?: string, groupMembers?: any[] }) {
-  const [splitMode, setSplitMode] = useState<'EQUAL' | 'EXACT' | 'PERCENTAGE' | 'SHARES'>('EQUAL');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  
-  const { user, token } = useAuthStore();
-  const queryClient = useQueryClient();
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const parsedAmount = parseFloat(amount || '0');
-      
-      // Default: You paid for everything, everyone splits equally
-      const payers = [{ userId: user?.id, amountPaid: parsedAmount }];
-      const participants = groupMembers.length > 0 
-        ? groupMembers.map(m => ({ userId: m.userId, shareValue: splitMode === 'EQUAL' ? 1 : 0 }))
-        : [{ userId: user?.id, shareValue: 1 }]; // fallback if no members
-
-      return apiClient.post('/splits', {
-        groupId: groupId || null,
-        description,
-        totalAmount: parsedAmount,
-        splitType: splitMode,
-        payers,
-        participants
-      }, token || undefined);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['groupSplits'] });
-      queryClient.invalidateQueries({ queryKey: ['groupSimplification'] });
-      queryClient.invalidateQueries({ queryKey: ['netWorth'] });
-      queryClient.invalidateQueries({ queryKey: ['debtSummary'] });
-      onClose();
-      setAmount("");
-      setDescription("");
-    }
-  });
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-bg-base/80 backdrop-blur-sm p-4 sm:p-0">
-      <div className="bg-surface-primary w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-border-soft shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-border-soft flex justify-between items-center bg-surface-primary sticky top-0 z-10">
-          <h2 className="text-lg font-semibold text-text-primary">New Split Expense</h2>
-          <button onClick={onClose} className="p-2 hover:bg-surface-secondary rounded-full transition-colors">
-            <X className="w-5 h-5 text-text-secondary" />
-          </button>
-        </div>
-
-        {/* Scrollable Body */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
-          {/* Amount Input */}
-          <div className="text-center space-y-2">
-            <p className="text-sm text-text-secondary uppercase tracking-wider font-medium">Total Amount</p>
-            <div className="flex items-center justify-center text-5xl font-bold tabular-nums text-text-primary">
-              <span className="text-text-secondary mr-1">$</span>
-              <input 
-                type="number" 
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00" 
-                className="bg-transparent border-none outline-none text-center w-48 focus:ring-0 p-0 placeholder:text-border-soft"
-                autoFocus
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-border-soft">
-            <input 
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What was this for?" 
-              className="w-full bg-surface-secondary border border-border-soft rounded-xl px-4 py-3 text-text-primary outline-none focus:border-brand-primary transition-colors"
-            />
-            
-            <select className="w-full bg-surface-secondary border border-border-soft rounded-xl px-4 py-3 text-text-primary outline-none focus:border-brand-primary transition-colors appearance-none">
-              <option value="you">Paid by You</option>
-            </select>
-          </div>
-
-          {/* Split Modes */}
-          <div className="space-y-3 pt-4 border-t border-border-soft">
-            <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Split Options</h3>
-            <div className="flex p-1 bg-surface-secondary rounded-xl border border-border-soft overflow-x-auto hide-scrollbar">
-              {['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES'].map((mode) => (
-                <button 
-                  key={mode}
-                  onClick={() => setSplitMode(mode as any)}
-                  className={`flex-1 py-2 px-3 text-xs font-medium rounded-lg whitespace-nowrap transition-all ${
-                    splitMode === mode 
-                      ? "bg-surface-primary text-brand-primary shadow-sm ring-1 ring-border-soft" 
-                      : "text-text-secondary hover:text-text-primary"
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Members List (Mocked simplified) */}
-          <div className="space-y-2">
-            {groupMembers.length > 0 ? (
-              groupMembers.map(m => (
-                <MemberSplitRow key={m.userId} name={m.user?.name || 'User'} splitMode={splitMode} />
-              ))
-            ) : (
-              <MemberSplitRow name="You" splitMode={splitMode} />
-            )}
-          </div>
-        </div>
-
-        {/* Real-Time Math Guardrails Footer */}
-        <div className="p-4 border-t border-border-soft bg-surface-secondary/50 backdrop-blur-md sticky bottom-0">
-          <button 
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending || !amount || !description}
-            className="w-full bg-brand-primary text-white font-semibold py-3.5 rounded-xl hover:bg-brand-primary/90 disabled:opacity-50 active:scale-[0.98] transition-all flex justify-center items-center"
-          >
-            {mutation.isPending ? "Saving..." : <><Check className="w-5 h-5 mr-2" /> Save Split</>}
-          </button>
-        </div>
-        
-      </div>
-    </div>
-  );
-}
-
-function MemberSplitRow({ name, splitMode }: { name: string, splitMode: string }) {
-  return (
-    <div className="flex items-center justify-between p-3 rounded-xl hover:bg-surface-secondary transition-colors">
-      <div className="flex items-center space-x-3">
-        <div className="w-8 h-8 rounded-full bg-border-soft flex items-center justify-center font-medium text-xs text-text-primary">
-          {name.charAt(0)}
-        </div>
-        <span className="font-medium text-text-primary text-sm">{name}</span>
-      </div>
-      <div className="flex items-center">
-        {splitMode === 'EQUAL' && <span className="text-sm text-text-secondary tabular-nums">Auto</span>}
-        {splitMode === 'PERCENTAGE' && (
-           <div className="flex items-center border border-border-soft rounded-lg overflow-hidden bg-surface-primary">
-             <input type="number" className="w-12 px-2 py-1 text-right text-sm outline-none bg-transparent" placeholder="0" />
-             <span className="px-2 py-1 text-xs text-text-secondary bg-surface-secondary border-l border-border-soft">%</span>
-           </div>
-        )}
-        {(splitMode === 'EXACT' || splitMode === 'SHARES') && (
-           <input type="number" className="w-20 px-3 py-1.5 text-right text-sm border border-border-soft rounded-lg outline-none focus:border-brand-primary bg-surface-primary" placeholder="0.00" />
-        )}
-      </div>
-    </div>
-  );
+'use client';
+import {useState} from 'react';
+import {useAuthStore} from '@/store/auth';
+import {useAccounts} from '@/hooks/useDashboard';
+import {useResource,useAction} from '@/hooks/useResource';
+import {apiClient} from '@/lib/api/client';
+import {Split,Member,Category} from '@/lib/types';
+import {Modal,ErrorMessage} from '@/components/ui/Controls';
+import {MemberPicker,Person} from '@/components/groups/MemberPicker';
+import {useFormat} from '@/lib/format';
+interface Props {isOpen:boolean;onClose:()=>void;groupId?:string;groupMembers?:Member[];split?:Split;}
+export function SplitBuilder(props:Props){return props.isOpen?<Editor {...props}/>:null;}
+function Editor({onClose,groupId,groupMembers=[],split}:Props){
+ const user=useAuthStore(s=>s.user)!;const {currency}=useFormat(),accounts=useAccounts(),categories=useResource<Category[]>('/categories');
+ const [amount,setAmount]=useState(String(split?.totalAmount??'')),[description,setDescription]=useState(split?.description??''),[mode,setMode]=useState<Split['splitType']>(split?.splitType??'EQUAL');
+ const [extra,setExtra]=useState<Person[]>([]),[excluded,setExcluded]=useState<string[]>([]),[values,setValues]=useState<Record<string,string>>(Object.fromEntries(split?.participants.map(p=>[p.userId,String(p.shareValue??1)])??[]));
+ const [multi,setMulti]=useState((split?.payers.length??0)>1),[paidBy,setPaidBy]=useState(split?.payers[0]?.userId??user.id),[paidValues,setPaidValues]=useState<Record<string,string>>(Object.fromEntries(split?.payers.map(p=>[p.userId,String(p.amountPaid)])??[])),[account,setAccount]=useState(split?.payers.find(p=>p.userId===user.id)?.accountId??''),[category,setCategory]=useState(split?.categoryId??'');
+ const people=groupMembers.length?groupMembers.map(m=>({id:m.userId,name:m.user?.name??'Member'})):[{id:user.id,name:user.name},...extra.filter(p=>p.id!==user.id)];
+ const participants=people.filter(p=>!excluded.includes(p.id));
+ const total=Number(amount),shares=participants.reduce((n,p)=>n+Number(values[p.id]??(mode==='SHARES'?'1':'0')),0);
+ const payers=(multi?people.map(p=>({userId:p.id,amountPaid:Number(paidValues[p.id]||0)})).filter(p=>p.amountPaid>0):[{userId:paidBy,amountPaid:total}]).map(p=>({...p,...(p.userId===user.id&&account?{accountId:account}:{})}));
+ const payerSum=payers.reduce((n,p)=>n+p.amountPaid,0);
+ const valid=total>0&&Number.isFinite(total)&&Math.abs(total*100-Math.round(total*100))<0.0001&&participants.length>0&&payers.length>0&&Math.abs(payerSum-total)<0.001&&(mode==='EQUAL'||(mode==='EXACT'&&Math.abs(shares-total)<0.001)||(mode==='PERCENTAGE'&&Math.abs(shares-100)<0.00001)||(mode==='SHARES'&&shares>0))&&participants.every(p=>Number(values[p.id]??(mode==='SHARES'?'1':'0'))>=0);
+ const action=useAction(async()=>{
+  const body={groupId:groupId??null,description,totalAmount:total,splitType:mode,categoryId:category||null,payers,participants:participants.map(p=>({userId:p.id,...(mode!=='EQUAL'?{shareValue:Number(values[p.id]??(mode==='SHARES'?'1':'0'))}:{})})),date:split?.date??new Date().toISOString()};
+  return split?apiClient.put(`/splits/${split.id}`,body):apiClient.post('/splits',body);
+ },onClose);
+ return <Modal title={split?'Edit split expense':'New split expense'} onClose={onClose}><form className="space-y-4" onSubmit={e=>{e.preventDefault();if(valid)action.mutate();}}><label className="label">Description<input className="field" required value={description} onChange={e=>setDescription(e.target.value)}/></label><label className="label">Total ({currency})<input className="field text-2xl" type="number" step="0.01" min="0.01" required value={amount} onChange={e=>setAmount(e.target.value)}/></label>{!groupId&&<MemberPicker selected={extra} onChange={setExtra}/>}<label className="label">Category<select className="field" value={category} onChange={e=>setCategory(e.target.value)}><option value="">Uncategorized</option>{categories.data?.filter(c=>c.type==='EXPENSE').map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></label><label className="flex gap-2 text-sm"><input type="checkbox" checked={multi} onChange={e=>setMulti(e.target.checked)}/>Multiple payers</label>{multi?<div className="space-y-2">{people.map(p=><label className="label flex justify-between items-center gap-3" key={p.id}>{p.name} paid<input className="field max-w-32" aria-label={`${p.name} paid`} type="number" min="0" step="0.01" value={paidValues[p.id]??''} onChange={e=>setPaidValues({...paidValues,[p.id]:e.target.value})}/></label>)}</div>:<label className="label">Paid by<select className="field" value={paidBy} onChange={e=>setPaidBy(e.target.value)}>{people.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}{payers.some(p=>p.userId===user.id)&&<label className="label">Your paying account<select className="field" value={account} onChange={e=>setAccount(e.target.value)}><option value="">Default cash account</option>{accounts.data?.filter(a=>!['ACCOUNTS_RECEIVABLE','ACCOUNTS_PAYABLE'].includes(a.type)).map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>}<p className="text-xs text-text-secondary">Other members’ payments use their default cash account.</p><label className="label">Split method<select className="field" value={mode} onChange={e=>{setMode(e.target.value as Split['splitType']);setValues({});}}>{['EQUAL','EXACT','PERCENTAGE','SHARES'].map(m=><option key={m}>{m}</option>)}</select></label><div className="space-y-3">{people.map(p=><div className="flex items-center justify-between gap-3" key={p.id}><label className="flex gap-2 text-sm"><input type="checkbox" checked={!excluded.includes(p.id)} onChange={e=>setExcluded(e.target.checked?excluded.filter(id=>id!==p.id):[...excluded,p.id])}/>{p.name}</label>{!excluded.includes(p.id)&&(mode==='EQUAL'?<span className="text-sm">Equal share</span>:<input aria-label={`${p.name} ${mode.toLowerCase()} share`} className="field max-w-32" type="number" min="0" step={mode==='EXACT'?'0.01':'0.0001'} value={values[p.id]??(mode==='SHARES'?'1':'')} onChange={e=>setValues({...values,[p.id]:e.target.value})}/>)}</div>)}</div><p role="status" className="text-xs text-text-secondary">Paid {payerSum.toFixed(2)} / {Number.isFinite(total)?total.toFixed(2):'0.00'}{mode!=='EQUAL'?` · Allocated ${shares.toFixed(mode==='EXACT'?2:4)}${mode==='PERCENTAGE'?'%':''}`:''}. Remainder cents are assigned in participant order.</p><ErrorMessage error={action.error||accounts.error||categories.error}/><button className="btn w-full" disabled={!valid||!description.trim()||action.isPending}>Save split</button></form></Modal>;
 }

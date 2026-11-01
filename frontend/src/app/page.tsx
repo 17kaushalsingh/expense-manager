@@ -1,30 +1,29 @@
 "use client";
 
+import Link from "next/link";
+import { SettlementModal } from "@/components/settlements/SettlementModal";
+import { useFormat } from "@/lib/format";
+import { ErrorMessage } from "@/components/ui/Controls";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { ArrowUpRight, ArrowDownRight, Plus, CreditCard } from "lucide-react";
+import { Plus, CreditCard } from "lucide-react";
 import { SplitBuilder } from "@/components/split/SplitBuilder";
 import { useNetWorth, useAccounts, useDebtSummary } from "@/hooks/useDashboard";
-import { useAuthStore } from "@/store/auth";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [isSplitBuilderOpen, setIsSplitBuilderOpen] = useState(false);
   
-  // For demo/testing without login page yet
-  const { token, setAuth } = useAuthStore();
+  const [settle,setSettle] = useState(false);
   
   // Fetch real data
-  const { data: netWorthData, isLoading: isNetWorthLoading } = useNetWorth();
-  const { data: accounts, isLoading: isAccountsLoading } = useAccounts();
-  const { data: debtSummary, isLoading: isDebtLoading } = useDebtSummary();
+  const { data: netWorthData, isLoading: isNetWorthLoading, error: netWorthError } = useNetWorth();
+  const { data: accounts, isLoading: isAccountsLoading, error: accountsError } = useAccounts();
+  const { data: debtSummary, isLoading: isDebtLoading, error: debtError } = useDebtSummary();
 
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+  const {money: formatCurrency} = useFormat();
 
   return (
-    <DashboardLayout>
+    <DashboardLayout><ErrorMessage error={netWorthError || accountsError || debtError}/>
       {/* HERO BALANCE CARD */}
       <section className="bg-surface-primary border border-border-soft rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="space-y-2">
@@ -49,13 +48,13 @@ export default function Home() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Accounts Vault</h3>
-            <button className="text-sm text-brand-primary font-medium hover:underline">View All</button>
+            <Link href="/accounts" className="text-sm text-brand-primary font-medium hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
             {isAccountsLoading ? (
                <div className="p-4 text-center text-text-secondary animate-pulse">Loading accounts...</div>
             ) : accounts && accounts.length > 0 ? (
-               accounts.filter((a: any) => !['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE'].includes(a.type)).map((acc: any) => (
+               accounts.filter((a) => !['ACCOUNTS_RECEIVABLE', 'ACCOUNTS_PAYABLE'].includes(a.type)).map((acc) => (
                  <AccountCard 
                    key={acc.id} 
                    name={acc.name} 
@@ -74,7 +73,7 @@ export default function Home() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Pending Debts</h3>
-            <button className="p-2 bg-surface-secondary rounded-full hover:bg-border-soft transition-colors">
+            <button onClick={() => setIsSplitBuilderOpen(true)} aria-label="Add split" className="p-2 bg-surface-secondary rounded-full hover:bg-border-soft transition-colors">
               <Plus className="w-4 h-4 text-text-primary" />
             </button>
           </div>
@@ -91,7 +90,7 @@ export default function Home() {
               >
                 + Add Split
               </button>
-              <button className="flex-1 bg-surface-secondary text-text-primary font-medium py-2.5 rounded-lg hover:bg-border-soft transition-colors border border-border-soft">
+              <button onClick={() => setSettle(true)} className="flex-1 bg-surface-secondary text-text-primary font-medium py-2.5 rounded-lg hover:bg-border-soft transition-colors border border-border-soft">
                 Settle Up
               </button>
             </div>
@@ -99,6 +98,7 @@ export default function Home() {
         </section>
       </div>
 
+      {settle && <SettlementModal onClose={() => setSettle(false)}/>}
       <SplitBuilder isOpen={isSplitBuilderOpen} onClose={() => setIsSplitBuilderOpen(false)} />
     </DashboardLayout>
   );
