@@ -1,9 +1,17 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const nonEmptyString = z.string().trim().min(1);
 const optionalString = z.string().trim().min(1).optional();
 const optionalDate = z.coerce.date().optional();
-const money = z.coerce.number().finite().positive().max(999999999999.99).refine(n => Math.abs(n * 100 - Math.round(n * 100)) < 0.0001, 'Use at most two decimal places');
+const money = z.coerce
+  .number()
+  .finite()
+  .positive()
+  .max(999999999999.99)
+  .refine(
+    (n) => Math.abs(n * 100 - Math.round(n * 100)) < 0.0001,
+    "Use at most two decimal places",
+  );
 const signedMoney = z.coerce.number().finite();
 const jsonObject = z.record(z.string(), z.unknown());
 
@@ -19,7 +27,10 @@ export const loginSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  displayCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  displayCurrency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
   timezone: optionalString,
   name: optionalString,
 });
@@ -32,20 +43,25 @@ export const createAccountSchema = z.object({
   metadata: jsonObject.optional(),
 });
 
-export const updateAccountSchema = createAccountSchema.partial().refine(
-  (body) => Object.keys(body).length > 0,
-  'At least one account field is required'
-);
+export const updateAccountSchema = createAccountSchema
+  .partial()
+  .refine(
+    (body) => Object.keys(body).length > 0,
+    "At least one account field is required",
+  );
 
 export const createCategorySchema = z.object({
   name: nonEmptyString,
-  type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+  type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
 });
 
 export const createGroupSchema = z.object({
   name: nonEmptyString,
   memberIds: z.array(z.uuid()).optional(),
-  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
 });
 
 export const addGroupMemberSchema = z.object({
@@ -55,7 +71,7 @@ export const addGroupMemberSchema = z.object({
 export const createTransactionSchema = z.object({
   accountId: nonEmptyString,
   categoryId: nonEmptyString.nullable().optional(),
-  type: z.enum(['INCOME', 'EXPENSE']),
+  type: z.enum(["INCOME", "EXPENSE"]),
   amount: money,
   dateTime: z.coerce.date(),
   tags: z.array(nonEmptyString).optional(),
@@ -81,8 +97,16 @@ export const createSplitExpenseSchema = z.object({
   description: nonEmptyString,
   categoryId: z.uuid().nullable().optional(),
   totalAmount: money,
-  splitType: z.enum(['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES']),
-  payers: z.array(z.object({ userId: nonEmptyString, amountPaid: money, accountId: z.uuid().optional() })).min(1),
+  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
+  payers: z
+    .array(
+      z.object({
+        userId: nonEmptyString,
+        amountPaid: money,
+        accountId: z.uuid().optional(),
+      }),
+    )
+    .min(1),
   participants: z.array(splitPartySchema).min(1),
   date: optionalDate,
 });
@@ -90,7 +114,7 @@ export const createSplitExpenseSchema = z.object({
 export const createSettlementSchema = z.object({
   payeeId: z.uuid(),
   groupId: z.uuid().nullable().optional(),
-  method: z.enum(['CASH','BANK_TRANSFER','CARD','OTHER']).optional(),
+  method: z.enum(["CASH", "BANK_TRANSFER", "CARD", "OTHER"]).optional(),
   amount: money,
   accountId: nonEmptyString,
   date: optionalDate,

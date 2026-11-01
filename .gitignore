@@ -5,3 +5,9 @@ node_modules/
 .DS_Store
 dist/
 *.tsbuildinfo
+
+# Supabase CLI state and local test credentials
+supabase/.temp/
+supabase/.branches/
+.env.integration.local
+oauth_client_secret.json

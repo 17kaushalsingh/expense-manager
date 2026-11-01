@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorMessage } from '@/components/ui/Controls';
+import { ErrorMessage } from "@/components/ui/Controls";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Users, Plus } from "lucide-react";
 import { useGroups } from "@/hooks/useGroups";
@@ -16,7 +16,7 @@ export default function GroupsPage() {
     <DashboardLayout>
       <div className="flex items-center justify-between pb-4 border-b border-border-soft">
         <h1 className="text-2xl font-bold tracking-tight">Your Groups</h1>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center bg-brand-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-brand-primary/90 transition-colors"
         >
@@ -25,7 +25,8 @@ export default function GroupsPage() {
         </button>
       </div>
 
-      <ErrorMessage error={error}/><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+      <ErrorMessage error={error} />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
         {isLoading ? (
           <div className="text-text-secondary p-4">Loading groups...</div>
         ) : groups && groups.length > 0 ? (
@@ -33,12 +34,16 @@ export default function GroupsPage() {
             <Link key={group.id} href={`/groups/${group.id}`}>
               <div className="bg-surface-primary border border-border-soft rounded-2xl p-5 hover:bg-surface-secondary transition-colors cursor-pointer shadow-sm h-full">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-lg text-text-primary">{group.name}</h3>
+                  <h3 className="font-semibold text-lg text-text-primary">
+                    {group.name}
+                  </h3>
                   <div className="w-8 h-8 rounded-full bg-surface-secondary flex items-center justify-center border border-border-soft">
                     <Users className="w-4 h-4 text-text-secondary" />
                   </div>
                 </div>
-                <p className="text-sm text-text-secondary">{group.members?.length || 1} Members</p>
+                <p className="text-sm text-text-secondary">
+                  {group.members?.length || 1} Members
+                </p>
               </div>
             </Link>
           ))
@@ -49,7 +54,9 @@ export default function GroupsPage() {
         )}
       </div>
 
-      {isModalOpen && <CreateGroupModal isOpen onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && (
+        <CreateGroupModal isOpen onClose={() => setIsModalOpen(false)} />
+      )}
     </DashboardLayout>
   );
 }

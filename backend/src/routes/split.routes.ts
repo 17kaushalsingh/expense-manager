@@ -1,12 +1,60 @@
-import { Router } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
-import { validateBody } from '../middleware/validate';
-import { createSplitExpenseSchema } from '../validation/schemas';
-import { createSplitExpense } from '../services/splitExpenseService';
-import { camelCase,dbResult,rpc } from '../db';
-const router=Router();router.use(authenticate);
-router.post('/',validateBody(createSplitExpenseSchema),async(req:AuthRequest,res)=>res.status(201).json(await createSplitExpense(req.db!,req.body)));
-router.get('/group/:groupId',async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('split_expenses').select('*,payers:split_payers(*),participants:split_participants(*)').eq('group_id',req.params.groupId).order('date',{ascending:false})))));
-router.put('/:id',validateBody(createSplitExpenseSchema),async(req:AuthRequest,res)=>res.json(await rpc(req.db!,'create_split_expense_atomic',{p_input:req.body,p_id:req.params.id})));
-router.delete('/:id',async(req:AuthRequest,res)=>{await rpc(req.db!,'create_split_expense_atomic',{p_input:{},p_id:req.params.id,p_delete:true});res.status(204).send();});
+import { Router } from "express";
+import { authenticate, AuthRequest } from "../middleware/auth";
+import { validateBody } from "../middleware/validate";
+import { createSplitExpenseSchema } from "../validation/schemas";
+import { createSplitExpense } from "../services/splitExpenseService";
+import { camelCase, dbResult, rpc } from "../db";
+const router = Router();
+router.use(authenticate);
+router.post(
+  "/",
+  validateBody(createSplitExpenseSchema),
+  async (req: AuthRequest, res) =>
+    res.status(201).json(await createSplitExpense(req.db!, req.body)),
+);
+router.get("/group/:groupId", async (req: AuthRequest, res) =>
+  res.json(
+    camelCase(
+      dbResult(
+        await req
+          .db!.from("split_expenses")
+          .select("*,payers:split_payers(*),participants:split_participants(*)")
+          .eq("group_id", req.params.groupId as string)
+          .order("date", { ascending: false }),
+      ),
+    ),
+  ),
+);
+router.put(
+  "/:id",
+  validateBody(createSplitExpenseSchema),
+  async (req: AuthRequest, res) =>
+    res.json(
+      await rpc(req.db!, "create_split_expense_atomic", {
+        p_input: req.body,
+        p_id: req.params.id,
+      }),
+    ),
+);
+router.delete("/:id", async (req: AuthRequest, res) => {
+  await rpc(req.db!, "create_split_expense_atomic", {
+    p_input: {},
+    p_id: req.params.id,
+    p_delete: true,
+  });
+  res.status(204).send();
+});
+router.get("/", async (req: AuthRequest, res) =>
+  res.json(
+    camelCase(
+      dbResult(
+        await req
+          .db!.from("split_expenses")
+          .select("*,payers:split_payers(*),participants:split_participants(*)")
+          .is("group_id", null)
+          .order("date", { ascending: false }),
+      ),
+    ),
+  ),
+);
 export default router;

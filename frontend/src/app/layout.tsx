@@ -25,17 +25,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'placeholder-client-id.apps.googleusercontent.com';
-  
+  const clientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    "placeholder-client-id.apps.googleusercontent.com";
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <GoogleOAuthProvider clientId={clientId}>
-          <QueryProvider>
-            {children}
-          </QueryProvider>
+          <QueryProvider>{children}</QueryProvider>
         </GoogleOAuthProvider>
       </body>
     </html>

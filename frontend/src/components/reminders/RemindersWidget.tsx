@@ -1,13 +1,151 @@
-'use client';
-import {useState} from 'react';
-import {useReminders,useCompleteReminder,useDismissReminder} from '@/hooks/useReminders';
-import {useAction} from '@/hooks/useResource';
-import {apiClient} from '@/lib/api/client';
-import {Modal,ErrorMessage} from '@/components/ui/Controls';
-import {useFormat} from '@/lib/format';
-export function RemindersWidget(){
- const reminders=useReminders(),complete=useCompleteReminder(),read=useDismissReminder(),{date}=useFormat();const [open,setOpen]=useState(false),[create,setCreate]=useState(false);
- const remove=useAction((id:string)=>apiClient.delete(`/reminders/${id}`));
- const add=useAction((body:Record<string,unknown>)=>apiClient.post('/reminders',body),()=>setCreate(false));
- return <div><button className="btn-secondary" onClick={()=>setOpen(!open)} aria-expanded={open}>Reminders ({reminders.data?.filter(r=>!r.isRead&&!r.isCompleted).length??0})</button>{open&&<section className="absolute right-4 z-40 panel w-[min(90vw,24rem)] space-y-3 shadow-lg mt-2"><div className="flex justify-between"><h2 className="font-semibold">Reminders</h2><button className="text-brand-primary" onClick={()=>setCreate(true)}>Add</button></div><ErrorMessage error={reminders.error||complete.error||read.error||remove.error}/>{reminders.isLoading&&<p>Loading…</p>}{reminders.data?.length===0&&<p>No reminders yet.</p>}<div className="max-h-80 overflow-y-auto space-y-3">{reminders.data?.map(r=><article key={r.id} className="border-t border-border-soft pt-3 space-y-2"><h3 className={r.isCompleted?'line-through text-text-secondary':'font-medium'}>{r.title}</h3><p className="text-xs text-text-secondary">{date(r.dueDate)}</p>{r.description&&<p className="text-sm">{r.description}</p>}<div className="flex gap-3 text-xs">{!r.isCompleted&&<button disabled={complete.isPending} onClick={()=>complete.mutate(r.id)}>Complete</button>}{!r.isRead&&<button disabled={read.isPending} onClick={()=>read.mutate(r.id)}>Mark read</button>}<button className="text-negative" disabled={remove.isPending} onClick={()=>remove.mutate(r.id)}>Delete</button></div></article>)}</div></section>}{create&&<Modal title="New reminder" onClose={()=>setCreate(false)}><form className="space-y-4" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);add.mutate({title:f.get('title'),description:f.get('description'),type:f.get('type'),dueDate:new Date(String(f.get('dueDate'))).toISOString()});}}><label className="label">Title<input className="field" name="title" required/></label><label className="label">Description<textarea className="field" name="description"/></label><label className="label">Type<select className="field" name="type">{['CUSTOM','DEBT','CREDIT_CARD_BILL','EMI'].map(t=><option key={t}>{t}</option>)}</select></label><label className="label">Due<input className="field" name="dueDate" type="datetime-local" required/></label><ErrorMessage error={add.error}/><button className="btn" disabled={add.isPending}>Create reminder</button></form></Modal>}</div>;
+"use client";
+import { useState } from "react";
+import {
+  useReminders,
+  useCompleteReminder,
+  useDismissReminder,
+} from "@/hooks/useReminders";
+import { useAction } from "@/hooks/useResource";
+import { apiClient } from "@/lib/api/client";
+import { Modal, ErrorMessage } from "@/components/ui/Controls";
+import { useFormat } from "@/lib/format";
+export function RemindersWidget() {
+  const reminders = useReminders(),
+    complete = useCompleteReminder(),
+    read = useDismissReminder(),
+    { date } = useFormat();
+  const [open, setOpen] = useState(false),
+    [create, setCreate] = useState(false);
+  const remove = useAction((id: string) =>
+    apiClient.delete(`/reminders/${id}`),
+  );
+  const add = useAction(
+    (body: Record<string, unknown>) => apiClient.post("/reminders", body),
+    () => setCreate(false),
+  );
+  return (
+    <div>
+      <button
+        className="btn-secondary"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
+        Reminders (
+        {reminders.data?.filter((r) => !r.isRead && !r.isCompleted).length ?? 0}
+        )
+      </button>
+      {open && (
+        <section className="absolute right-4 z-40 panel w-[min(90vw,24rem)] space-y-3 shadow-lg mt-2">
+          <div className="flex justify-between">
+            <h2 className="font-semibold">Reminders</h2>
+            <button
+              className="text-brand-primary"
+              onClick={() => setCreate(true)}
+            >
+              Add
+            </button>
+          </div>
+          <ErrorMessage
+            error={
+              reminders.error || complete.error || read.error || remove.error
+            }
+          />
+          {reminders.isLoading && <p>Loading…</p>}
+          {reminders.data?.length === 0 && <p>No reminders yet.</p>}
+          <div className="max-h-80 overflow-y-auto space-y-3">
+            {reminders.data?.map((r) => (
+              <article
+                key={r.id}
+                className="border-t border-border-soft pt-3 space-y-2"
+              >
+                <h3
+                  className={
+                    r.isCompleted
+                      ? "line-through text-text-secondary"
+                      : "font-medium"
+                  }
+                >
+                  {r.title}
+                </h3>
+                <p className="text-xs text-text-secondary">{date(r.dueDate)}</p>
+                {r.description && <p className="text-sm">{r.description}</p>}
+                <div className="flex gap-3 text-xs">
+                  {!r.isCompleted && (
+                    <button
+                      disabled={complete.isPending}
+                      onClick={() => complete.mutate(r.id)}
+                    >
+                      Complete
+                    </button>
+                  )}
+                  {!r.isRead && (
+                    <button
+                      disabled={read.isPending}
+                      onClick={() => read.mutate(r.id)}
+                    >
+                      Mark read
+                    </button>
+                  )}
+                  <button
+                    className="text-negative"
+                    disabled={remove.isPending}
+                    onClick={() => remove.mutate(r.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      {create && (
+        <Modal title="New reminder" onClose={() => setCreate(false)}>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const f = new FormData(e.currentTarget);
+              add.mutate({
+                title: f.get("title"),
+                description: f.get("description"),
+                type: f.get("type"),
+                dueDate: new Date(String(f.get("dueDate"))).toISOString(),
+              });
+            }}
+          >
+            <label className="label">
+              Title
+              <input className="field" name="title" required />
+            </label>
+            <label className="label">
+              Description
+              <textarea className="field" name="description" />
+            </label>
+            <label className="label">
+              Type
+              <select className="field" name="type">
+                {["CUSTOM", "DEBT", "CREDIT_CARD_BILL", "EMI"].map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+            <label className="label">
+              Due
+              <input
+                className="field"
+                name="dueDate"
+                type="datetime-local"
+                required
+              />
+            </label>
+            <ErrorMessage error={add.error} />
+            <button className="btn" disabled={add.isPending}>
+              Create reminder
+            </button>
+          </form>
+        </Modal>
+      )}
+    </div>
+  );
 }

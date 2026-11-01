@@ -2,33 +2,33 @@
 
 :root {
   /* Light Mode */
-  --bg-base: #F8F9FA;
-  --surface-primary: #FFFFFF;
-  --surface-secondary: #F1F5F9;
-  --border-soft: #E2E8F0;
-  
-  --brand-primary: #0052FF;
-  --positive: #00A870;
-  --negative: #E53935;
+  --bg-base: #f8f9fa;
+  --surface-primary: #ffffff;
+  --surface-secondary: #f1f5f9;
+  --border-soft: #e2e8f0;
+
+  --brand-primary: #0052ff;
+  --positive: #00a870;
+  --negative: #e53935;
 
   --text-primary: #121721;
-  --text-secondary: #64748B;
+  --text-secondary: #64748b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     /* Dark Mode */
-    --bg-base: #0A0D12;
+    --bg-base: #0a0d12;
     --surface-primary: #121721;
-    --surface-secondary: #1B2230;
+    --surface-secondary: #1b2230;
     --border-soft: #263040;
-    
-    --brand-primary: #0052FF;
-    --positive: #00D395;
-    --negative: #FF4D4D;
 
-    --text-primary: #FFFFFF;
-    --text-secondary: #94A3B8;
+    --brand-primary: #0052ff;
+    --positive: #00d395;
+    --negative: #ff4d4d;
+
+    --text-primary: #ffffff;
+    --text-secondary: #94a3b8;
   }
 }
 
@@ -40,7 +40,7 @@
   --color-brand-primary: var(--brand-primary);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
-  
+
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
 
@@ -55,10 +55,26 @@ body {
 }
 
 @layer components {
- .panel { @apply bg-surface-primary border border-border-soft rounded-2xl p-5; }
- .field { @apply block w-full bg-surface-secondary border border-border-soft rounded-lg px-3 py-2 text-text-primary mt-1; }
- .label { @apply block text-sm text-text-secondary; }
- .btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 bg-brand-primary text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed; }
- .btn-secondary { @apply inline-flex items-center justify-center rounded-lg px-3 py-2 bg-surface-secondary border border-border-soft text-text-primary disabled:opacity-50; }
+  .panel {
+    @apply bg-surface-primary border border-border-soft rounded-2xl p-5;
+  }
+  .field {
+    @apply block w-full bg-surface-secondary border border-border-soft rounded-lg px-3 py-2 text-text-primary mt-1;
+  }
+  .label {
+    @apply block text-sm text-text-secondary;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 bg-brand-primary text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 bg-surface-secondary border border-border-soft text-text-primary disabled:opacity-50;
+  }
 }
-button, a, input, select, textarea { outline-offset: 3px; }
+button,
+a,
+input,
+select,
+textarea {
+  outline-offset: 3px;
+}
