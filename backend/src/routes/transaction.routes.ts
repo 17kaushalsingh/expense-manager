@@ -13,4 +13,7 @@ router.get('/',async(req:AuthRequest,res)=>{
 });
 router.post('/',validateBody(createTransactionSchema),async(req:AuthRequest,res)=>res.status(201).json(await rpc(req.db!,'mutate_transaction_atomic',{p_input:req.body})));
 router.post('/transfer',validateBody(transferSchema),async(req:AuthRequest,res)=>res.json(await rpc(req.db!,'transfer_accounts_atomic',{p_input:req.body})));
+router.get('/:id',async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('transactions').select('*,account:accounts(id,name,type,currency),category:categories(id,name)').eq('id',req.params.id).single()))));
+router.put('/:id',validateBody(createTransactionSchema),async(req:AuthRequest,res)=>res.json(await rpc(req.db!,'mutate_transaction_atomic',{p_input:req.body,p_id:req.params.id})));
+router.delete('/:id',async(req:AuthRequest,res)=>{await rpc(req.db!,'mutate_transaction_atomic',{p_input:{},p_id:req.params.id,p_delete:true});res.status(204).send();});
 export default router;

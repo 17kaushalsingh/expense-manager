@@ -65,3 +65,13 @@ describe('calculateSplitParticipants', () => {
     ).toThrow('Shares must be greater than zero');
   });
 });
+
+describe('cent conservation',()=>{
+  for(const splitType of ['EQUAL','PERCENTAGE','SHARES'] as const) it(`conserves cents for ${splitType}`,()=>{
+    const result=calculateSplitParticipants({description:'Odd cents',totalAmount:10,splitType,payers:[{userId:'a',amountPaid:10}],participants:[{userId:'a',shareValue:splitType==='PERCENTAGE'?33.3333:1},{userId:'b',shareValue:splitType==='PERCENTAGE'?33.3333:1},{userId:'c',shareValue:splitType==='PERCENTAGE'?33.3334:1}]});
+    expect(result.reduce((n,p)=>n+Math.round(toNumber(p.amountOwed)*100),0)).toBe(1000);
+    expect(toNumber(result[0].amountOwed)).toBe(3.34);
+  });
+  it('rejects duplicate participants',()=>expect(()=>calculateSplitParticipants({description:'Duplicate',totalAmount:10,splitType:'EQUAL',payers:[{userId:'a',amountPaid:10}],participants:[{userId:'a'},{userId:'a'}]})).toThrow('Duplicate'));
+  it('accepts exact allocations',()=>expect(calculateSplitParticipants({description:'Exact',totalAmount:10,splitType:'EXACT',payers:[{userId:'a',amountPaid:10}],participants:[{userId:'a',shareValue:4},{userId:'b',shareValue:6}]}).map(p=>toNumber(p.amountOwed))).toEqual([4,6]));
+});
