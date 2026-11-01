@@ -3,7 +3,7 @@ import { z } from 'zod';
 const nonEmptyString = z.string().trim().min(1);
 const optionalString = z.string().trim().min(1).optional();
 const optionalDate = z.coerce.date().optional();
-const money = z.coerce.number().finite().positive();
+const money = z.coerce.number().finite().positive().max(999999999999.99).refine(n => Math.abs(n * 100 - Math.round(n * 100)) < 0.0001, 'Use at most two decimal places');
 const signedMoney = z.coerce.number().finite();
 const jsonObject = z.record(z.string(), z.unknown());
 
@@ -19,7 +19,7 @@ export const loginSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  displayCurrency: optionalString,
+  displayCurrency: z.string().regex(/^[A-Z]{3}$/).optional(),
   timezone: optionalString,
   name: optionalString,
 });
@@ -44,7 +44,8 @@ export const createCategorySchema = z.object({
 
 export const createGroupSchema = z.object({
   name: nonEmptyString,
-  memberIds: z.array(nonEmptyString).optional(),
+  memberIds: z.array(z.uuid()).optional(),
+  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
 });
 
 export const addGroupMemberSchema = z.object({
@@ -54,7 +55,7 @@ export const addGroupMemberSchema = z.object({
 export const createTransactionSchema = z.object({
   accountId: nonEmptyString,
   categoryId: nonEmptyString.nullable().optional(),
-  type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+  type: z.enum(['INCOME', 'EXPENSE']),
   amount: money,
   dateTime: z.coerce.date(),
   tags: z.array(nonEmptyString).optional(),
@@ -78,15 +79,18 @@ const splitPartySchema = z.object({
 export const createSplitExpenseSchema = z.object({
   groupId: nonEmptyString.nullable().optional(),
   description: nonEmptyString,
+  categoryId: z.uuid().nullable().optional(),
   totalAmount: money,
   splitType: z.enum(['EQUAL', 'EXACT', 'PERCENTAGE', 'SHARES']),
-  payers: z.array(z.object({ userId: nonEmptyString, amountPaid: money })).min(1),
+  payers: z.array(z.object({ userId: nonEmptyString, amountPaid: money, accountId: z.uuid().optional() })).min(1),
   participants: z.array(splitPartySchema).min(1),
   date: optionalDate,
 });
 
 export const createSettlementSchema = z.object({
-  payeeId: nonEmptyString,
+  payeeId: z.uuid(),
+  groupId: z.uuid().nullable().optional(),
+  method: z.enum(['CASH','BANK_TRANSFER','CARD','OTHER']).optional(),
   amount: money,
   accountId: nonEmptyString,
   date: optionalDate,

@@ -1,82 +1,11 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db';
+import { Router } from 'express';
+import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
-
-const router = Router();
-
-// Get all reminders for a user
-router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const reminders = await prisma.reminder.findMany({
-      where: { userId: req.userId! },
-      orderBy: { dueDate: 'asc' }
-    });
-    res.json(reminders);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch reminders' });
-  }
-});
-
-// Create a reminder
-router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
-  const { title, description, type, dueDate } = req.body;
-  if (!title || !type || !dueDate) {
-    res.status(400).json({ error: 'Missing required fields' });
-    return;
-  }
-
-  try {
-    const reminder = await prisma.reminder.create({
-      data: {
-        userId: req.userId!,
-        title,
-        description,
-        type,
-        dueDate: new Date(dueDate)
-      }
-    });
-    res.status(201).json(reminder);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create reminder' });
-  }
-});
-
-// Mark as completed
-router.patch('/:id/complete', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const reminder = await prisma.reminder.update({
-      where: { id: req.params.id as string, userId: req.userId! },
-      data: { isCompleted: true, isRead: true }
-    });
-    res.json(reminder);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update reminder' });
-  }
-});
-
-// Mark as read
-router.patch('/:id/read', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const reminder = await prisma.reminder.update({
-      where: { id: req.params.id as string, userId: req.userId! },
-      data: { isRead: true }
-    });
-    res.json(reminder);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update reminder' });
-  }
-});
-
-// Delete a reminder
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    await prisma.reminder.delete({
-      where: { id: req.params.id as string, userId: req.userId! }
-    });
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete reminder' });
-  }
-});
-
+import { validateBody } from '../middleware/validate';
+import { camelCase,dbResult,snakeCase } from '../db';
+const router=Router();router.use(authenticate);
+router.get('/',async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('reminders').select('*').order('due_date')))));
+router.post('/',validateBody(z.object({title:z.string().trim().min(1),description:z.string().optional(),type:z.enum(['CUSTOM','DEBT','CREDIT_CARD_BILL','EMI']),dueDate:z.coerce.date()})),async(req:AuthRequest,res)=>res.status(201).json(camelCase(dbResult(await req.db!.from('reminders').insert({...snakeCase(req.body),user_id:req.userId}).select().single()))));
+for(const action of ['read','complete']) router.patch(`/:id/${action}`,async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('reminders').update(action==='read'?{is_read:true}:{is_read:true,is_completed:true}).eq('id',req.params.id).select().single()))));
+router.delete('/:id',async(req:AuthRequest,res)=>{dbResult(await req.db!.from('reminders').delete().eq('id',req.params.id).select().single());res.status(204).send();});
 export default router;

@@ -1,196 +1,25 @@
-import { Prisma } from '@prisma/client';
+import Decimal from 'decimal.js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { HttpError } from '../errors/httpError';
-import { prisma } from '../db';
-import { CENT, decimal, toCents, toNumber } from '../utils/money';
+import { rpc } from '../db';
+import { decimal } from '../utils/money';
 import { CreateSplitExpenseInput } from '../validation/schemas';
-
-type SplitParticipantWithAmount = CreateSplitExpenseInput['participants'][number] & {
-  amountOwed: Prisma.Decimal;
-};
-
-function assertNearlyEqual(left: Prisma.Decimal, right: Prisma.Decimal, message: string) {
-  if (left.minus(right).abs().greaterThan(CENT)) {
-    throw new HttpError(400, message);
-  }
+export function calculateSplitParticipants(input: CreateSplitExpenseInput) {
+  const fail = (message: string): never => { throw new HttpError(400,message); };
+  if (!input.participants.length || new Set(input.participants.map(p=>p.userId)).size!==input.participants.length || new Set(input.payers.map(p=>p.userId)).size!==input.payers.length) fail('Duplicate or missing parties');
+  const total=decimal(input.totalAmount);
+  if (total.lte(0) || !total.eq(total.toDecimalPlaces(2))) fail('Invalid amount');
+  const weights=input.participants.map(p=>decimal(input.splitType==='EQUAL' ? 1 : p.shareValue ?? -1));
+  if (weights.some(w=>w.isNegative())) fail('Missing or negative share');
+  const sum=weights.reduce((a,b)=>a.plus(b),decimal(0));
+  if (input.splitType==='EXACT' && (!sum.eq(total) || weights.some(w=>!w.eq(w.toDecimalPlaces(2))))) fail('Exact amounts do not sum up to total amount');
+  if (input.splitType==='PERCENTAGE' && !sum.eq(100)) fail('Percentages do not sum to 100');
+  if (sum.lte(0)) fail('Shares must be greater than zero');
+  const amounts=weights.map(w=>input.splitType==='EXACT' ? w : total.mul(100).mul(w).div(sum).floor().div(100));
+  const remainder=total.minus(amounts.reduce((a,b)=>a.plus(b),decimal(0))).mul(100).toNumber();
+  return input.participants.map((p,i)=>({...p,amountOwed: amounts[i].plus(i<remainder ? '0.01' : 0) as Decimal}));
 }
-
-export function calculateSplitParticipants(input: CreateSplitExpenseInput): SplitParticipantWithAmount[] {
-  const totalAmount = decimal(input.totalAmount);
-
-  if (input.splitType === 'EQUAL') {
-    const splitAmount = toCents(totalAmount.div(input.participants.length));
-    return input.participants.map((participant) => ({ ...participant, amountOwed: splitAmount }));
-  }
-
-  if (input.splitType === 'EXACT') {
-    const participants = input.participants.map((participant) => ({
-      ...participant,
-      amountOwed: toCents(participant.shareValue ?? 0),
-    }));
-    const exactSum = participants.reduce((sum, participant) => sum.plus(participant.amountOwed), decimal(0));
-    assertNearlyEqual(exactSum, totalAmount, 'Exact amounts do not sum up to total amount');
-    return participants;
-  }
-
-  if (input.splitType === 'PERCENTAGE') {
-    const pctSum = input.participants.reduce((sum, participant) => sum.plus(participant.shareValue ?? 0), decimal(0));
-    assertNearlyEqual(pctSum, decimal(100), 'Percentages do not sum to 100');
-
-    return input.participants.map((participant) => ({
-      ...participant,
-      amountOwed: toCents(totalAmount.mul(participant.shareValue ?? 0).div(100)),
-    }));
-  }
-
-  const totalShares = input.participants.reduce((sum, participant) => sum.plus(participant.shareValue ?? 0), decimal(0));
-  if (totalShares.lessThanOrEqualTo(0)) {
-    throw new HttpError(400, 'Shares must be greater than zero');
-  }
-
-  return input.participants.map((participant) => ({
-    ...participant,
-    amountOwed: toCents(totalAmount.mul(participant.shareValue ?? 0).div(totalShares)),
-  }));
-}
-
-async function getOrCreateVirtualAccount(
-  tx: Prisma.TransactionClient,
-  userId: string,
-  type: string,
-  name: string
-) {
-  const existing = await tx.account.findFirst({ where: { userId, type } });
-  if (existing) return existing;
-
-  return tx.account.create({ data: { userId, name, type } });
-}
-
-export async function createSplitExpense(input: CreateSplitExpenseInput) {
-  const totalAmount = decimal(input.totalAmount);
-  const totalPaid = input.payers.reduce((sum, payer) => sum.plus(payer.amountPaid), decimal(0));
-  assertNearlyEqual(totalPaid, totalAmount, 'Total paid does not match total amount');
-
-  const participants = calculateSplitParticipants(input);
-  const allUserIds = new Set<string>([
-    ...input.payers.map((payer) => payer.userId),
-    ...input.participants.map((participant) => participant.userId),
-  ]);
-
-  return prisma.$transaction(async (tx) => {
-    const splitExpense = await tx.splitExpense.create({
-      data: {
-        groupId: input.groupId,
-        description: input.description,
-        totalAmount: toNumber(totalAmount),
-        splitType: input.splitType,
-        date: input.date ?? new Date(),
-        payers: {
-          create: input.payers.map((payer) => ({
-            userId: payer.userId,
-            amountPaid: payer.amountPaid,
-          })),
-        },
-        participants: {
-          create: participants.map((participant) => ({
-            userId: participant.userId,
-            shareValue: participant.shareValue,
-            amountOwed: toNumber(participant.amountOwed),
-          })),
-        },
-      },
-      include: { payers: true, participants: true },
-    });
-
-    for (const userId of allUserIds) {
-      const paid = decimal(input.payers.find((payer) => payer.userId === userId)?.amountPaid ?? 0);
-      const owed = participants.find((participant) => participant.userId === userId)?.amountOwed ?? decimal(0);
-
-      const receivableAccount = await getOrCreateVirtualAccount(tx, userId, 'ACCOUNTS_RECEIVABLE', 'Receivables');
-      const payableAccount = await getOrCreateVirtualAccount(tx, userId, 'ACCOUNTS_PAYABLE', 'Payables');
-      const cashAccount = await getOrCreateVirtualAccount(tx, userId, 'CASH', 'Cash');
-
-      if (paid.greaterThan(0)) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            accountId: cashAccount.id,
-            type: 'EXPENSE',
-            amount: toNumber(paid),
-            dateTime: input.date ?? new Date(),
-            notes: `Paid for ${input.description}`,
-          },
-        });
-        await tx.account.update({ where: { id: cashAccount.id }, data: { balance: { decrement: toNumber(paid) } } });
-
-        if (owed.greaterThan(0)) {
-          await tx.transaction.create({
-            data: {
-              userId,
-              accountId: cashAccount.id,
-              type: 'EXPENSE',
-              amount: toNumber(owed),
-              dateTime: input.date ?? new Date(),
-              notes: `Personal share of ${input.description}`,
-            },
-          });
-        }
-
-        const net = paid.minus(owed);
-        if (net.greaterThan(0)) {
-          await tx.transaction.create({
-            data: {
-              userId,
-              accountId: receivableAccount.id,
-              type: 'INCOME', // increasing asset
-              amount: toNumber(net),
-              dateTime: input.date ?? new Date(),
-              notes: `Receivable from ${input.description}`,
-            },
-          });
-          await tx.account.update({ where: { id: receivableAccount.id }, data: { balance: { increment: toNumber(net) } } });
-        } else if (net.lessThan(0)) {
-          await tx.transaction.create({
-            data: {
-              userId,
-              accountId: payableAccount.id,
-              type: 'EXPENSE', // increasing liability
-              amount: toNumber(net.abs()),
-              dateTime: input.date ?? new Date(),
-              notes: `Payable for ${input.description}`,
-            },
-          });
-          await tx.account.update({ where: { id: payableAccount.id }, data: { balance: { increment: toNumber(net.abs()) } } });
-        }
-      } else if (owed.greaterThan(0)) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            accountId: payableAccount.id,
-            type: 'EXPENSE',
-            amount: toNumber(owed),
-            dateTime: input.date ?? new Date(),
-            notes: `Owed for ${input.description}`,
-          },
-        });
-        await tx.account.update({ where: { id: payableAccount.id }, data: { balance: { increment: toNumber(owed) } } });
-      }
-    }
-    
-    // FR-7.2 Audit Log
-    await tx.auditLog.create({
-      data: {
-        entityType: 'SplitExpense',
-        entityId: splitExpense.id,
-        userId: input.payers[0]?.userId, // fallback creator
-        action: 'CREATE',
-        changes: {
-          description: input.description,
-          totalAmount: toNumber(totalAmount),
-          splitType: input.splitType
-        }
-      }
-    });
-
-    return splitExpense;
-  });
+export async function createSplitExpense(client: SupabaseClient,input: CreateSplitExpenseInput) {
+  calculateSplitParticipants(input);
+  return rpc(client,'create_split_expense_atomic',{p_input: input});
 }

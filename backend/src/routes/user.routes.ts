@@ -1,50 +1,9 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { updateProfileSchema } from '../validation/schemas';
-
-const router = Router();
-
-// Get Profile
-router.get('/profile', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId }
-    });
-
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-
-    // Exclude passwordHash
-    const { passwordHash, ...profile } = user;
-    res.status(200).json(profile);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Update Profile (Currency & Timezone)
-router.put('/profile', authenticate, validateBody(updateProfileSchema), async (req: AuthRequest, res: Response) => {
-  const { displayCurrency, timezone, name } = req.body;
-
-  try {
-    const user = await prisma.user.update({
-      where: { id: req.userId },
-      data: {
-        ...(displayCurrency && { displayCurrency }),
-        ...(timezone && { timezone }),
-        ...(name && { name })
-      }
-    });
-
-    const { passwordHash, ...profile } = user;
-    res.status(200).json(profile);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
+import { camelCase,dbResult,rpc } from '../db';
+const router=Router();router.use(authenticate);
+router.get('/profile',async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('users').select('*').eq('id',req.userId!).single()))));
+router.put('/profile',validateBody(updateProfileSchema),async(req:AuthRequest,res)=>res.json(await rpc(req.db!,'update_profile',{p_input:req.body})));
 export default router;

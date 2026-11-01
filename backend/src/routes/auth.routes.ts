@@ -1,116 +1,39 @@
-import { Router, Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { OAuth2Client } from 'google-auth-library';
-import { config } from '../config';
-import { prisma } from '../db';
+import { Router } from 'express';
+import { getSupabaseClient, camelCase, dbResult } from '../db';
 import { validateBody } from '../middleware/validate';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { loginSchema, registerSchema } from '../validation/schemas';
 import { z } from 'zod';
-
 const router = Router();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-// Register with email/password
-router.post('/register', validateBody(registerSchema), async (req: Request, res: Response) => {
-  const { email, password, name } = req.body;
-
-  try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      res.status(400).json({ error: 'Email already exists' });
-      return;
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name
-      }
-    });
-
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+function sessionResponse(data: { session: { access_token: string; refresh_token: string } | null; user: { id: string; email?: string; user_metadata: Record<string, unknown> } | null }) {
+  return { token: data.session?.access_token ?? null, session: data.session, confirmationRequired: !data.session, user: data.user ? { id: data.user.id, email: data.user.email, name: data.user.user_metadata.name || data.user.user_metadata.full_name || 'User' } : null };
+}
+router.post('/register', validateBody(registerSchema), async (req,res) => {
+  const { data, error } = await getSupabaseClient().auth.signUp({ email: req.body.email, password: req.body.password, options: { data: { name: req.body.name } } });
+  if (error) { res.status(400).json({ error: error.message }); return; }
+  res.status(201).json(sessionResponse(data));
 });
-
-// Login
-router.post('/login', validateBody(loginSchema), async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash) {
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
-    }
-
-    const isValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isValid) {
-      res.status(401).json({ error: 'Invalid credentials' });
-      return;
-    }
-
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
-    res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name } });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
+router.post('/login', validateBody(loginSchema), async (req,res) => {
+  const { data, error } = await getSupabaseClient().auth.signInWithPassword(req.body);
+  if (error) { res.status(401).json({ error: error.message }); return; }
+  res.json(sessionResponse(data));
 });
-
-const googleLoginSchema = z.object({
-  credential: z.string()
+router.post('/google', validateBody(z.object({ credential: z.string().min(1), nonce: z.string().optional() })), async (req,res) => {
+  const { data, error } = await getSupabaseClient().auth.signInWithIdToken({ provider: 'google', token: req.body.credential, nonce: req.body.nonce });
+  if (error) { res.status(401).json({ error: error.message }); return; }
+  res.json(sessionResponse(data));
 });
-
-// Google OAuth Login
-router.post('/google', validateBody(googleLoginSchema), async (req: Request, res: Response) => {
-  const { credential } = req.body;
-
-  try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-    
-    const payload = ticket.getPayload();
-    if (!payload || !payload.email) {
-      res.status(400).json({ error: 'Invalid Google token' });
-      return;
-    }
-
-    const { email, name, sub: googleId } = payload;
-
-    let user = await prisma.user.findUnique({ where: { email } });
-    
-    if (user) {
-      // Link googleId if not linked
-      if (!user.googleId) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { googleId }
-        });
-      }
-    } else {
-      // Create new user
-      user = await prisma.user.create({
-        data: {
-          email,
-          name: name || 'Google User',
-          googleId
-        }
-      });
-    }
-
-    const token = jwt.sign({ userId: user.id }, config.jwtSecret, { expiresIn: '7d' });
-    res.status(200).json({ token, user: { id: user.id, email: user.email, name: user.name } });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ error: 'Failed to authenticate with Google' });
-  }
+router.post('/refresh', validateBody(z.object({ refreshToken: z.string().min(1) })), async (req,res) => {
+  const { data, error } = await getSupabaseClient().auth.refreshSession({ refresh_token: req.body.refreshToken });
+  if (error) { res.status(401).json({ error: 'Session expired' }); return; }
+  res.json(sessionResponse(data));
 });
-
+router.get('/session', authenticate, async (req: AuthRequest,res) => res.json(camelCase(dbResult(await req.db!.from('users').select('*').eq('id',req.userId!).single()))));
+router.post('/logout', authenticate, async (req: AuthRequest,res) => {
+  // Client-owned Supabase session is removed and revoked by the browser SDK.
+  const token=req.headers.authorization!.slice(7);
+  const { error }=await req.db!.auth.setSession({access_token:token,refresh_token:req.body.refreshToken ?? ''});
+  if (!error) await req.db!.auth.signOut();
+  res.status(204).send();
+});
 export default router;

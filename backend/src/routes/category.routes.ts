@@ -1,46 +1,9 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createCategorySchema } from '../validation/schemas';
-
-const router = Router();
-
-// Create Category
-router.post('/', authenticate, validateBody(createCategorySchema), async (req: AuthRequest, res: Response) => {
-  const { name, type } = req.body;
-
-  try {
-    const category = await prisma.category.create({
-      data: {
-        userId: req.userId as string,
-        name,
-        type
-      }
-    });
-
-    res.status(201).json(category);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get Categories
-router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const categories = await prisma.category.findMany({
-      where: {
-        OR: [
-          { userId: req.userId },
-          { userId: null } // system categories
-        ]
-      }
-    });
-
-    res.status(200).json(categories);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
+import { camelCase, dbResult } from '../db';
+const router=Router();router.use(authenticate);
+router.get('/',async(req:AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('categories').select('*').order('name')))));
+router.post('/',validateBody(createCategorySchema),async(req:AuthRequest,res)=>res.status(201).json(camelCase(dbResult(await req.db!.from('categories').insert({...req.body,user_id:req.userId}).select().single()))));
 export default router;

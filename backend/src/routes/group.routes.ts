@@ -1,134 +1,21 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
-import { addGroupMemberSchema, createGroupSchema } from '../validation/schemas';
-import { toNumber } from '../utils/money';
-
-const router = Router();
-
-// Create Group
-router.post('/', authenticate, validateBody(createGroupSchema), async (req: AuthRequest, res: Response) => {
-  const { name, memberIds } = req.body;
-
-  try {
-    const members = memberIds ? [req.userId, ...memberIds] : [req.userId];
-    const uniqueMembers = [...new Set(members)] as string[];
-
-    const group = await prisma.group.create({
-      data: {
-        name,
-        members: {
-          create: uniqueMembers.map(id => ({
-            userId: id
-          }))
-        }
-      },
-      include: {
-        members: { include: { user: { select: { id: true, name: true, email: true } } } }
-      }
-    });
-
-    res.status(201).json(group);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get User's Groups
-router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const groups = await prisma.group.findMany({
-      where: {
-        members: { some: { userId: req.userId } }
-      },
-      include: {
-        members: { include: { user: { select: { id: true, name: true } } } }
-      }
-    });
-
-    res.status(200).json(groups);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Add Member to Group
-router.post('/:id/members', authenticate, validateBody(addGroupMemberSchema), async (req: AuthRequest, res: Response) => {
-  const { userId } = req.body;
-
-  try {
-    // verify group exists and current user is a member
-    const group = await prisma.group.findFirst({
-      where: { id: req.params.id as string, members: { some: { userId: req.userId } } }
-    });
-
-    if (!group) {
-      res.status(404).json({ error: 'Group not found' });
-      return;
-    }
-
-    const member = await prisma.groupMember.create({
-      data: {
-        groupId: req.params.id as string,
-        userId: userId
-      }
-    });
-
-    res.status(201).json(member);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-import { simplifyDebts } from '../services/debtSimplification';
-
-// FR-4.4 Debt Simplification (Min-Cash-Flow)
-router.get('/:id/simplify-debts', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    // verify group access
-    const group = await prisma.group.findFirst({
-      where: { id: req.params.id as string, members: { some: { userId: req.userId } } }
-    });
-
-    if (!group) {
-      res.status(404).json({ error: 'Group not found' });
-      return;
-    }
-
-    // Fetch all splits for this group
-    const splits = await prisma.splitExpense.findMany({
-      where: { groupId: req.params.id as string },
-      include: {
-        payers: true,
-        participants: true
-      }
-    });
-
-    // Calculate net balances for everyone in the group
-    const balances: Record<string, number> = {};
-
-    for (const split of splits) {
-      // Credited for what they paid
-      for (const payer of split.payers) {
-        balances[payer.userId] = (balances[payer.userId] || 0) + toNumber(payer.amountPaid);
-      }
-      // Debited for what they owe
-      for (const participant of split.participants) {
-        balances[participant.userId] = (balances[participant.userId] || 0) - toNumber(participant.amountOwed);
-      }
-    }
-
-    // Run simplification algorithm
-    const simplifiedTransactions = simplifyDebts(balances);
-
-    res.status(200).json({
-      groupBalances: balances,
-      simplifiedTransactions: simplifiedTransactions
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
+import { createGroupSchema,addGroupMemberSchema } from '../validation/schemas';
+import { camelCase,dbResult,rpc } from '../db';
+const router=Router();router.use(authenticate);
+export async function loadGroups(req:AuthRequest,id?:string) {
+ let q=req.db!.from('groups').select('*,members:group_members(*)').order('created_at');
+ if(id) q=q.eq('id',id);
+ const groups=dbResult(await q) ?? [];
+ for(const group of groups) {
+   const profiles=dbResult(await req.db!.rpc('group_member_profiles',{p_group_id:group.id})) ?? [];
+   group.members=group.members.map((m: {user_id:string})=>({...m,user:profiles.find((p:{id:string})=>p.id===m.user_id)}));
+ }
+ return camelCase(groups);
+}
+router.get('/',async(req:AuthRequest,res)=>res.json(await loadGroups(req)));
+router.post('/',validateBody(createGroupSchema),async(req:AuthRequest,res)=>res.status(201).json(await rpc(req.db!,'manage_group',{p_input:req.body})));
+router.post('/:id/members',validateBody(addGroupMemberSchema),async(req:AuthRequest,res)=>res.status(201).json(await rpc(req.db!,'manage_group',{p_id:req.params.id,p_input:req.body,p_action:'ADD_MEMBER'})));
+router.get('/:id/simplify-debts',async(req:AuthRequest,res)=>res.json(await rpc(req.db!,'simplify_debts',{p_group_id:req.params.id})));
 export default router;

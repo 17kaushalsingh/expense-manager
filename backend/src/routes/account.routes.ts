@@ -1,117 +1,12 @@
-import { Router, Response } from 'express';
-import { prisma } from '../db';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { createAccountSchema, updateAccountSchema } from '../validation/schemas';
-
-const router = Router();
-
-// Create Account
-router.post('/', authenticate, validateBody(createAccountSchema), async (req: AuthRequest, res: Response) => {
-  const { name, type, currency, balance, metadata } = req.body;
-
-  try {
-    const account = await prisma.account.create({
-      data: {
-        userId: req.userId as string,
-        name,
-        type,
-        currency,
-        balance: balance ?? 0.0,
-        metadata
-      }
-    });
-
-    res.status(201).json(account);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get all Accounts for User
-router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const accounts = await prisma.account.findMany({
-      where: { userId: req.userId }
-    });
-
-    res.status(200).json(accounts);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get specific Account
-router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const account = await prisma.account.findFirst({
-      where: { id: req.params.id as string, userId: req.userId }
-    });
-
-    if (!account) {
-      res.status(404).json({ error: 'Account not found' });
-      return;
-    }
-
-    res.status(200).json(account);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Update Account
-router.put('/:id', authenticate, validateBody(updateAccountSchema), async (req: AuthRequest, res: Response) => {
-  const { name, type, currency, balance, metadata } = req.body;
-
-  try {
-    // Verify ownership
-    const account = await prisma.account.findFirst({
-      where: { id: req.params.id as string, userId: req.userId }
-    });
-
-    if (!account) {
-      res.status(404).json({ error: 'Account not found' });
-      return;
-    }
-
-    const updatedAccount = await prisma.account.update({
-      where: { id: req.params.id as string },
-      data: {
-        ...(name && { name }),
-        ...(type && { type }),
-        ...(currency !== undefined && { currency }),
-        ...(balance !== undefined && { balance }),
-        ...(metadata !== undefined && { metadata })
-      }
-    });
-
-    res.status(200).json(updatedAccount);
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Delete Account
-router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    // Verify ownership
-    const account = await prisma.account.findFirst({
-      where: { id: req.params.id as string, userId: req.userId }
-    });
-
-    if (!account) {
-      res.status(404).json({ error: 'Account not found' });
-      return;
-    }
-
-    await prisma.account.delete({
-      where: { id: req.params.id as string }
-    });
-
-    res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
+import { rpc,camelCase,dbResult } from '../db';
+const router=Router(); router.use(authenticate);
+router.get('/',async(req: AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('accounts').select('*').order('created_at')))));
+router.get('/:id',async(req: AuthRequest,res)=>res.json(camelCase(dbResult(await req.db!.from('accounts').select('*').eq('id',req.params.id).single()))));
+router.post('/',validateBody(createAccountSchema),async(req: AuthRequest,res)=>res.status(201).json(await rpc(req.db!,'manage_account',{p_input:req.body})));
+router.put('/:id',validateBody(updateAccountSchema),async(req: AuthRequest,res)=>res.json(await rpc(req.db!,'manage_account',{p_input:req.body,p_id:req.params.id})));
+router.delete('/:id',async(req: AuthRequest,res)=>{await rpc(req.db!,'manage_account',{p_input:{},p_id:req.params.id,p_delete:true});res.status(204).send();});
 export default router;
