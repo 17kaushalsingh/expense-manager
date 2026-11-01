@@ -123,7 +123,7 @@ export default function GroupDetails() {
           
           {isSimplifiedLoading ? (
             <div className="text-text-secondary p-4 animate-pulse">Running Min-Cash-Flow algorithm...</div>
-          ) : simplified?.simplifiedTransactions?.length > 0 ? (
+          ) : simplified && simplified.simplifiedTransactions.length > 0 ? (
             simplified.simplifiedTransactions.map((tx: any, idx: number) => (
               <div key={idx} className="bg-surface-primary border border-border-soft rounded-2xl p-5 flex items-center justify-between">
                 <div className="flex items-center space-x-3">

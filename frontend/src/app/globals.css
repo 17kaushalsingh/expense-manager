@@ -53,3 +53,12 @@ body {
   font-family: var(--font-sans);
   /* Force tabular numerals for financial numbers via utility classes, but good to have system defaults clean */
 }
+
+@layer components {
+ .panel { @apply bg-surface-primary border border-border-soft rounded-2xl p-5; }
+ .field { @apply block w-full bg-surface-secondary border border-border-soft rounded-lg px-3 py-2 text-text-primary mt-1; }
+ .label { @apply block text-sm text-text-secondary; }
+ .btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 bg-brand-primary text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed; }
+ .btn-secondary { @apply inline-flex items-center justify-center rounded-lg px-3 py-2 bg-surface-secondary border border-border-soft text-text-primary disabled:opacity-50; }
+}
+button, a, input, select, textarea { outline-offset: 3px; }
