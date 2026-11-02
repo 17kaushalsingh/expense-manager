@@ -40,8 +40,8 @@ export function SpendingCalendar({
   );
   const compact = (n: number) =>
     new Intl.NumberFormat(undefined, {
-      notation: "compact",
-      maximumFractionDigits: 1,
+      notation: n >= 1000 ? "compact" : "standard",
+      maximumFractionDigits: n >= 1000 ? 1 : 2,
     }).format(n);
   return (
     <section className="panel !p-0 overflow-hidden">

@@ -48,7 +48,7 @@ export default function Settings() {
             name="displayCurrency"
             defaultValue={user?.displayCurrency || "USD"}
           >
-            {["USD", "INR", "EUR", "GBP", "JPY", "CAD", "AUD", "SGD"].map(
+            {Array.from(new Set([user?.displayCurrency || "USD", "USD", "INR", "EUR", "GBP", "JPY", "CAD", "AUD", "SGD"])).map(
               (c) => (
                 <option key={c}>{c}</option>
               ),
@@ -65,7 +65,7 @@ export default function Settings() {
             name="timezone"
             defaultValue={user?.timezone || "UTC"}
           >
-            {["UTC", ...Intl.supportedValuesOf("timeZone")].map((t) => (
+            {Array.from(new Set([user?.timezone || "UTC", "UTC", ...Intl.supportedValuesOf("timeZone")])).map((t) => (
               <option key={t}>{t}</option>
             ))}
           </select>

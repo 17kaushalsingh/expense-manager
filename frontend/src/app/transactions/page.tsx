@@ -136,7 +136,7 @@ function Transactions() {
         </button>
       </header>
       <section className="space-y-4">
-        <div className="flex justify-between items-center gap-3">
+        <div className="flex flex-wrap justify-between items-center gap-3">
           <div className="flex items-center gap-2">
             <button
               className="btn-secondary !p-2"
