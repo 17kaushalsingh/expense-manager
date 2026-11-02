@@ -99,6 +99,54 @@ export type Database = {
           },
         ];
       };
+      budgets: {
+        Row: {
+          amount: number;
+          category_id: string | null;
+          created_at: string;
+          currency: string;
+          id: string;
+          month: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          amount: number;
+          category_id?: string | null;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          month: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          amount?: number;
+          category_id?: string | null;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          month?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "budgets_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "budgets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       categories: {
         Row: {
           created_at: string;
@@ -268,6 +316,57 @@ export type Database = {
             columns: ["template_id"];
             isOneToOne: false;
             referencedRelation: "split_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      group_activity: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          actor_name: string;
+          created_at: string;
+          entity_id: string;
+          entity_type: string;
+          group_id: string;
+          id: string;
+          summary: string;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          actor_name: string;
+          created_at?: string;
+          entity_id: string;
+          entity_type: string;
+          group_id: string;
+          id?: string;
+          summary: string;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          actor_name?: string;
+          created_at?: string;
+          entity_id?: string;
+          entity_type?: string;
+          group_id?: string;
+          id?: string;
+          summary?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_activity_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_activity_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
             referencedColumns: ["id"];
           },
         ];
@@ -487,6 +586,57 @@ export type Database = {
           },
         ];
       };
+      savings_goals: {
+        Row: {
+          account_id: string;
+          created_at: string;
+          currency: string;
+          id: string;
+          name: string;
+          target_amount: number;
+          target_date: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          account_id: string;
+          created_at?: string;
+          currency: string;
+          id?: string;
+          name: string;
+          target_amount: number;
+          target_date?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          account_id?: string;
+          created_at?: string;
+          currency?: string;
+          id?: string;
+          name?: string;
+          target_amount?: number;
+          target_date?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "savings_goals_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: true;
+            referencedRelation: "accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "savings_goals_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       settlements: {
         Row: {
           account_id: string;
@@ -555,6 +705,64 @@ export type Database = {
           {
             foreignKeyName: "settlements_payer_id_fkey";
             columns: ["payer_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      split_comments: {
+        Row: {
+          author_name: string;
+          body: string;
+          created_at: string;
+          deleted_at: string | null;
+          group_id: string;
+          id: string;
+          split_expense_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          author_name: string;
+          body: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          group_id: string;
+          id?: string;
+          split_expense_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          author_name?: string;
+          body?: string;
+          created_at?: string;
+          deleted_at?: string | null;
+          group_id?: string;
+          id?: string;
+          split_expense_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "split_comments_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "split_comments_split_expense_id_fkey";
+            columns: ["split_expense_id"];
+            isOneToOne: false;
+            referencedRelation: "split_expenses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "split_comments_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -879,6 +1087,8 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      budget_summary: { Args: { p_month: string }; Returns: Json };
+      copy_budgets: { Args: { p_month: string }; Returns: number };
       create_split_expense_atomic: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json };
         Returns: Json;
@@ -938,6 +1148,15 @@ export type Database = {
       };
       mutate_expense_draft: {
         Args: { p_action: string; p_id: string; p_input?: Json };
+        Returns: Json;
+      };
+      mutate_split_comment: {
+        Args: {
+          p_body?: string;
+          p_delete?: boolean;
+          p_id?: string;
+          p_split_id?: string;
+        };
         Returns: Json;
       };
       mutate_transaction_atomic: {

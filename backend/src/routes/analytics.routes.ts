@@ -53,6 +53,65 @@ router.get("/debt-summary", async (req: AuthRequest, res) => {
 router.get("/debts", async (req: AuthRequest, res) =>
   res.json(await rpc(req.db!, "simplify_debts", { p_group_id: null })),
 );
+router.get("/category-spending", async (req: AuthRequest, res) => {
+  const parsed = z
+    .enum(["1W", "1M", "3M", "1Y", "ALL"])
+    .safeParse(req.query.range ?? "1M");
+  if (!parsed.success) throw new HttpError(400, "Invalid analytics range");
+  const end = new Date(),
+    start = new Date(
+      end.getTime() -
+        { "1W": 7, "1M": 30, "3M": 90, "1Y": 365, ALL: 36500 }[parsed.data] *
+          86400000,
+    );
+  const totals = new Map<
+    string,
+    { id: string | null; name: string; amount: ReturnType<typeof decimal> }
+  >();
+  for (let offset = 0; ; offset += 1000) {
+    const page =
+      dbResult(
+        await req
+          .db!.from("transactions")
+          .select("id,analytics_amount,category:categories(id,name)")
+          .eq("type", "EXPENSE")
+          .gt("analytics_amount", 0)
+          .gte("date_time", start.toISOString())
+          .lte("date_time", end.toISOString())
+          .order("id")
+          .range(offset, offset + 999),
+      ) ?? [];
+    for (const t of page) {
+      const id = t.category?.id ?? null,
+        key = id ?? "uncategorized",
+        entry = totals.get(key) ?? {
+          id,
+          name: t.category?.name ?? "Uncategorized",
+          amount: decimal(0),
+        };
+      entry.amount = entry.amount.plus(t.analytics_amount);
+      totals.set(key, entry);
+    }
+    if (page.length < 1000) break;
+  }
+  const total = [...totals.values()].reduce(
+    (n, c) => n.plus(c.amount),
+    decimal(0),
+  );
+  res.json({
+    totalExpense: total.toNumber(),
+    categories: [...totals.values()]
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        amount: c.amount.toNumber(),
+        percentage: total.isZero()
+          ? 0
+          : c.amount.div(total).mul(100).toNumber(),
+      }))
+      .sort((a, b) => b.amount - a.amount),
+  });
+});
 router.get("/cash-flow", async (req: AuthRequest, res) => {
   const parsed = z
     .object({

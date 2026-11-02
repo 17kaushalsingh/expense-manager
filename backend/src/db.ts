@@ -59,9 +59,19 @@ export function dbResult<T>(result: {
                 code?.startsWith("23")
               ? 400
               : 500;
+    const friendly =
+      code === "23505"
+        ? message.includes("budgets")
+          ? "A budget already exists for this category and month."
+          : message.includes("savings_goals")
+            ? "This account is already linked to a savings goal."
+            : "A matching record already exists."
+        : code === "23503"
+          ? "This record is still referenced. Remove its links first."
+          : message;
     throw new HttpError(
       status,
-      status === 500 ? "Database operation failed" : message,
+      status === 500 ? "Database operation failed" : friendly,
     );
   }
   return result.data;

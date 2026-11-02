@@ -4,6 +4,8 @@ import { config } from "./config";
 import { HttpError } from "./errors/httpError";
 import { jsonReplacer } from "./utils/money";
 
+import planningRouter from "./routes/planning.routes";
+import collaborationRouter from "./routes/collaboration.routes";
 import accountRouter from "./routes/account.routes";
 import analyticsRouter from "./routes/analytics.routes";
 import authRouter from "./routes/auth.routes";
@@ -28,6 +30,8 @@ app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/accounts", accountRouter);
+app.use("/api/planning", planningRouter);
+app.use("/api/collaboration", collaborationRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/transactions", transactionRouter);
 app.use("/api/groups", groupRouter);
