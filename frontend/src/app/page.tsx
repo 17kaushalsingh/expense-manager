@@ -1,5 +1,6 @@
 "use client";
 
+import { PlanningOverview } from "@/components/planning/PlanningOverview";
 import { DueDrafts } from "@/components/recurring/Recurring";
 import Link from "next/link";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -101,6 +102,7 @@ export default function Home() {
         </div>
       </section>
 
+      <PlanningOverview />
       <DueDrafts />
       {/* QUICK ACTIONS & ACCOUNTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

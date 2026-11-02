@@ -7,6 +7,8 @@ export const navigation = [
   ["/transactions", "Transactions"],
   ["/groups", "Groups"],
   ["/analytics", "Analytics"],
+  ["/budgets", "Budgets"],
+  ["/goals", "Goals"],
   ["/categories", "Categories"],
   ["/settings", "Settings"],
 ];

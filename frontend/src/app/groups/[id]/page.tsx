@@ -13,6 +13,10 @@ import { MemberPicker, Person } from "@/components/groups/MemberPicker";
 import { SplitBuilder } from "@/components/split/SplitBuilder";
 import { SettlementModal } from "@/components/settlements/SettlementModal";
 import { Recurring, DueDrafts } from "@/components/recurring/Recurring";
+import {
+  GroupActivity,
+  ExpenseComments,
+} from "@/components/collaboration/GroupCollaboration";
 import { Templates } from "@/components/groups/Templates";
 import { Invitations } from "@/components/groups/Invitations";
 import { useFormat } from "@/lib/format";
@@ -30,6 +34,7 @@ export default function GroupDetails() {
     [settle, setSettle] = useState(false),
     [members, setMembers] = useState<Person[]>([]),
     [deleteGroup, setDeleteGroup] = useState(false);
+  const [comments, setComments] = useState<Split>();
   const owner = group.data?.ownerId === user?.id;
   const action = useAction(
     (request: {
@@ -134,6 +139,9 @@ export default function GroupDetails() {
             </div>
             <div className="flex items-center gap-2">
               <strong>{money(s.totalAmount, s.currency)}</strong>
+              <button className="btn-secondary" onClick={() => setComments(s)}>
+                Comments
+              </button>
               {(owner || s.creatorId === user?.id) && (
                 <>
                   <button className="btn-secondary" onClick={() => setEdit(s)}>
@@ -154,6 +162,15 @@ export default function GroupDetails() {
           </article>
         ))}
       </section>
+      <GroupActivity groupId={id} />
+      {comments && (
+        <ExpenseComments
+          splitId={comments.id}
+          description={comments.description}
+          owner={owner}
+          onClose={() => setComments(undefined)}
+        />
+      )}
       {edit !== undefined && (
         <SplitBuilder
           isOpen
