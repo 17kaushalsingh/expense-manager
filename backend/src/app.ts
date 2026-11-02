@@ -15,6 +15,7 @@ import transactionRouter from "./routes/transaction.routes";
 import userRouter from "./routes/user.routes";
 import reminderRouter from "./routes/reminder.routes";
 
+import templateRouter from "./routes/template.routes";
 import invitationRouter from "./routes/invitation.routes";
 
 export const app = express();
@@ -30,6 +31,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/transactions", transactionRouter);
 app.use("/api/groups", groupRouter);
 app.use("/api/invitations", invitationRouter);
+app.use("/api/templates", templateRouter);
 app.use("/api/splits", splitRouter);
 app.use("/api/settlements", settlementRouter);
 app.use("/api/analytics", analyticsRouter);

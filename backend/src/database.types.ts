@@ -572,6 +572,54 @@ export type Database = {
           },
         ]
       }
+      split_templates: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          creator_id: string
+          group_id: string
+          id: string
+          name: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          creator_id: string
+          group_id: string
+          id?: string
+          name: string
+          payload: Json
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          creator_id?: string
+          group_id?: string
+          id?: string
+          name?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_templates_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_templates_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           account_id: string
@@ -716,6 +764,7 @@ export type Database = {
           name: string
         }[]
       }
+      list_split_templates: { Args: { p_group_id: string }; Returns: Json }
       lookup_user: {
         Args: { p_email: string }
         Returns: {
@@ -733,6 +782,15 @@ export type Database = {
       }
       manage_group_invitation: {
         Args: { p_action?: string; p_group_id: string; p_token?: string }
+        Returns: Json
+      }
+      manage_split_template: {
+        Args: {
+          p_archive?: boolean
+          p_group_id: string
+          p_id?: string
+          p_input: Json
+        }
         Returns: Json
       }
       mutate_transaction_atomic: {

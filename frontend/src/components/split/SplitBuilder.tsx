@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/auth";
 import { useAccounts } from "@/hooks/useDashboard";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
-import { Split, Member, Category } from "@/lib/types";
+import { Split, Member, Category, SplitInput } from "@/lib/types";
 import { Modal, ErrorMessage } from "@/components/ui/Controls";
 import { MemberPicker, Person } from "@/components/groups/MemberPicker";
 import { useFormat } from "@/lib/format";
@@ -14,45 +14,54 @@ interface Props {
   groupId?: string;
   groupMembers?: Member[];
   split?: Split;
+  initial?: SplitInput;
+  templateMode?: boolean;
+  initialName?: string;
+  onSave?: (body: SplitInput, name: string) => Promise<unknown>;
+  title?: string;
+  submitLabel?: string;
 }
 export function SplitBuilder(props: Props) {
   return props.isOpen ? <Editor {...props} /> : null;
 }
-function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
+function Editor({ onClose, groupId, groupMembers = [], split, initial, templateMode=false, initialName="", onSave, title, submitLabel }: Props) {
+  const seed = split ?? initial;
+  const [templateName, setTemplateName] = useState(initialName);
   const user = useAuthStore((s) => s.user)!;
   const { currency } = useFormat(),
     accounts = useAccounts(),
     categories = useResource<Category[]>("/categories");
-  const [amount, setAmount] = useState(String(split?.totalAmount ?? "")),
-    [description, setDescription] = useState(split?.description ?? ""),
-    [mode, setMode] = useState<Split["splitType"]>(split?.splitType ?? "EQUAL");
+  const [amount, setAmount] = useState(String(seed?.totalAmount ?? "")),
+    [description, setDescription] = useState(seed?.description ?? ""),
+    [mode, setMode] = useState<Split["splitType"]>(seed?.splitType ?? "EQUAL");
   const [extra, setExtra] = useState<Person[]>([]),
     [excluded, setExcluded] = useState<string[]>(
-      split
+      seed
         ? groupMembers
             .filter(
-              (m) => !split.participants.some((p) => p.userId === m.userId),
+              (m) => !seed.participants.some((p) => p.userId === m.userId),
             )
             .map((m) => m.userId)
         : [],
     ),
     [values, setValues] = useState<Record<string, string>>(
       Object.fromEntries(
-        split?.participants.map((p) => [p.userId, String(p.shareValue ?? 1)]) ??
+        seed?.participants.map((p) => [p.userId, String(p.shareValue ?? 1)]) ??
           [],
       ),
     );
-  const [multi, setMulti] = useState((split?.payers.length ?? 0) > 1),
-    [paidBy, setPaidBy] = useState(split?.payers[0]?.userId ?? user.id),
+  const [multi, setMulti] = useState((seed?.payers.length ?? 0) > 1),
+    [paidBy, setPaidBy] = useState(seed?.payers[0]?.userId ?? user.id),
     [paidValues, setPaidValues] = useState<Record<string, string>>(
       Object.fromEntries(
-        split?.payers.map((p) => [p.userId, String(p.amountPaid)]) ?? [],
+        seed?.payers.map((p) => [p.userId, String(p.amountPaid)]) ?? [],
       ),
     ),
     [account, setAccount] = useState(
       split?.payers.find((p) => p.userId === user.id)?.accountId ?? "",
     ),
-    [category, setCategory] = useState(split?.categoryId ?? "");
+    [category, setCategory] = useState(seed?.categoryId ?? "");
+  const missingTotal = templateMode && amount.trim() === "";
   const people = groupMembers.length
     ? groupMembers.map((m) => ({
         id: m.userId,
@@ -76,21 +85,19 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
             amountPaid: Number(paidValues[p.id] || 0),
           }))
           .filter((p) => p.amountPaid > 0)
-      : [{ userId: paidBy, amountPaid: total }]
+      : [{ userId: paidBy, amountPaid: missingTotal ? undefined : total }]
   ).map((p) => ({
     ...p,
     ...(p.userId === user.id && account ? { accountId: account } : {}),
   }));
-  const payerSum = payers.reduce((n, p) => n + p.amountPaid, 0);
+  const payerSum = payers.reduce((n, p) => n + (p.amountPaid ?? 0), 0);
   const valid =
-    total > 0 &&
-    Number.isFinite(total) &&
-    Math.abs(total * 100 - Math.round(total * 100)) < 0.0001 &&
+    (missingTotal || (total > 0 && Number.isFinite(total) && Math.abs(total * 100 - Math.round(total * 100)) < 0.0001)) &&
     participants.length > 0 &&
     payers.length > 0 &&
-    Math.abs(payerSum - total) < 0.001 &&
+    (missingTotal || Math.abs(payerSum - total) < 0.001) &&
     (mode === "EQUAL" ||
-      (mode === "EXACT" && Math.abs(shares - total) < 0.001) ||
+      (mode === "EXACT" && (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
       (mode === "PERCENTAGE" && Math.abs(shares - 100) < 0.00001) ||
       (mode === "SHARES" && shares > 0)) &&
     participants.every(
@@ -100,7 +107,7 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
     const body = {
       groupId: groupId ?? null,
       description,
-      totalAmount: total,
+      totalAmount: missingTotal ? null : total,
       splitType: mode,
       categoryId: category || null,
       payers,
@@ -114,15 +121,16 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
             }
           : {}),
       })),
-      date: split?.date ?? new Date().toISOString(),
+      date: seed?.date ?? new Date().toISOString(),
     };
+    if (onSave) return onSave(body, templateName);
     return split
       ? apiClient.put(`/splits/${split.id}`, body)
       : apiClient.post("/splits", body);
   }, onClose);
   return (
     <Modal
-      title={split ? "Edit split expense" : "New split expense"}
+      title={title ?? (split ? "Edit split expense" : "New split expense")}
       onClose={onClose}
     >
       <form
@@ -132,6 +140,7 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
           if (valid) action.mutate();
         }}
       >
+        {templateMode && <label className="label">Template name<input className="field" required maxLength={120} value={templateName} onChange={e=>setTemplateName(e.target.value)}/></label>}
         <label className="label">
           Description
           <input
@@ -142,19 +151,19 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
           />
         </label>
         <label className="label">
-          Total ({currency})
+          Total ({currency}){templateMode ? " · optional" : ""}
           <input
             className="field text-2xl"
             type="number"
             step="0.01"
             min="0.01"
-            required
+            required={!templateMode}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
           />
         </label>
         {!groupId && <MemberPicker selected={extra} onChange={setExtra} />}
-        <label className="label">
+        {!templateMode && <label className="label">
           Category
           <select
             className="field"
@@ -171,6 +180,7 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
               ))}
           </select>
         </label>
+        }
         <label className="flex gap-2 text-sm">
           <input
             type="checkbox"
@@ -217,7 +227,7 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
             </select>
           </label>
         )}
-        {payers.some((p) => p.userId === user.id) && (
+        {!templateMode && payers.some((p) => p.userId === user.id) && (
           <label className="label">
             Your paying account
             <select
@@ -310,7 +320,7 @@ function Editor({ onClose, groupId, groupMembers = [], split }: Props) {
           className="btn w-full"
           disabled={!valid || !description.trim() || action.isPending}
         >
-          Save split
+          {submitLabel ?? (templateMode ? "Save template" : "Save split")}
         </button>
       </form>
     </Modal>

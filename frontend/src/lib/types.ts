@@ -75,3 +75,11 @@ export interface Reminder {
   isRead: boolean;
   isCompleted: boolean;
 }
+
+export interface SplitInput {
+ groupId?: string|null; description:string; totalAmount:number|null; splitType:Split["splitType"];
+ payers:{userId:string;amountPaid?:number;accountId?:string}[];
+ participants:{userId:string;shareValue?:number}[];
+ categoryId?:string|null; date?:string;
+}
+export interface SplitTemplate {id:string;groupId:string;creatorId:string;name:string;payload:SplitInput;needsCorrection:boolean}

@@ -12,6 +12,7 @@ import { Modal, Confirm, ErrorMessage } from "@/components/ui/Controls";
 import { MemberPicker, Person } from "@/components/groups/MemberPicker";
 import { SplitBuilder } from "@/components/split/SplitBuilder";
 import { SettlementModal } from "@/components/settlements/SettlementModal";
+import { Templates } from "@/components/groups/Templates";
 import { Invitations } from "@/components/groups/Invitations";
 import { useFormat } from "@/lib/format";
 export default function GroupDetails() {
@@ -78,6 +79,7 @@ export default function GroupDetails() {
       </header>
       <ErrorMessage error={group.error || splits.error || graph.error} />
       {owner && <Invitations groupId={id}/>}
+      {group.data && <Templates group={group.data}/>}
       <section className="panel space-y-4">
         <h2 className="font-semibold text-lg">Simplified balances</h2>
         {graph.isLoading && <p>Loading balances…</p>}
