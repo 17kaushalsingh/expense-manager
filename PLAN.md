@@ -1,3 +1,5 @@
+> Design and usability release — 2 November 2026: implemented the Gunawan Santoso Money Manager-inspired interface, five mobile tabs, spending calendar, Decimal calculator, local-date history filters, and inline shared balances. Updated dependency patches. See DESIGN_RESEARCH.md and VERIFICATION.md for evidence and remaining checks.
+
 > Additional release — 2 November 2026: added monthly budgets and dashboard alerts, account-linked savings goals, advanced transaction search/pagination/CSV export, live category reports, group activity/comments, and an installable responsive web app with a private offline fallback. See README.md and VERIFICATION.md for setup and checks.
 
 > Next release — 2 November 2026: implemented invitation links with owner approval, reusable group split templates, and recurring expense drafts. Hosted migrations and the hourly Supabase Cron job are applied. See README.md for behavior/API/setup and VERIFICATION.md for live test results. The older audit below is retained as historical context.

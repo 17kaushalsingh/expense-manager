@@ -25,7 +25,15 @@ npm run dev
 - App: [localhost:3000](http://localhost:3000)
 - API health: [localhost:5000/api/health](http://localhost:5000/api/health)
 
-Development and production builds use Webpack because Turbopack's CSS worker could not bind a port in this environment. The app retains the existing light/dark system-theme styling.
+Development and production builds use Webpack because Turbopack's CSS worker could not bind a port in this environment. The frontend uses Next.js 16.4.4. Appearance defaults to light; Settings offers light, dark, and system modes saved on this device.
+
+## Everyday money interface
+
+The mobile interface has five tabs: Home, Activity, Shared, Insights, and More. Home provides quick expense/split/transfer entry, real balances, recent activity, planning alerts, and due drafts. More contains accounts, budgets, goals, categories, and settings. Desktop uses a sidebar. Group cards show your settlement-adjusted balance; Group Details separates expenses, balances, recurring tools, activity, and membership.
+
+Activity supports daily rows and a monthly calendar. Select a day to filter its entries, select it again to return to the month, or use custom dates in Filters. Dates use the saved profile timezone, including daylight-saving boundaries. Calendar totals count only personal income/expenses; shared bills count your share once. The amount calculator supports `+ - * /`, parentheses, decimal comma, and `× ÷ −` symbols. Decimal arithmetic rounds to two places; ambiguous mixed comma/dot separators and invalid expressions are rejected. Review the calculated amount before saving.
+
+Design references and Reddit findings are recorded in [DESIGN_RESEARCH.md](DESIGN_RESEARCH.md).
 
 ## Supabase Auth
 
@@ -58,6 +66,8 @@ Accounting writes use authenticated, narrowly authorized PostgreSQL RPCs. They s
 Existing `/api` resources and camelCase response fields are retained. CRUD is complete for manual transactions, categories, groups, and split expenses. The API includes exact-email user lookup, group member removal, profile settings, validated reminders, and settlement recording.
 
 `GET /api/transactions` accepts `type`, `accountId`, `categoryId`, `from`, and `to` filters. `GET /api/analytics/cash-flow` accepts `range=1W|1M|3M|1Y|ALL`, optional ISO `from`/`to`, and `groupBy=day|month`; it returns totals and zero-filled `series` buckets using the saved timezone. Transaction history is paginated internally through PostgREST so results are not silently truncated. `/api/analytics/debts` returns the caller's ad-hoc debt graph.
+
+Transaction list, paginated history, and export also accept `month=YYYY-MM`, `onDate=YYYY-MM-DD`, or inclusive `fromDate`/`toDate` local calendar dates. These use authenticated `local_date_bounds` to convert the caller's saved timezone into UTC boundaries; ISO timestamp `from`/`to` filters remain available. `GET /api/analytics/calendar?month=YYYY-MM` returns zero-filled `{ month, timezone, totalIncome, totalExpense, days: [{ date, income, expense, count }] }`. Group list/detail responses include `myBalance` (positive means owed to you).
 
 ## Invitations, templates, and recurring drafts
 
@@ -121,7 +131,7 @@ npm run lint -w frontend
 npm run build -w frontend
 ```
 
-Hosted rollback suites are in `supabase/tests/accounting.sql`, `invitations.sql`, `templates.sql`, `recurring.sql`, and `planning.sql`. Run each whole file as one transaction through Supabase MCP or a database client. The sharing suites require the reserved HTTP fixture identities below; every suite rolls its mutations back. Never run these suites with real user identities.
+Hosted rollback suites are in `supabase/tests/accounting.sql`, `invitations.sql`, `templates.sql`, `recurring.sql`, `planning.sql`, and `calendar.sql`. Run each whole file as one transaction through Supabase MCP or a database client. The sharing/calendar suites require the reserved HTTP fixture identities below; every suite rolls its mutations back. Never run these suites with real user identities.
 
 For a dedicated test project:
 
