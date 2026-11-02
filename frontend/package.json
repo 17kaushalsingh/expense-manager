@@ -12,8 +12,9 @@
     "@react-oauth/google": "^0.13.5",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.102.8",
+    "decimal.js": "10.6.0",
     "lucide-react": "^1.41.0",
-    "next": "16.3.4",
+    "next": "16.4.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "recharts": "^3.10.1",
@@ -25,7 +26,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.4.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
