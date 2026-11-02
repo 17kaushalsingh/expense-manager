@@ -18,13 +18,14 @@ interface Props {
   templateMode?: boolean;
   initialName?: string;
   onSave?: (body: SplitInput, name: string) => Promise<unknown>;
+  onSaveDraft?: (body: SplitInput) => Promise<unknown>;
   title?: string;
   submitLabel?: string;
 }
 export function SplitBuilder(props: Props) {
   return props.isOpen ? <Editor {...props} /> : null;
 }
-function Editor({ onClose, groupId, groupMembers = [], split, initial, templateMode=false, initialName="", onSave, title, submitLabel }: Props) {
+function Editor({ onClose, groupId, groupMembers = [], split, initial, templateMode=false, initialName="", onSave, onSaveDraft, title, submitLabel }: Props) {
   const seed = split ?? initial;
   const [templateName, setTemplateName] = useState(initialName);
   const user = useAuthStore((s) => s.user)!;
@@ -94,7 +95,7 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
   const valid =
     (missingTotal || (total > 0 && Number.isFinite(total) && Math.abs(total * 100 - Math.round(total * 100)) < 0.0001)) &&
     participants.length > 0 &&
-    payers.length > 0 &&
+    payers.length > 0 && payers.every(p=>people.some(person=>person.id===p.userId)) &&
     (missingTotal || Math.abs(payerSum - total) < 0.001) &&
     (mode === "EQUAL" ||
       (mode === "EXACT" && (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
@@ -103,8 +104,8 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
     participants.every(
       (p) => Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")) >= 0,
     );
-  const action = useAction(async () => {
-    const body = {
+  function buildBody(): SplitInput {
+    return {
       groupId: groupId ?? null,
       description,
       totalAmount: missingTotal ? null : total,
@@ -123,6 +124,10 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
       })),
       date: seed?.date ?? new Date().toISOString(),
     };
+  }
+  const draftAction = useAction(async()=>onSaveDraft?.(buildBody()),onClose);
+  const action = useAction(async () => {
+    const body = buildBody();
     if (onSave) return onSave(body, templateName);
     return split
       ? apiClient.put(`/splits/${split.id}`, body)
@@ -314,11 +319,14 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
           . Remainder cents are assigned in participant order.
         </p>
         <ErrorMessage
-          error={action.error || accounts.error || categories.error}
+          error={action.error || draftAction.error || accounts.error || categories.error}
         />
+        {(mode==="EXACT"||multi) && <p className="text-xs text-text-secondary">Review exact allocations and payer amounts when changing the total.</p>}
+        {seed && [...seed.participants,...seed.payers].some(p=>!people.some(person=>person.id===p.userId)) && <p className="text-negative text-sm">A saved member is no longer in this group. Choose current participants and payers before saving.</p>}
+        {onSaveDraft && <button type="button" className="btn-secondary w-full" disabled={!valid||!description.trim()||draftAction.isPending||action.isPending} onClick={()=>draftAction.mutate(undefined)}>Save draft without posting</button>}
         <button
           className="btn w-full"
-          disabled={!valid || !description.trim() || action.isPending}
+          disabled={!valid || !description.trim() || action.isPending || draftAction.isPending}
         >
           {submitLabel ?? (templateMode ? "Save template" : "Save split")}
         </button>

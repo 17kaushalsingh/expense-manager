@@ -1,5 +1,6 @@
 "use client";
 
+import { DueDrafts } from "@/components/recurring/Recurring";
 import Link from "next/link";
 import { useResource, useAction } from "@/hooks/useResource";
 import { Split } from "@/lib/types";
@@ -100,6 +101,7 @@ export default function Home() {
         </div>
       </section>
 
+      <DueDrafts/>
       {/* QUICK ACTIONS & ACCOUNTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* ACCOUNTS VAULT */}

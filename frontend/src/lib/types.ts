@@ -83,3 +83,6 @@ export interface SplitInput {
  categoryId?:string|null; date?:string;
 }
 export interface SplitTemplate {id:string;groupId:string;creatorId:string;name:string;payload:SplitInput;needsCorrection:boolean}
+
+export interface ExpenseSchedule {id:string;groupId:string;creatorId:string;templateId:string;frequency:"WEEKLY"|"MONTHLY"|"YEARLY";startDate:string;endDate:string|null;timezone:string;status:"ACTIVE"|"PAUSED"|"ARCHIVED"}
+export interface ExpenseDraft {id:string;groupId:string;scheduleId:string;dueDate:string;timezone:string;payload:SplitInput;needsCorrection:boolean;canManage:boolean;scheduleStatus:string}

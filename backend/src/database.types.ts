@@ -134,6 +134,144 @@ export type Database = {
           },
         ]
       }
+      expense_drafts: {
+        Row: {
+          created_at: string
+          due_date: string
+          expense_id: string | null
+          group_id: string
+          id: string
+          payload: Json
+          posted_by: string | null
+          schedule_id: string
+          status: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          expense_id?: string | null
+          group_id: string
+          id?: string
+          payload: Json
+          posted_by?: string | null
+          schedule_id: string
+          status?: string
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          expense_id?: string | null
+          group_id?: string
+          id?: string
+          payload?: Json
+          posted_by?: string | null
+          schedule_id?: string
+          status?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_drafts_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "split_expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_drafts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_drafts_posted_by_fkey"
+            columns: ["posted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_drafts_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "expense_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_schedules: {
+        Row: {
+          created_at: string
+          creator_id: string
+          end_date: string | null
+          frequency: string
+          group_id: string
+          id: string
+          next_index: number
+          start_date: string
+          status: string
+          template_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          end_date?: string | null
+          frequency: string
+          group_id: string
+          id?: string
+          next_index?: number
+          start_date: string
+          status?: string
+          template_id: string
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          end_date?: string | null
+          frequency?: string
+          group_id?: string
+          id?: string
+          next_index?: number
+          start_date?: string
+          status?: string
+          template_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_schedules_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_schedules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_schedules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "split_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_invitations: {
         Row: {
           created_at: string
@@ -764,6 +902,7 @@ export type Database = {
           name: string
         }[]
       }
+      list_expense_drafts: { Args: { p_group_id?: string }; Returns: Json }
       list_split_templates: { Args: { p_group_id: string }; Returns: Json }
       lookup_user: {
         Args: { p_email: string }
@@ -774,6 +913,10 @@ export type Database = {
       }
       manage_account: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
+      manage_expense_schedule: {
+        Args: { p_id?: string; p_input: Json }
         Returns: Json
       }
       manage_group: {
@@ -791,6 +934,10 @@ export type Database = {
           p_id?: string
           p_input: Json
         }
+        Returns: Json
+      }
+      mutate_expense_draft: {
+        Args: { p_action: string; p_id: string; p_input?: Json }
         Returns: Json
       }
       mutate_transaction_atomic: {
