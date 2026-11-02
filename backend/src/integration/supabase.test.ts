@@ -191,7 +191,7 @@ describe.skipIf(!live)("hosted Supabase API integration", () => {
     expect((await restored.auth.getUser()).data.user?.email).toBe(
       "http-c@example.invalid",
     );
-    expect((await restored.auth.signOut()).error).toBeNull();
+    expect((await restored.auth.signOut({ scope: "local" })).error).toBeNull();
     expect((await restored.auth.getSession()).data.session).toBeNull();
   });
 });

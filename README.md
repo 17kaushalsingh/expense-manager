@@ -91,6 +91,27 @@ All paths below are under `/api`, require a Supabase access token, and retain ca
 | `/recurring/drafts/:id` | PUT corrected split payload without account/category selections |
 | `/recurring/drafts/:id/post`, `/recurring/drafts/:id/skip` | POST reviewed split payload or empty object, respectively |
 
+## Budgets, savings goals, and collaboration
+
+- **Budgets**: set overall or category limits per calendar month. Spending uses your saved timezone and counts only personal expenses; shared bills count your share once. Overall and category limits overlap and are never added together. Copying the previous month is atomic and leaves existing limits unchanged. The dashboard highlights limits at 80% usage and above. Deleting a category removes its budgets while clearing its historical transaction references.
+- **Savings goals**: link one goal to each owned asset account and follow its actual balance. Targets and optional dates are planning information, not money movements. Accounts linked to a goal cannot be deleted until the goal is removed. Remove planning records before changing accounting currency.
+- **Transaction history**: search notes (including literal `%` and `_`), filter source and amount ranges, sort by date or amount, and browse pages of 50 records. Existing unpaginated REST responses remain compatible.
+- **CSV export**: export all records matching the current filters, not just the displayed page. CSV includes actual balance deltas and personal analytics amounts separately; generated adjustments may have zero personal spending. Dates are UTC, currency is explicit, Unicode is supported, and user-controlled formula-like text is neutralized for spreadsheets.
+- **Category reports**: Analytics shows live category spending for the selected range with percentages. Transfers, settlements, and AR/AP adjustments are excluded.
+- **Group activity and comments**: new expense changes, settlements, membership changes, and comments appear in a member-only immutable activity feed. Authors edit their comments; group owners can moderate deletion. Removed comments retain a `[Deleted]` marker. No messages, email, or push notifications are sent to external services.
+
+Planning routes are `/api/planning/budgets?month=YYYY-MM`, `/budgets/:id`, `/budgets/copy`, `/goals`, and `/goals/:id`. Budget writes take `{ month: "YYYY-MM-01", categoryId?, amount, currency }`; goal writes take `{ name, accountId, targetAmount, targetDate?, currency }`. All records have owner RLS and database validation; neither feature writes ledger entries.
+
+`GET /api/transactions/page` returns `{ items, total, limit, offset }`; `GET /api/transactions/export` returns a CSV attachment. Both accept existing filters plus `q`, `sourceType`, `minAmount`, `maxAmount`, `sort=newest|oldest|highest|lowest`, `limit`, and `offset`. Export ignores pagination and retains the other filters. Category reporting is `/api/analytics/category-spending?range=1W|1M|3M|1Y|ALL`.
+
+Collaboration routes are `/api/collaboration/groups/:id/activity?offset=0`, `/splits/:id/comments` (GET/POST), and `/comments/:id` (PUT/DELETE). Comment bodies are plain text, limited to 2,000 characters, and visible only to current members of that expense’s group. Historical actor names are retained in the group feed. Existing history is not retroactively fabricated.
+
+## Installable app
+
+The frontend includes a web-app manifest, app icons, standalone display mode, and installation guidance in Settings. Supporting browsers can install LedgerSync from HTTPS or localhost; iOS uses Safari → Share → Add to Home Screen. This is an installable responsive web app, not an App Store/Play Store native package.
+
+The service worker registers only in production. It caches one self-contained public offline page and never caches financial pages, API responses, credentials, or authenticated data. An internet connection is required for financial reads and writes; offline changes are not queued. Run the frontend production build/start to exercise service-worker registration. Automated tests cover its caching/privacy rules; actual device installation and a live offline-browser walkthrough remain separate device checks.
+
 ## Checks
 
 ```sh
@@ -100,7 +121,7 @@ npm run lint -w frontend
 npm run build -w frontend
 ```
 
-Hosted rollback suites are in `supabase/tests/accounting.sql`, `invitations.sql`, `templates.sql`, and `recurring.sql`. Run each whole file as one transaction through Supabase MCP or a database client. The sharing suites require the reserved HTTP fixture identities below; every suite rolls its mutations back. Never run these suites with real user identities.
+Hosted rollback suites are in `supabase/tests/accounting.sql`, `invitations.sql`, `templates.sql`, `recurring.sql`, and `planning.sql`. Run each whole file as one transaction through Supabase MCP or a database client. The sharing suites require the reserved HTTP fixture identities below; every suite rolls its mutations back. Never run these suites with real user identities.
 
 For a dedicated test project:
 

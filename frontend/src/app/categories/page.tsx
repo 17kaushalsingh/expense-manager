@@ -63,7 +63,7 @@ export default function Categories() {
       )}{" "}
       {remove && (
         <Confirm
-          message={`Delete ${remove.name}? Historical transactions will become uncategorized.`}
+          message={`Delete ${remove.name}? Historical transactions will become uncategorized, and budgets for this category will be removed.`}
           onClose={() => setRemove(undefined)}
           onConfirm={() => deletion.mutate()}
           busy={deletion.isPending}

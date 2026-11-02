@@ -1,3 +1,37 @@
+# Productivity and installable-app verification — 2 November 2026
+
+## Delivered
+
+- Private monthly overall/category budgets, atomic previous-month copying, and dashboard spending-limit alerts.
+- Savings goals linked to owned asset accounts, with progress from real balances and no ledger mutations.
+- Debounced transaction-note search, literal wildcard handling, source/amount filters, sorting, server pagination, and filtered CSV export.
+- Live category-spending reports using personal analytics attribution; no transfers, settlements, or virtual adjustments counted.
+- Append-only member-only group activity, plain-text expense comments, author editing, and owner moderation.
+- Installable responsive web-app manifest/icons and Settings instructions; production-only service worker caches a self-contained public offline screen only.
+- Three additional hosted migrations applied. Owner RLS protects planning records; group membership protects activity/comments. Currency changes cannot silently reinterpret saved plans.
+
+## Passed
+
+- **56 tests in 10 files** with hosted and Cron integration enabled: 39 local unit/route/privacy tests and 17 hosted API/auth/concurrency tests.
+- The new hosted suite validates budget timezone boundaries, personal split attribution, budget-copy idempotency, account ownership, goal balance neutrality, literal `%`/`_` search, pagination/sorting, CSV response/escaping, outsider isolation, comment authorship/moderation, and feed immutability.
+- CSV unit tests cover commas, quotes, Unicode, multiline notes, nulls, negative numeric values, and spreadsheet-formula neutralization.
+- Service-worker tests verify only the public offline document is cached, API/non-navigation/cross-origin traffic is ignored, navigation failure returns the fallback, and unrelated caches are preserved.
+- Hosted `planning.sql` rollback assertions passed, including planning currency guards and no ledger side effects. The existing full `accounting.sql` rollback suite also passed after activity triggers were installed.
+- Backend build, frontend ESLint/typecheck, and Next.js production build passed. Manifest metadata was read from the running app; PNG icons have the required 192×192 and 512×512 dimensions.
+- Browser checks verified budget creation/progress, savings goal creation/progress from the live account balance, new navigation, and transaction-search empty state. The previous release's desktop/mobile split and recurring checks are retained below.
+- The combined test run exposed an older fixture logout test invalidating concurrent fixture sessions. It now signs out only its own session; the subsequent full 56-test run passed.
+- Security/performance advisors report only intentional authenticated SECURITY DEFINER RPC warnings, the pre-existing leaked-password setting, and unused-index information. No new RLS/search-path/FK-index findings remain.
+- Automated and browser-test planning records were removed. The original preview account still has exactly 100.19; no user drafts or credentials were changed.
+
+## Explicit limits
+
+- The browser CSV-download check was blocked because its download permission was declined. No alternate browser/download path was attempted. The HTTP endpoint and CSV format tests passed before that browser check.
+- Actual phone/desktop app installation and a live offline-browser walkthrough were not performed. Production service-worker behavior is covered by code-level privacy tests; development intentionally does not register a worker. HTTPS hosting is required outside localhost. No native App Store/Play Store package or deployment was created.
+- Real Google consent and confirmation-email delivery remain dependent on external provider/dashboard configuration. Existing Google/email caveats below still apply.
+- Full access was not granted or changed by the agent. The supported unattended option is the user's permissions selector; some browser/provider actions still require separate approval. No payments, bank connections, external messages, or public publishing were performed.
+
+---
+
 # Verification — 2 November 2026
 
 ## Everyday expense-sharing release
