@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Modal, Confirm, ErrorMessage } from "@/components/ui/Controls";
@@ -15,15 +15,32 @@ export default function Page() {
     </Suspense>
   );
 }
+function useDebouncedSearch(value: string) {
+  const [search, setSearch] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setSearch(value), 300);
+    return () => clearTimeout(timer);
+  }, [value]);
+  return search;
+}
 function Transactions() {
   const search = useSearchParams();
+  const [offset, setOffset] = useState(0);
+  const [exportError, setExportError] = useState<unknown>();
+  const [exporting, setExporting] = useState(false);
   const [filters, setFilters] = useState({
     accountId: search.get("accountId") || "",
     categoryId: "",
     type: "",
+    q: "",
+    sourceType: "",
+    minAmount: "",
+    maxAmount: "",
+    sort: "newest",
     from: "",
     to: "",
   });
+  const searchText = useDebouncedSearch(filters.q);
   const params = new URLSearchParams();
   for (const [k, v] of Object.entries(filters))
     if (v)
@@ -33,9 +50,13 @@ function Transactions() {
           ? new Date(`${v}T00:00:00`).toISOString()
           : k === "to"
             ? new Date(`${v}T23:59:59.999`).toISOString()
-            : v,
+            : k === "q"
+              ? searchText
+              : v,
       );
-  const rows = useResource<Transaction[]>(`/transactions?${params}`),
+  const rows = useResource<{ items: Transaction[]; total: number }>(
+      `/transactions/page?${params}&limit=50&offset=${offset}`,
+    ),
     accounts = useAccounts(),
     categories = useResource<Category[]>("/categories");
   const { money, date } = useFormat();
@@ -60,6 +81,65 @@ function Transactions() {
           </button>
         </div>
       </header>
+      <div className="flex gap-3 flex-wrap items-end">
+        <label className="label flex-1 min-w-48">
+          Search notes
+          <input
+            className="field"
+            type="search"
+            maxLength={200}
+            value={filters.q}
+            onChange={(e) => {
+              setFilters({ ...filters, q: e.target.value });
+              setOffset(0);
+            }}
+            placeholder="Find an expense…"
+          />
+        </label>
+        <label className="label">
+          Sort
+          <select
+            className="field"
+            value={filters.sort}
+            onChange={(e) => {
+              setFilters({ ...filters, sort: e.target.value });
+              setOffset(0);
+            }}
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="highest">Highest amount</option>
+            <option value="lowest">Lowest amount</option>
+          </select>
+        </label>
+        <button
+          className="btn-secondary"
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true);
+            setExportError(undefined);
+            try {
+              const exportParams = new URLSearchParams(params);
+              exportParams.set("q", filters.q);
+              const blob = await apiClient.download(
+                `/transactions/export?${exportParams}`,
+              );
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "transactions.csv";
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+            } catch (e) {
+              setExportError(e);
+            } finally {
+              setExporting(false);
+            }
+          }}
+        >
+          {exporting ? "Exporting…" : "Export CSV"}
+        </button>
+      </div>
       <section className="panel grid sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {(["type", "accountId", "categoryId"] as const).map((k) => (
           <label className="label" key={k}>
@@ -71,7 +151,10 @@ function Transactions() {
             <select
               className="field"
               value={filters[k]}
-              onChange={(e) => setFilters({ ...filters, [k]: e.target.value })}
+              onChange={(e) => {
+                setFilters({ ...filters, [k]: e.target.value });
+                setOffset(0);
+              }}
             >
               <option value="">All</option>
               {k === "type"
@@ -95,18 +178,55 @@ function Transactions() {
               className="field"
               type="date"
               value={filters[k]}
-              onChange={(e) => setFilters({ ...filters, [k]: e.target.value })}
+              onChange={(e) => {
+                setFilters({ ...filters, [k]: e.target.value });
+                setOffset(0);
+              }}
             />
           </label>
         ))}
       </section>
-      <ErrorMessage error={rows.error} />
+      <section className="panel grid sm:grid-cols-3 gap-3">
+        <label className="label">
+          Source
+          <select
+            className="field"
+            value={filters.sourceType}
+            onChange={(e) => {
+              setFilters({ ...filters, sourceType: e.target.value });
+              setOffset(0);
+            }}
+          >
+            <option value="">All sources</option>
+            {["MANUAL", "SPLIT", "TRANSFER", "SETTLEMENT"].map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+        </label>
+        {(["minAmount", "maxAmount"] as const).map((k) => (
+          <label className="label" key={k}>
+            {k === "minAmount" ? "Minimum amount" : "Maximum amount"}
+            <input
+              className="field"
+              type="number"
+              min="0"
+              step="0.01"
+              value={filters[k]}
+              onChange={(e) => {
+                setFilters({ ...filters, [k]: e.target.value });
+                setOffset(0);
+              }}
+            />
+          </label>
+        ))}
+      </section>
+      <ErrorMessage error={rows.error || exportError} />
       {rows.isLoading && <p>Loading transactions…</p>}
-      {rows.data?.length === 0 && (
+      {rows.data?.items.length === 0 && (
         <p className="panel">No transactions match these filters.</p>
       )}
       <div className="space-y-3">
-        {rows.data?.map((t) => (
+        {rows.data?.items.map((t) => (
           <article
             key={t.id}
             className="panel flex flex-wrap justify-between gap-4"
@@ -144,6 +264,28 @@ function Transactions() {
             </div>
           </article>
         ))}
+      </div>
+      <div className="flex flex-wrap justify-between items-center gap-3">
+        <button
+          className="btn-secondary"
+          disabled={offset === 0 || rows.isFetching}
+          onClick={() => setOffset(Math.max(0, offset - 50))}
+        >
+          Previous
+        </button>
+        <p>
+          {rows.data?.total ?? 0} transactions · page{" "}
+          {Math.floor(offset / 50) + 1}
+        </p>
+        <button
+          className="btn-secondary"
+          disabled={
+            !rows.data || offset + 50 >= rows.data.total || rows.isFetching
+          }
+          onClick={() => setOffset(offset + 50)}
+        >
+          Next
+        </button>
       </div>
       {editor !== undefined && (
         <TransactionEditor

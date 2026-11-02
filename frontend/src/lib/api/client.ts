@@ -13,6 +13,7 @@ async function request<T>(
   endpoint: string,
   body?: unknown,
   token?: string,
+  responseType: "json" | "blob" = "json",
 ): Promise<T> {
   let access = token;
   if (!access && !endpoint.startsWith("/auth/")) {
@@ -42,9 +43,15 @@ async function request<T>(
     const error = await res.json().catch(() => ({ error: res.statusText }));
     throw new ApiError(error.error || "Request failed", res.status);
   }
-  return res.status === 204 ? (null as T) : res.json();
+  return res.status === 204
+    ? (null as T)
+    : responseType === "blob"
+      ? (res.blob() as Promise<T>)
+      : res.json();
 }
 export const apiClient = {
+  download: (endpoint: string) =>
+    request<Blob>("GET", endpoint, undefined, undefined, "blob"),
   get: <T = unknown>(endpoint: string, token?: string) =>
     request<T>("GET", endpoint, undefined, token),
   post: <T = unknown>(endpoint: string, body: unknown, token?: string) =>

@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import { ServiceWorker } from "@/components/pwa/InstallApp";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
@@ -15,8 +16,16 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LedgerSync",
-  description: "Expense Manager",
+  description: "Personal finance, monthly budgets, and shared expenses",
+  appleWebApp: {
+    capable: true,
+    title: "LedgerSync",
+    statusBarStyle: "default",
+  },
+  icons: { apple: "/icon-192.png" },
 };
+
+export const viewport: Viewport = { themeColor: "#111827" };
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -35,7 +44,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <GoogleOAuthProvider clientId={clientId}>
-          <QueryProvider>{children}</QueryProvider>
+          <QueryProvider>
+            {children}
+            <ServiceWorker />
+          </QueryProvider>
         </GoogleOAuthProvider>
       </body>
     </html>

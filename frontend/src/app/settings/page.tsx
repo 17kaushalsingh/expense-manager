@@ -1,4 +1,5 @@
 "use client";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthStore } from "@/store/auth";
@@ -87,6 +88,7 @@ export default function Settings() {
       >
         Sign out
       </button>
+      <InstallApp />
     </DashboardLayout>
   );
 }

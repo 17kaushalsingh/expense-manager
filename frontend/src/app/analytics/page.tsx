@@ -23,6 +23,15 @@ interface CashFlow {
 }
 export default function Analytics() {
   const [range, setRange] = useState("1M");
+  const spending = useResource<{
+    totalExpense: number;
+    categories: {
+      id: string | null;
+      name: string;
+      amount: number;
+      percentage: number;
+    }[];
+  }>(`/analytics/category-spending?range=${range}`);
   const flow = useResource<CashFlow>(`/analytics/cash-flow?range=${range}`),
     worth = useNetWorth(),
     { money, timezone, currency } = useFormat();
@@ -119,6 +128,30 @@ export default function Analytics() {
           Transfers and settlements are excluded. Split expenses count only your
           personal share.
         </p>
+      </section>
+      <section className="panel space-y-4">
+        <h2 className="font-semibold text-lg">Spending by category</h2>
+        <ErrorMessage error={spending.error} />
+        {spending.isLoading && <p>Loading categories…</p>}
+        {spending.data?.categories.length === 0 && (
+          <p>No spending in this range.</p>
+        )}
+        {spending.data?.categories.map((c) => (
+          <div key={c.id ?? "uncategorized"} className="space-y-1">
+            <div className="flex justify-between gap-3">
+              <span>{c.name}</span>
+              <strong>
+                {money(c.amount)} · {c.percentage.toFixed(1)}%
+              </strong>
+            </div>
+            <progress
+              className="w-full accent-brand-primary"
+              aria-label={`${c.name} share of spending`}
+              max={100}
+              value={c.percentage}
+            />
+          </div>
+        ))}
       </section>
       <section className="panel">
         <h2 className="text-text-secondary text-sm">Current net worth</h2>
