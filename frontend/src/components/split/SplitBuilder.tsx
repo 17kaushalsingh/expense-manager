@@ -25,7 +25,19 @@ interface Props {
 export function SplitBuilder(props: Props) {
   return props.isOpen ? <Editor {...props} /> : null;
 }
-function Editor({ onClose, groupId, groupMembers = [], split, initial, templateMode=false, initialName="", onSave, onSaveDraft, title, submitLabel }: Props) {
+function Editor({
+  onClose,
+  groupId,
+  groupMembers = [],
+  split,
+  initial,
+  templateMode = false,
+  initialName = "",
+  onSave,
+  onSaveDraft,
+  title,
+  submitLabel,
+}: Props) {
   const seed = split ?? initial;
   const [templateName, setTemplateName] = useState(initialName);
   const user = useAuthStore((s) => s.user)!;
@@ -93,12 +105,17 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
   }));
   const payerSum = payers.reduce((n, p) => n + (p.amountPaid ?? 0), 0);
   const valid =
-    (missingTotal || (total > 0 && Number.isFinite(total) && Math.abs(total * 100 - Math.round(total * 100)) < 0.0001)) &&
+    (missingTotal ||
+      (total > 0 &&
+        Number.isFinite(total) &&
+        Math.abs(total * 100 - Math.round(total * 100)) < 0.0001)) &&
     participants.length > 0 &&
-    payers.length > 0 && payers.every(p=>people.some(person=>person.id===p.userId)) &&
+    payers.length > 0 &&
+    payers.every((p) => people.some((person) => person.id === p.userId)) &&
     (missingTotal || Math.abs(payerSum - total) < 0.001) &&
     (mode === "EQUAL" ||
-      (mode === "EXACT" && (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
+      (mode === "EXACT" &&
+        (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
       (mode === "PERCENTAGE" && Math.abs(shares - 100) < 0.00001) ||
       (mode === "SHARES" && shares > 0)) &&
     participants.every(
@@ -125,7 +142,10 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
       date: seed?.date ?? new Date().toISOString(),
     };
   }
-  const draftAction = useAction(async()=>onSaveDraft?.(buildBody()),onClose);
+  const draftAction = useAction(
+    async () => onSaveDraft?.(buildBody()),
+    onClose,
+  );
   const action = useAction(async () => {
     const body = buildBody();
     if (onSave) return onSave(body, templateName);
@@ -135,7 +155,14 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
   }, onClose);
   return (
     <Modal
-      title={title ?? (split ? "Edit split expense" : "New split expense")}
+      title={
+        title ??
+        (templateMode
+          ? "Split template"
+          : split
+            ? "Edit split expense"
+            : "New split expense")
+      }
       onClose={onClose}
     >
       <form
@@ -145,7 +172,18 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
           if (valid) action.mutate();
         }}
       >
-        {templateMode && <label className="label">Template name<input className="field" required maxLength={120} value={templateName} onChange={e=>setTemplateName(e.target.value)}/></label>}
+        {templateMode && (
+          <label className="label">
+            Template name
+            <input
+              className="field"
+              required
+              maxLength={120}
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+          </label>
+        )}
         <label className="label">
           Description
           <input
@@ -168,24 +206,25 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
           />
         </label>
         {!groupId && <MemberPicker selected={extra} onChange={setExtra} />}
-        {!templateMode && <label className="label">
-          Category
-          <select
-            className="field"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">Uncategorized</option>
-            {categories.data
-              ?.filter((c) => c.type === "EXPENSE")
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        }
+        {!templateMode && (
+          <label className="label">
+            Category
+            <select
+              className="field"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">Uncategorized</option>
+              {categories.data
+                ?.filter((c) => c.type === "EXPENSE")
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
         <label className="flex gap-2 text-sm">
           <input
             type="checkbox"
@@ -319,14 +358,50 @@ function Editor({ onClose, groupId, groupMembers = [], split, initial, templateM
           . Remainder cents are assigned in participant order.
         </p>
         <ErrorMessage
-          error={action.error || draftAction.error || accounts.error || categories.error}
+          error={
+            action.error ||
+            draftAction.error ||
+            accounts.error ||
+            categories.error
+          }
         />
-        {(mode==="EXACT"||multi) && <p className="text-xs text-text-secondary">Review exact allocations and payer amounts when changing the total.</p>}
-        {seed && [...seed.participants,...seed.payers].some(p=>!people.some(person=>person.id===p.userId)) && <p className="text-negative text-sm">A saved member is no longer in this group. Choose current participants and payers before saving.</p>}
-        {onSaveDraft && <button type="button" className="btn-secondary w-full" disabled={!valid||!description.trim()||draftAction.isPending||action.isPending} onClick={()=>draftAction.mutate(undefined)}>Save draft without posting</button>}
+        {(mode === "EXACT" || multi) && (
+          <p className="text-xs text-text-secondary">
+            Review exact allocations and payer amounts when changing the total.
+          </p>
+        )}
+        {seed &&
+          [...seed.participants, ...seed.payers].some(
+            (p) => !people.some((person) => person.id === p.userId),
+          ) && (
+            <p className="text-negative text-sm">
+              A saved member is no longer in this group. Choose current
+              participants and payers before saving.
+            </p>
+          )}
+        {onSaveDraft && (
+          <button
+            type="button"
+            className="btn-secondary w-full"
+            disabled={
+              !valid ||
+              !description.trim() ||
+              draftAction.isPending ||
+              action.isPending
+            }
+            onClick={() => draftAction.mutate(undefined)}
+          >
+            Save draft without posting
+          </button>
+        )}
         <button
           className="btn w-full"
-          disabled={!valid || !description.trim() || action.isPending || draftAction.isPending}
+          disabled={
+            !valid ||
+            !description.trim() ||
+            action.isPending ||
+            draftAction.isPending
+          }
         >
           {submitLabel ?? (templateMode ? "Save template" : "Save split")}
         </button>

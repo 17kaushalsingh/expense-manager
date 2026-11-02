@@ -36,4 +36,45 @@ describe("app", () => {
     );
     expect(next).not.toHaveBeenCalled();
   });
+  it("never logs token-bearing request bodies or error details", () => {
+    const handler = app.router.stack.at(-1)!.handle;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = {
+      headersSent: false,
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    const error = Object.assign(new Error("secret-invitation-token"), {
+      body: { token: "secret-invitation-token" },
+    });
+    handler(
+      error,
+      { method: "POST", path: "/api/invitations/lookup", body: error.body },
+      res,
+      vi.fn(),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain(
+      "secret-invitation-token",
+    );
+    expect(res.status).toHaveBeenCalledWith(500);
+    log.mockRestore();
+  });
+  it("returns malformed JSON without logging its sensitive body", () => {
+    const handler = app.router.stack.at(-1)!.handle;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const res = {
+      headersSent: false,
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    handler(
+      Object.assign(new SyntaxError("secret-token"), { body: "secret-token" }),
+      {},
+      res,
+      vi.fn(),
+    );
+    expect(log).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    log.mockRestore();
+  });
 });

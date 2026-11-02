@@ -1,4 +1,29 @@
-# Verification — 1 November 2026
+# Verification — 2 November 2026
+
+## Everyday expense-sharing release
+
+- Branch: `codex/everyday-sharing`; four implementation milestone commits.
+- Five new versioned migrations applied to the existing hosted Mumbai project: invitations, templates, recurring drafts, private rate-limit policy, and review/rejoin edge cases. Generated TypeScript database types reflect the new tables/functions.
+- Hosted hourly job `generate-expense-drafts-hourly` is active with schedule `0 * * * *`. Its private function is not executable by browser roles; anonymous users cannot execute scheduling RPCs.
+- **34 tests passed in seven Vitest files**, with both `RUN_SUPABASE_INTEGRATION=1` and `RUN_CRON_INTEGRATION=1`: 23 unit/route tests plus 11 hosted API/auth/concurrency tests. The cron test was coordinated with an administrator invocation of the actual private generator, not a mock.
+- Concurrent owner approvals created one membership. Five concurrent draft-post requests returned one expense. Invalid posting left the draft pending and created no accounting records. A deleted posted expense could not be reposted.
+- Hosted rollback SQL suites `accounting.sql`, `invitations.sql`, `templates.sql`, and `recurring.sql` passed. They cover expiration/regeneration, pending-user isolation, owner authorization, rejection/rejoining, currency mismatch, database rate limits, all allocation modes, invalid totals, multiple payers, private-field exclusion, member-removal correction flags, scheduler catch-up/deduplication, monthly/leap-year anchors, DST/local-midnight cutoffs, paused-period skipping, snapshot preservation, posting rollback, and owner posting without a personal share.
+- Backend build, frontend lint/typecheck, and Next.js production build passed. Error-handler tests verify invitation/auth token-bearing bodies and error details are never logged, including malformed JSON.
+- Browser checks against the live hosted backend: session restoration; group/template/schedule creation; invitation generation/revocation; generated-draft display; draft editing without posting; posting with selected account/category; refreshed draft and expense lists. The review/post workflow also passed at a 390×844 mobile viewport.
+- Security/performance advisors were reviewed. No missing-FK-index, mutable-search-path, unexpected public access, or policy warnings remain. Intentional authenticated SECURITY DEFINER RPC warnings remain, as does the existing leaked-password-protection setting. Unused-index informational notices are expected for a lightly used development project; authorization/FK indexes were retained.
+- All automated test groups and expenses were cleaned up or rolled back. The browser verification group was also reversed/removed after verification; the earlier preview account remains unchanged.
+
+## Remaining external/manual limits
+
+- Real Google consent and confirmation-email delivery remain unverified because provider credentials/mail delivery and dashboard redirect configuration are external prerequisites. Add both `/login` and `/join` to Supabase's allowed redirect URLs. Pending invitations survive login and confirmation in the same browser; on another browser/device, reopen the original invite link.
+- The browser walkthrough covered the new workflows and mobile draft review/posting. It did not exhaustively repeat every legacy form and responsive breakpoint; the previous accounting/API coverage remains relevant below.
+- The hosted Auth advisor still reports [leaked-password protection disabled](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). This setting was not changed.
+- Authenticated privileged RPCs intentionally implement cross-user accounting and approval operations. Actor checks, fixed search paths, direct-write restrictions, and integration tests are required; see [Supabase's security-definer advisory](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable).
+- Longer SQL attempts initially hit expired tool confirmations; the committed suites were then simplified to avoid unnecessary helper objects and successfully executed with rollback.
+
+---
+
+# Previous migration verification — 1 November 2026
 
 ## Environment
 

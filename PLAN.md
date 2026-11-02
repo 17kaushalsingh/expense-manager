@@ -1,3 +1,5 @@
+> Next release — 2 November 2026: implemented invitation links with owner approval, reusable group split templates, and recurring expense drafts. Hosted migrations and the hourly Supabase Cron job are applied. See README.md for behavior/API/setup and VERIFICATION.md for live test results. The older audit below is retained as historical context.
+
 > Implementation status — 1 November 2026: the application now uses hosted Supabase in Mumbai, Supabase Auth, and atomic PostgreSQL accounting RPCs. Docker was removed at the user's request. The original audit below records the starting state; see README.md and VERIFICATION.md for the delivered architecture, checks, and remaining provider/UI verification limits.
 
 # Project Audit & Implementation Plan: Supabase Migration & Feature Roadmap

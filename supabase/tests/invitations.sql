@@ -25,10 +25,38 @@ select public.decide_group_join_request(g,r,'APPROVE') from invite_test_state;
 do $$ begin
  if (select count(*) from public.group_members where group_id=(select g from invite_test_state))<>2 then raise exception 'Duplicate approval'; end if;
 end $$;
+select public.manage_group('{"userId":"66666666-6666-4666-8666-666666666666"}',g,'REMOVE_MEMBER') from invite_test_state;
+select set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+do $$ begin
+ if public.use_group_invitation(repeat('a',64))->>'status'<>'NONE' then raise exception 'Removed member kept approval';end if;
+ if public.use_group_invitation(repeat('a',64),true)->>'status'<>'PENDING' then raise exception 'Cannot request rejoining';end if;
+end $$;
+select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
 select public.manage_group_invitation(g,'CREATE',repeat('b',64)) from invite_test_state;
 do $$ begin
  if public.use_group_invitation(repeat('a',64))->>'valid'<>'false' then raise exception 'Regeneration failed'; end if;
 end $$;
 update public.group_invitations set expires_at=now()-interval '1 second' where group_id=(select g from invite_test_state);
 do $$ begin if public.use_group_invitation(repeat('b',64))->>'valid'<>'false' then raise exception 'Expiration failed'; end if; end $$;
+-- Currency mismatch must not add membership, and rejection can be resubmitted.
+select public.manage_group_invitation(g,'CREATE',repeat('c',64)) from invite_test_state;
+select set_config('request.jwt.claim.sub','77777777-7777-4777-8777-777777777777',true);
+select public.use_group_invitation(repeat('c',64),true);
+update public.users set display_currency='INR' where id=auth.uid();
+select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
+do $$ declare req uuid;begin
+ select id into req from public.group_join_requests where group_id=(select g from invite_test_state) and user_id='77777777-7777-4777-8777-777777777777';
+ begin perform public.decide_group_join_request((select g from invite_test_state),req,'APPROVE');raise exception 'Currency mismatch accepted';exception when raise_exception then if sqlerrm='Currency mismatch accepted' then raise;end if;end;
+ if exists(select 1 from public.group_members where group_id=(select g from invite_test_state) and user_id='77777777-7777-4777-8777-777777777777') then raise exception 'Failed approval added membership';end if;
+ perform public.decide_group_join_request((select g from invite_test_state),req,'REJECT');
+end $$;
+select set_config('request.jwt.claim.sub','77777777-7777-4777-8777-777777777777',true);
+do $$ begin if public.use_group_invitation(repeat('c',64),true)->>'status'<>'PENDING' then raise exception 'Rejected request cannot retry';end if;end $$;
+-- All invalid-token lookups also count toward the database-enforced limit.
+do $$ declare i int;limited boolean=false;begin
+ for i in 1..61 loop
+ begin perform public.use_group_invitation(repeat('d',64));exception when raise_exception then if sqlerrm like 'Too many invitation requests%' then limited=true;exit;else raise;end if;end;
+ end loop;
+ if not limited then raise exception 'Rate limit was bypassed';end if;
+end $$;
 rollback;

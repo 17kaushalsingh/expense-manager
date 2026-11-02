@@ -101,7 +101,7 @@ export default function Home() {
         </div>
       </section>
 
-      <DueDrafts/>
+      <DueDrafts />
       {/* QUICK ACTIONS & ACCOUNTS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* ACCOUNTS VAULT */}

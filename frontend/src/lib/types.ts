@@ -77,12 +77,43 @@ export interface Reminder {
 }
 
 export interface SplitInput {
- groupId?: string|null; description:string; totalAmount:number|null; splitType:Split["splitType"];
- payers:{userId:string;amountPaid?:number;accountId?:string}[];
- participants:{userId:string;shareValue?:number}[];
- categoryId?:string|null; date?:string;
+  groupId?: string | null;
+  description: string;
+  totalAmount: number | null;
+  splitType: Split["splitType"];
+  payers: { userId: string; amountPaid?: number; accountId?: string }[];
+  participants: { userId: string; shareValue?: number }[];
+  categoryId?: string | null;
+  date?: string;
 }
-export interface SplitTemplate {id:string;groupId:string;creatorId:string;name:string;payload:SplitInput;needsCorrection:boolean}
+export interface SplitTemplate {
+  id: string;
+  groupId: string;
+  creatorId: string;
+  name: string;
+  payload: SplitInput;
+  needsCorrection: boolean;
+}
 
-export interface ExpenseSchedule {id:string;groupId:string;creatorId:string;templateId:string;frequency:"WEEKLY"|"MONTHLY"|"YEARLY";startDate:string;endDate:string|null;timezone:string;status:"ACTIVE"|"PAUSED"|"ARCHIVED"}
-export interface ExpenseDraft {id:string;groupId:string;scheduleId:string;dueDate:string;timezone:string;payload:SplitInput;needsCorrection:boolean;canManage:boolean;scheduleStatus:string}
+export interface ExpenseSchedule {
+  id: string;
+  groupId: string;
+  creatorId: string;
+  templateId: string;
+  frequency: "WEEKLY" | "MONTHLY" | "YEARLY";
+  startDate: string;
+  endDate: string | null;
+  timezone: string;
+  status: "ACTIVE" | "PAUSED" | "ARCHIVED";
+}
+export interface ExpenseDraft {
+  id: string;
+  groupId: string;
+  scheduleId: string;
+  dueDate: string;
+  timezone: string;
+  payload: SplitInput;
+  needsCorrection: boolean;
+  canManage: boolean;
+  scheduleStatus: string;
+}

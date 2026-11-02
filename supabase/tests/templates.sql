@@ -8,6 +8,12 @@ do $$ declare g uuid;t uuid;p jsonb;payload jsonb;s text;begin
  payload=jsonb_set(jsonb_set(p,'{splitType}',to_jsonb(s)),'{participants}',jsonb_build_array(jsonb_build_object('userId',auth.uid(),'shareValue',case s when 'EXACT' then 5 else 50 end),jsonb_build_object('userId','66666666-6666-4666-8666-666666666666','shareValue',case s when 'EXACT' then 5.01 else 50 end)));
  perform public.manage_split_template(g,jsonb_build_object('name',s,'payload',payload));end loop;
  begin perform public.manage_split_template(g,jsonb_build_object('name','Bad','payload',p||jsonb_build_object('categoryId',g)));raise exception 'Private fields accepted';exception when raise_exception then if sqlerrm='Private fields accepted' then raise;end if;end;
+ foreach s in array array['EXACT','PERCENTAGE'] loop
+ payload=jsonb_set(jsonb_set(p,'{splitType}',to_jsonb(s)),'{participants}',jsonb_build_array(jsonb_build_object('userId',auth.uid(),'shareValue',1)));
+ begin perform public.manage_split_template(g,jsonb_build_object('name','Invalid total','payload',payload));raise exception 'Invalid total accepted';exception when raise_exception then if sqlerrm='Invalid total accepted' then raise;end if;end;
+ end loop;
+ payload=p||jsonb_build_object('payers',jsonb_build_array(jsonb_build_object('userId',auth.uid(),'amountPaid',5),jsonb_build_object('userId','66666666-6666-4666-8666-666666666666','amountPaid',5.01)));
+ perform public.manage_split_template(g,jsonb_build_object('name','Multiple payers','payload',payload));
  if exists(select 1 from public.split_expenses where group_id=g) then raise exception 'Templates changed ledger';end if;
  perform set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
  begin perform public.manage_split_template(g,'{}',t,true);raise exception 'Unauthorized archive';exception when insufficient_privilege then null;end;

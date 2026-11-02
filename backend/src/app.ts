@@ -56,6 +56,16 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
-  console.error(error);
+  // Parser errors can contain the raw JSON body, including invitation/auth tokens.
+  if (error instanceof SyntaxError && "body" in error) {
+    res.status(400).json({ error: "Invalid JSON body" });
+    return;
+  }
+  console.error({
+    name: error.name,
+    method: req.method,
+    path: req.path,
+    message: "Unhandled API error",
+  });
   res.status(500).json({ error: "Internal server error" });
 });

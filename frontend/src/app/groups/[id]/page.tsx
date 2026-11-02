@@ -79,8 +79,14 @@ export default function GroupDetails() {
         </div>
       </header>
       <ErrorMessage error={group.error || splits.error || graph.error} />
-      {owner && <Invitations groupId={id}/>}
-      {group.data && <><Templates group={group.data}/><Recurring group={group.data}/><DueDrafts groupId={id}/></>}
+      {owner && <Invitations groupId={id} />}
+      {group.data && (
+        <>
+          <Templates group={group.data} />
+          <Recurring group={group.data} />
+          <DueDrafts groupId={id} />
+        </>
+      )}
       <section className="panel space-y-4">
         <h2 className="font-semibold text-lg">Simplified balances</h2>
         {graph.isLoading && <p>Loading balances…</p>}

@@ -38,5 +38,13 @@ begin
  if exists(select 1 from public.expense_drafts where schedule_id=s and due_date='2026-03-08') then raise exception 'Generated before local midnight';end if;
  perform private.generate_expense_drafts('2026-03-08T05:00:00Z');
  if not exists(select 1 from public.expense_drafts where schedule_id=s and due_date='2026-03-08') then raise exception 'Did not generate on local date';end if;
+-- Owner can post a complete draft whose parties do not include the owner.
+ p=jsonb_build_object('description','Bob-only expense','totalAmount',3,'splitType','EQUAL','payers',jsonb_build_array(jsonb_build_object('userId','66666666-6666-4666-8666-666666666666','amountPaid',3)),'participants',jsonb_build_array(jsonb_build_object('userId','66666666-6666-4666-8666-666666666666')));
+ t=(public.manage_split_template(g,jsonb_build_object('name','Owner review','payload',p))->>'id')::uuid;
+ s=(public.manage_expense_schedule(jsonb_build_object('templateId',t,'frequency','MONTHLY','startDate',(now() at time zone 'UTC')::date,'timezone','UTC'))->>'id')::uuid;
+ perform private.generate_expense_drafts();
+ select id into d from public.expense_drafts where schedule_id=s;
+ v=public.mutate_expense_draft(d,'POST',p);
+ if v->>'creator_id'<>auth.uid()::text then raise exception 'Posting did not preserve authenticated actor';end if;
 end $$;
 rollback;

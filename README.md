@@ -31,7 +31,7 @@ Development and production builds use Webpack because Turbopack's CSS worker cou
 
 Email/password registration, confirmation links, login, persistent sessions, automatic refresh, and logout use Supabase Auth. Credentials are never stored in application tables. The browser SDK owns session persistence; Express validates every bearer access token using Supabase before querying as that user. Query caches are cleared when the authenticated identity changes.
 
-In the Supabase Dashboard, set **Authentication → URL Configuration → Site URL** to `http://localhost:3000` for development and allow `http://localhost:3000/login` as a redirect URL. Set the deployed app's URL before production use. With email confirmation enabled, signup displays a confirmation instruction instead of creating an authenticated app session.
+In the Supabase Dashboard, set **Authentication → URL Configuration → Site URL** to `http://localhost:3000` for development and allow both `http://localhost:3000/login` and `http://localhost:3000/join` as redirect URLs. Set the deployed app's URL before production use. With email confirmation enabled, signup displays a confirmation instruction instead of creating an authenticated app session.
 
 For Google sign-in, enable **Authentication → Sign In / Providers → Google**, configure your Google OAuth web client ID and secret there, and set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to that client ID. Configure the allowed JavaScript origin in Google Cloud Console. Google sign-in is hidden until this public client ID is configured. The browser exchanges the Google ID token with Supabase; Google secrets never belong in frontend environment variables. Live Google consent and email delivery require provider/dashboard configuration and were not verified by the automated tests.
 
@@ -59,6 +59,38 @@ Existing `/api` resources and camelCase response fields are retained. CRUD is co
 
 `GET /api/transactions` accepts `type`, `accountId`, `categoryId`, `from`, and `to` filters. `GET /api/analytics/cash-flow` accepts `range=1W|1M|3M|1Y|ALL`, optional ISO `from`/`to`, and `groupBy=day|month`; it returns totals and zero-filled `series` buckets using the saved timezone. Transaction history is paginated internally through PostgREST so results are not silently truncated. `/api/analytics/debts` returns the caller's ad-hoc debt graph.
 
+## Invitations, templates, and recurring drafts
+
+Group owners can create/revoke/regenerate seven-day invitation links and approve or reject membership requests. Requesters must sign in through Supabase; until approval they see only the group name, currency, and request status. Currency mismatches block approval. Links use URL fragments so bearer tokens are not sent in server request URLs, and PostgreSQL stores only SHA-256 hashes. Save a newly generated link immediately: its token cannot be retrieved afterward. Creating a replacement revokes the previous link. Lookup and request limits are enforced per authenticated identity in PostgreSQL (60 lookups or 10 join attempts per one-minute window).
+
+The browser retains a pending invitation through sign-in, registration, and confirmation in the same browser. If confirmation is opened on a different device/browser, reopen the original invitation link there. Allow `/join` in Supabase Auth redirect URLs for both development and production. There is no public user directory or anonymous group preview.
+
+Any group member can save/use a template with equal, exact, percentage, or shares allocations and multiple payers. Its creator or group owner can edit/archive it. Templates contain ordered participants, payer amounts, and an optional total; they never retain account or personal category IDs. Applying a template opens the split editor for review. Removed participants are flagged; correct their allocations before posting. Exact allocations and multiple-payer amounts are not rescaled when totals change. Group members can record a group expense without owing a share themselves; ad-hoc expenses still require creator involvement.
+
+Create a weekly, monthly, or yearly schedule from a complete template. Its creator or group owner can pause/archive it, change its end date, and review/edit/post/skip drafts. Cadence, start date, and timezone are fixed after creation; archive and create a new schedule to change them. Start dates cannot be in the past. Monthly/yearly schedules retain the original anchor, clamping short months and leap days. Resuming skips past paused dates; existing pending drafts remain reviewable. Archiving a template pauses linked schedules on the next scheduler run. Archive a member's schedules before removing that member.
+
+The recurring migration enables hosted `pg_cron` and installs `generate-expense-drafts-hourly` (`0 * * * *`). It invokes a private database function directly, with no service-role key or always-on Express process. Jobs create snapshots only: **drafts do not change balances, debts, or analytics**. Template edits affect later occurrences, not existing snapshots. Catch-up processes up to 100 occurrences per schedule per run; any remaining backlog continues next hour. Posting and linking the expense happen in one accounting transaction. Concurrent/retried posting returns the original expense; deleting that expense never permits reposting the same occurrence.
+
+Monitor the job in Supabase **Integrations → Cron**, or inspect `cron.job_run_details`. A failed run can be retried safely by an administrator with `select private.generate_expense_drafts();`. Browser roles cannot execute the scheduler. SQL date handling uses the hosted PostgreSQL timezone database; keep the hosted Postgres version current for regional timezone-rule changes.
+
+### New REST resources
+
+All paths below are under `/api`, require a Supabase access token, and retain camelCase responses:
+
+| Resource | Operations |
+| --- | --- |
+| `/invitations/groups/:groupId` | GET owner metadata/requests; POST create/regenerate; DELETE revoke |
+| `/invitations/lookup`, `/invitations/request` | POST `{ token }` for preview/request |
+| `/invitations/groups/:groupId/requests/:requestId` | POST `{ decision: "APPROVE" or "REJECT" }` |
+| `/templates/groups/:groupId` | GET list with `needsCorrection`; POST `{ name, payload }` |
+| `/templates/groups/:groupId/:id` | PUT replacement; DELETE archive |
+| `/recurring/schedules/groups/:groupId` | GET schedules visible to group members |
+| `/recurring/schedules` | POST `{ templateId, frequency, startDate, endDate?, timezone }` |
+| `/recurring/schedules/:id` | PUT `{ status?, endDate? }` |
+| `/recurring/drafts?groupId=…` | GET group drafts; omit groupId for actionable dashboard drafts |
+| `/recurring/drafts/:id` | PUT corrected split payload without account/category selections |
+| `/recurring/drafts/:id/post`, `/recurring/drafts/:id/skip` | POST reviewed split payload or empty object, respectively |
+
 ## Checks
 
 ```sh
@@ -68,16 +100,17 @@ npm run lint -w frontend
 npm run build -w frontend
 ```
 
-Hosted database assertions are in `supabase/tests/accounting.sql`. Run the whole file as one transaction via Supabase MCP or a database client: it seeds four reserved identities, switches authenticated roles, verifies atomicity/reversals/RLS/settlements, and rolls everything back.
+Hosted rollback suites are in `supabase/tests/accounting.sql`, `invitations.sql`, `templates.sql`, and `recurring.sql`. Run each whole file as one transaction through Supabase MCP or a database client. The sharing suites require the reserved HTTP fixture identities below; every suite rolls its mutations back. Never run these suites with real user identities.
 
-The opt-in HTTP/session/concurrency suite uses three dedicated fixture identities. For a dedicated test project:
+For a dedicated test project:
 
-1. Set `test.password` in a SQL transaction and run `supabase/tests/auth_fixtures.sql` in the same transaction. It creates only reserved `@example.invalid` users; do not seed it in a production project or reuse those UUIDs.
-2. Set `SUPABASE_TEST_PASSWORD` in the ignored `backend/.env.integration.local` file. Backend `.env` supplies the same hosted URL and publishable key as the application.
-3. Run `npm run test:integration -w backend` against those fixtures. Test-created accounts and transactions are cleaned after each run.
-4. After closing any preview using a fixture login, run `supabase/tests/cleanup_auth_fixtures.sql`. It deletes only those reserved fixtures and their accounting records. Never use real user identities for these tests.
+1. Set `test.password` in a SQL transaction and run `supabase/tests/auth_fixtures.sql` in the same transaction. It creates three reserved `@example.invalid` users; do not seed them in production or reuse those UUIDs.
+2. Set `SUPABASE_TEST_PASSWORD` in ignored `backend/.env.integration.local`. Backend `.env` supplies the hosted URL and publishable key.
+3. Run `npm run test:integration -w backend`. This runs HTTP/session/concurrency and sharing tests, cleaning their own accounts, transactions, and groups. No browser server is needed.
+4. To include concurrent draft posting, run `RUN_SUPABASE_INTEGRATION=1 RUN_CRON_INTEGRATION=1 npm test -w backend`. When `CRON_FIXTURE_READY` appears, invoke `select private.generate_expense_drafts();` through an administrator connection. The test waits up to 90 seconds for its draft. This is an explicit manual coordination step because browser credentials cannot run the private scheduler.
+5. Close previews using fixture logins before running `supabase/tests/cleanup_auth_fixtures.sql`. It deletes only reserved identities and their fixture records. Never use it with real users.
 
-The HTTP integration checks include 20 concurrent accounting writes, reversal, RLS via both HTTP and PostgREST, token validation, refreshed/restored sessions, logout, and timezone settings. Unit tests run without a Supabase connection; the live suite is explicitly skipped unless opted in.
+See `VERIFICATION.md` for passed checks and external provider limitations.
 
 ## Contribution workflow
 
