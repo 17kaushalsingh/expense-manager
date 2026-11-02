@@ -1,4 +1,5 @@
 "use client";
+import { authDestination, pendingInvitation } from "@/lib/invitations";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -25,14 +26,14 @@ export function AuthForm({ register = false }: { register?: boolean }) {
             password,
             options: {
               data: { name: fields.get("name") },
-              emailRedirectTo: `${location.origin}/login`,
+              emailRedirectTo: `${location.origin}${pendingInvitation() ? "/join" : "/login"}`,
             },
           })
         : await supabase().auth.signInWithPassword({ email, password });
       if (result.error) throw result.error;
       if (!result.data.session)
         setMessage("Check your email to confirm your account, then sign in.");
-      else router.push("/");
+      else router.push(authDestination());
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Authentication failed",
@@ -98,7 +99,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
                   token: response.credential,
                 });
                 if (error) throw error;
-                router.push("/");
+                router.push(authDestination());
               } catch (error) {
                 setError(
                   error instanceof Error

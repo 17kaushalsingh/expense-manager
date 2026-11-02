@@ -47,7 +47,7 @@ export function dbResult<T>(result: {
   if (result.error) {
     const { code, message } = result.error;
     const status =
-      code === "42501"
+      message.startsWith("Too many invitation requests") ? 429 : code === "42501"
         ? 403
         : ["P0002", "PGRST116"].includes(code ?? "")
           ? 404
@@ -65,10 +65,10 @@ export function dbResult<T>(result: {
   }
   return result.data;
 }
-export async function rpc(
+export async function rpc<T = unknown>(
   client: SupabaseClient,
   name: keyof Database["public"]["Functions"],
   args: Record<string, unknown> = {},
 ) {
-  return camelCase(dbResult(await client.rpc(name, args)));
+  return camelCase<T>(dbResult(await client.rpc(name, args)));
 }
