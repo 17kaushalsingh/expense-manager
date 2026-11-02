@@ -1,363 +1,367 @@
 "use client";
-
+import Link from "next/link";
+import { useState } from "react";
+import {
+  Plus,
+  Users,
+  ArrowUpRight,
+  ArrowDownLeft,
+  ArrowLeftRight,
+  Wallet,
+  ChevronRight,
+  CalendarDays,
+  Target,
+  Shapes,
+} from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useResource } from "@/hooks/useResource";
+import { useAccounts, useNetWorth, useDebtSummary } from "@/hooks/useDashboard";
+import { useGroups } from "@/hooks/useGroups";
+import { useFormat } from "@/lib/format";
+import { Transaction, Category } from "@/lib/types";
+import { TransactionRow } from "@/components/transactions/TransactionRow";
+import {
+  TransactionEditor,
+  Transfer,
+} from "@/components/transactions/TransactionForms";
+import { IndividualSplits } from "@/components/split/IndividualSplits";
+import { SplitBuilder } from "@/components/split/SplitBuilder";
+import { SettlementModal } from "@/components/settlements/SettlementModal";
 import { PlanningOverview } from "@/components/planning/PlanningOverview";
 import { DueDrafts } from "@/components/recurring/Recurring";
-import Link from "next/link";
-import { useResource, useAction } from "@/hooks/useResource";
-import { Split } from "@/lib/types";
-import { useAuthStore } from "@/store/auth";
-import { apiClient } from "@/lib/api/client";
-import { Confirm } from "@/components/ui/Controls";
-import { SettlementModal } from "@/components/settlements/SettlementModal";
-import { useFormat } from "@/lib/format";
 import { ErrorMessage } from "@/components/ui/Controls";
-import { useState } from "react";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Plus, CreditCard } from "lucide-react";
-import { SplitBuilder } from "@/components/split/SplitBuilder";
-import { useNetWorth, useAccounts, useDebtSummary } from "@/hooks/useDashboard";
-
 export default function Home() {
-  const [isSplitBuilderOpen, setIsSplitBuilderOpen] = useState(false);
-
-  const [settle, setSettle] = useState(false);
-  const [edit, setEdit] = useState<Split>();
-  const [remove, setRemove] = useState<Split>();
-  const individual = useResource<Split[]>("/splits");
-  const people =
-    useResource<{ id: string; name: string }[]>("/users/debt-people");
-  const user = useAuthStore((s) => s.user);
-  const deletion = useAction(
-    () => apiClient.delete(`/splits/${remove?.id}`),
-    () => setRemove(undefined),
+  const { money, timezone } = useFormat();
+  const worth = useNetWorth(),
+    accounts = useAccounts(),
+    debts = useDebtSummary(),
+    groups = useGroups();
+  const flow = useResource<{
+    totalIncome: number;
+    totalExpense: number;
+    cashFlow: number;
+  }>("/analytics/cash-flow?range=1M");
+  const recent = useResource<{ items: Transaction[]; total: number }>(
+    "/transactions/page?limit=30",
   );
-
-  // Fetch real data
-  const {
-    data: netWorthData,
-    isLoading: isNetWorthLoading,
-    error: netWorthError,
-  } = useNetWorth();
-  const {
-    data: accounts,
-    isLoading: isAccountsLoading,
-    error: accountsError,
-  } = useAccounts();
-  const {
-    data: debtSummary,
-    isLoading: isDebtLoading,
-    error: debtError,
-  } = useDebtSummary();
-
-  const { money: formatCurrency } = useFormat();
-
+  const categories = useResource<Category[]>("/categories");
+  const [entry, setEntry] = useState(false),
+    [split, setSplit] = useState(false),
+    [transfer, setTransfer] = useState(false),
+    [settle, setSettle] = useState(false);
+  const dateLabel = new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: timezone,
+  }).format(new Date());
+  const cash =
+    accounts.data?.filter(
+      (a) => !["ACCOUNTS_RECEIVABLE", "ACCOUNTS_PAYABLE"].includes(a.type),
+    ) ?? [];
   return (
     <DashboardLayout>
-      <ErrorMessage error={netWorthError || accountsError || debtError} />
-      {/* HERO BALANCE CARD */}
-      <section className="bg-surface-primary border border-border-soft rounded-2xl p-6 md:p-8 shadow-sm">
-        <div className="space-y-2">
-          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
-            Total Net Worth
-          </h2>
-          <div className="flex items-baseline space-x-3">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight tabular-nums">
-              {isNetWorthLoading
-                ? "..."
-                : formatCurrency(netWorthData?.netWorth || 0)}
-            </h1>
-          </div>
-        </div>
-
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-border-soft pt-6">
-          <BalanceMetric
-            label="Assets"
-            amount={
-              isNetWorthLoading
-                ? "..."
-                : formatCurrency(netWorthData?.breakdown?.assets || 0)
-            }
-          />
-          <BalanceMetric
-            label="Liabilities"
-            amount={
-              isNetWorthLoading
-                ? "..."
-                : formatCurrency(netWorthData?.breakdown?.liabilities || 0)
-            }
-            negative
-          />
-          <BalanceMetric
-            label="Group Balances"
-            amount={
-              isNetWorthLoading
-                ? "..."
-                : formatCurrency(
-                    (netWorthData?.breakdown?.receivables || 0) -
-                      (netWorthData?.breakdown?.payables || 0),
-                  )
-            }
-            positive
-          />
-        </div>
-      </section>
-
-      <PlanningOverview />
-      <DueDrafts />
-      {/* QUICK ACTIONS & ACCOUNTS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* ACCOUNTS VAULT */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Accounts Vault</h3>
-            <Link
-              href="/accounts"
-              className="text-sm text-brand-primary font-medium hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {isAccountsLoading ? (
-              <div className="p-4 text-center text-text-secondary animate-pulse">
-                Loading accounts...
-              </div>
-            ) : accounts && accounts.length > 0 ? (
-              accounts
-                .filter(
-                  (a) =>
-                    !["ACCOUNTS_RECEIVABLE", "ACCOUNTS_PAYABLE"].includes(
-                      a.type,
-                    ),
-                )
-                .map((acc) => (
-                  <AccountCard
-                    key={acc.id}
-                    name={acc.name}
-                    type={acc.type.replace("_", " ")}
-                    balance={formatCurrency(acc.balance)}
-                    isLiability={["CREDIT_CARD", "LOAN"].includes(acc.type)}
-                  />
-                ))
-            ) : (
-              <div className="p-4 text-center text-text-secondary border border-border-soft rounded-xl border-dashed">
-                No accounts found
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* QUICK SPLIT & DEBT ACTION BOX */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Pending Debts</h3>
-            <button
-              onClick={() => setIsSplitBuilderOpen(true)}
-              aria-label="Add split"
-              className="p-2 bg-surface-secondary rounded-full hover:bg-border-soft transition-colors"
-            >
-              <Plus className="w-4 h-4 text-text-primary" />
-            </button>
-          </div>
-          <div className="bg-surface-primary border border-border-soft rounded-2xl p-5 shadow-sm space-y-4">
-            <DebtItem
-              name="Receivables"
-              description="Total owed to you"
-              amount={
-                isDebtLoading
-                  ? "..."
-                  : formatCurrency(debtSummary?.totalOwedToYou || 0)
-              }
-              type="receivable"
-            />
-            <DebtItem
-              name="Payables"
-              description="Total you owe"
-              amount={
-                isDebtLoading
-                  ? "..."
-                  : formatCurrency(debtSummary?.totalYouOwe || 0)
-              }
-              type="payable"
-            />
-
-            <div className="pt-4 border-t border-border-soft flex space-x-3">
-              <button
-                onClick={() => setIsSplitBuilderOpen(true)}
-                className="flex-1 bg-brand-primary text-white font-medium py-2.5 rounded-lg hover:bg-brand-primary/90 transition-colors"
-              >
-                + Add Split
-              </button>
-              <button
-                onClick={() => setSettle(true)}
-                className="flex-1 bg-surface-secondary text-text-primary font-medium py-2.5 rounded-lg hover:bg-border-soft transition-colors border border-border-soft"
-              >
-                Settle Up
-              </button>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Individual expenses</h2>
-        <ErrorMessage error={individual.error} />
-        {individual.data?.length === 0 && (
-          <p className="panel text-text-secondary">
-            No individual split expenses yet.
+      <header className="flex justify-between items-end gap-4">
+        <div>
+          <p className="eyebrow mb-1.5">{dateLabel}</p>
+          <h1 className="text-[32px]">Overview</h1>
+          <p className="text-text-secondary text-xs mt-1">
+            Your accounts and shared expenses.
           </p>
-        )}
-        {individual.data?.map((s) => (
-          <article
-            className="panel flex flex-wrap gap-3 justify-between items-center"
-            key={s.id}
-          >
+        </div>
+        <button
+          className="btn hidden sm:inline-flex gap-2"
+          onClick={() => setEntry(true)}
+        >
+          <Plus size={16} />
+          Add transaction
+        </button>
+      </header>
+      <ErrorMessage
+        error={
+          worth.error ||
+          accounts.error ||
+          flow.error ||
+          recent.error ||
+          groups.error
+        }
+      />
+      <div className="grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-5">
+        <section className="balance-hero space-y-4">
+          <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-semibold">{s.description}</h3>
-              <p className="text-sm text-text-secondary">
-                {s.splitType} · {formatCurrency(s.totalAmount)}
+              <p className="text-white/95 text-xs">Total balance · net worth</p>
+              <p className="text-[42px] md:text-[48px] tracking-[-.06em] font-semibold tabular-nums mt-1 leading-tight">
+                {worth.isLoading ? "—" : money(worth.data?.netWorth ?? 0)}
               </p>
             </div>
-            {s.creatorId === user?.id && (
-              <div className="flex gap-2">
-                <button className="btn-secondary" onClick={() => setEdit(s)}>
-                  Edit
-                </button>
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    deletion.reset();
-                    setRemove(s);
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </article>
-        ))}
-      </section>
-      {edit && (
-        <SplitBuilder
-          isOpen
-          split={edit}
-          onClose={() => setEdit(undefined)}
-          groupMembers={[
-            ...new Set(
-              [...edit.payers, ...edit.participants].map((p) => p.userId),
-            ),
-          ].map((id) => ({
-            userId: id,
-            user: {
-              id,
-              name: people.data?.find((p) => p.id === id)?.name ?? "Member",
-            },
-          }))}
-        />
-      )}
-      {remove && (
-        <Confirm
-          message="Delete this individual expense and reverse its ledger entries?"
-          onClose={() => setRemove(undefined)}
-          onConfirm={() => deletion.mutate()}
-          error={deletion.error}
-          busy={deletion.isPending}
-        />
-      )}
-      {settle && <SettlementModal onClose={() => setSettle(false)} />}
-      <SplitBuilder
-        isOpen={isSplitBuilderOpen}
-        onClose={() => setIsSplitBuilderOpen(false)}
-      />
-    </DashboardLayout>
-  );
-}
-
-function BalanceMetric({
-  label,
-  amount,
-  positive,
-  negative,
-}: {
-  label: string;
-  amount: string;
-  positive?: boolean;
-  negative?: boolean;
-}) {
-  return (
-    <div className="space-y-1">
-      <p className="text-sm text-text-secondary">{label}</p>
-      <p
-        className={`text-xl font-semibold tabular-nums ${positive ? "text-positive" : negative ? "text-negative" : "text-text-primary"}`}
-      >
-        {amount}
-      </p>
-    </div>
-  );
-}
-
-function AccountCard({
-  name,
-  type,
-  balance,
-  isLiability,
-}: {
-  name: string;
-  type: string;
-  balance: string;
-  isLiability?: boolean;
-}) {
-  return (
-    <div className="bg-surface-primary border border-border-soft rounded-xl p-4 flex items-center justify-between hover:bg-surface-secondary transition-colors cursor-pointer shadow-sm">
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center border border-border-soft">
-          <CreditCard className="w-5 h-5 text-text-secondary" />
-        </div>
-        <div>
-          <h4 className="font-medium text-text-primary">{name}</h4>
-          <p className="text-xs text-text-secondary">{type}</p>
-        </div>
-      </div>
-      <span
-        className={`font-semibold tabular-nums ${isLiability ? "text-negative" : "text-text-primary"}`}
-      >
-        {balance}
-      </span>
-    </div>
-  );
-}
-
-function DebtItem({
-  name,
-  description,
-  amount,
-  type,
-}: {
-  name: string;
-  description: string;
-  amount: string;
-  type: "receivable" | "payable";
-}) {
-  const isReceivable = type === "receivable";
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center font-semibold text-text-primary border border-border-soft">
-          {name.charAt(0)}
-        </div>
-        <div>
-          <h4 className="text-sm font-medium text-text-primary">{name}</h4>
-          <p className="text-xs text-text-secondary">{description}</p>
-        </div>
-      </div>
-      <div className="text-right">
-        <span
-          className={`text-sm font-semibold tabular-nums ${isReceivable ? "text-positive" : "text-negative"}`}
+            <span className="grid place-items-center rounded-full bg-white/10 h-9 w-9">
+              <Wallet size={17} className="text-white/95" />
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 rounded-xl px-3 py-2.5">
+              <p className="text-white/95 text-[10px] flex gap-1.5 items-center">
+                <ArrowDownLeft size={12} />
+                Income · 30 days
+              </p>
+              <p className="font-semibold text-lg mt-1 tabular-nums">
+                {flow.isLoading ? "—" : money(flow.data?.totalIncome ?? 0)}
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-xl px-3 py-2.5">
+              <p className="text-white/95 text-[10px] flex gap-1.5 items-center">
+                <ArrowUpRight size={12} />
+                Expenses · 30 days
+              </p>
+              <p className="font-semibold text-lg mt-1 tabular-nums">
+                {flow.isLoading ? "—" : money(flow.data?.totalExpense ?? 0)}
+              </p>
+            </div>
+          </div>
+        </section>
+        <section className="panel !p-0 overflow-hidden order-3 lg:order-2">
+          <div className="flex justify-between items-center px-5 pt-5 pb-3">
+            <h2 className="section-title">Accounts</h2>
+            <Link href="/accounts" className="subtle-link">
+              View all
+              <ChevronRight size={13} />
+            </Link>
+          </div>
+          {accounts.isLoading ? (
+            <p className="p-5 text-text-secondary">Loading balances…</p>
+          ) : cash.length ? (
+            cash.slice(0, 3).map((a) => (
+              <Link
+                href={`/transactions?accountId=${a.id}`}
+                className="list-row"
+                key={a.id}
+              >
+                <span className="icon-tile !h-8 !w-8">
+                  <Wallet size={14} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-medium truncate">
+                    {a.name}
+                  </span>
+                  <span className="text-[10px] text-text-secondary">
+                    {a.type.replaceAll("_", " ").toLowerCase()}
+                  </span>
+                </span>
+                <strong className="text-xs tabular-nums">
+                  {money(a.balance, a.currency)}
+                </strong>
+              </Link>
+            ))
+          ) : (
+            <Link
+              className="block px-5 pb-5 text-text-secondary text-sm"
+              href="/accounts"
+            >
+              Add your first account →
+            </Link>
+          )}
+        </section>
+        <section
+          className="grid grid-cols-5 gap-2 sm:gap-5 py-1 order-2 lg:order-3 lg:col-span-2"
+          aria-label="Quick actions"
         >
-          {isReceivable ? "+" : "-"}
-          {amount}
-        </span>
+          {[
+            {
+              label: "Expense",
+              Icon: Plus,
+              run: () => setEntry(true),
+              color: "#e9f1eb",
+            },
+            {
+              label: "Split bill",
+              Icon: Users,
+              run: () => setSplit(true),
+              color: "#edf0f8",
+            },
+            {
+              label: "Transfer",
+              Icon: ArrowLeftRight,
+              run: () => setTransfer(true),
+              color: "#f5ede2",
+            },
+          ].map(({ label, Icon, run, color }) => (
+            <button
+              className="flex flex-col items-center gap-2 py-2"
+              key={label}
+              onClick={run}
+            >
+              <span
+                className="h-11 w-11 rounded-2xl grid place-items-center text-[#4b5a51]"
+                style={{ background: color }}
+              >
+                <Icon size={19} strokeWidth={1.7} />
+              </span>
+              <span className="text-[11px] font-medium">{label}</span>
+            </button>
+          ))}
+          <Link
+            className="flex flex-col items-center gap-2 py-2"
+            href="/budgets"
+          >
+            <span className="h-11 w-11 rounded-2xl grid place-items-center bg-[#f8e9e7] text-[#a97469]">
+              <Shapes size={19} strokeWidth={1.7} />
+            </span>
+            <span className="text-[11px] font-medium">Budgets</span>
+          </Link>
+          <Link className="flex flex-col items-center gap-2 py-2" href="/goals">
+            <span className="h-11 w-11 rounded-2xl grid place-items-center bg-[#eeebf5] text-[#8e7aab]">
+              <Target size={19} strokeWidth={1.7} />
+            </span>
+            <span className="text-[11px] font-medium">Savings</span>
+          </Link>
+        </section>
       </div>
-    </div>
+      <div className="grid lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-6">
+        <div className="space-y-6">
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="section-title">Recent activity</h2>
+              <Link href="/transactions" className="subtle-link">
+                See all
+                <ChevronRight size={13} />
+              </Link>
+            </div>
+            <div className="grouped-list">
+              {recent.isLoading ? (
+                <p className="p-5 text-text-secondary">
+                  Loading your transactions…
+                </p>
+              ) : (
+                recent.data?.items
+                  .filter(
+                    (t) =>
+                      !["ACCOUNTS_RECEIVABLE", "ACCOUNTS_PAYABLE"].includes(
+                        t.account?.type ?? "",
+                      ),
+                  )
+                  .slice(0, 6)
+                  .map((t) => (
+                    <Link
+                      key={t.id}
+                      href={`/transactions?accountId=${t.accountId}`}
+                    >
+                      <TransactionRow transaction={t} compact />
+                    </Link>
+                  ))
+              )}
+              {recent.data?.items.length === 0 && (
+                <div className="px-5 py-8">
+                  <p className="font-medium mb-1">A fresh start.</p>
+                  <p className="text-text-secondary text-xs">
+                    Your first expense is a tap away.
+                  </p>
+                  <button
+                    className="subtle-link mt-3"
+                    onClick={() => setEntry(true)}
+                  >
+                    Add an expense
+                    <Plus size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="section-title">Shared with friends</h2>
+              <Link href="/groups" className="subtle-link">
+                All groups
+                <ChevronRight size={13} />
+              </Link>
+            </div>
+            <div className="grouped-list">
+              {groups.data?.slice(0, 3).map((g) => (
+                <Link className="list-row" key={g.id} href={`/groups/${g.id}`}>
+                  <span className="icon-tile">
+                    <Users size={17} />
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-[13px] font-medium">
+                      {g.name}
+                    </span>
+                    <span className="text-[11px] text-text-secondary">
+                      {g.members.length} members
+                    </span>
+                  </span>
+                  <span
+                    className={`text-xs font-medium ${Number(g.myBalance) < 0 ? "text-negative" : "text-positive"}`}
+                  >
+                    {Number(g.myBalance) === 0
+                      ? "Settled up"
+                      : `${Number(g.myBalance) > 0 ? "Owed to you" : "You owe"} ${money(Math.abs(Number(g.myBalance)), g.currency)}`}
+                  </span>
+                </Link>
+              ))}
+              {groups.data?.length === 0 && (
+                <Link
+                  href="/groups"
+                  className="list-row text-text-secondary text-xs"
+                >
+                  <Users size={17} />
+                  Create a group for your next shared bill
+                  <ChevronRight size={14} />
+                </Link>
+              )}
+            </div>
+            <div className="flex justify-between items-center px-1 pt-3 text-[11px] text-text-secondary">
+              <span>
+                Owed to you{" "}
+                <strong className="text-positive ml-1">
+                  {money(debts.data?.totalOwedToYou ?? 0)}
+                </strong>{" "}
+                · You owe{" "}
+                <strong className="text-negative ml-1">
+                  {money(debts.data?.totalYouOwe ?? 0)}
+                </strong>
+              </span>
+              <button className="subtle-link" onClick={() => setSettle(true)}>
+                Settle up
+              </button>
+            </div>
+          </section>
+          <IndividualSplits />
+        </div>
+        <div className="space-y-5">
+          <PlanningOverview />
+          <DueDrafts />
+          <Link
+            href="/transactions?view=calendar"
+            className="panel !py-4 flex gap-3 items-center"
+          >
+            <span className="icon-tile">
+              <CalendarDays size={17} />
+            </span>
+            <span className="flex-1">
+              <span className="block text-xs font-semibold">
+                Your spending calendar
+              </span>
+              <span className="block text-[11px] text-text-secondary mt-0.5">
+                Find the days that added up.
+              </span>
+            </span>
+            <ChevronRight size={15} className="text-text-secondary" />
+          </Link>
+        </div>
+      </div>
+      {entry && (
+        <TransactionEditor
+          accounts={cash}
+          categories={categories.data ?? []}
+          onClose={() => setEntry(false)}
+        />
+      )}{" "}
+      {transfer && (
+        <Transfer accounts={cash} onClose={() => setTransfer(false)} />
+      )}
+      <SplitBuilder isOpen={split} onClose={() => setSplit(false)} />
+      {settle && <SettlementModal onClose={() => setSettle(false)} />}
+
+    </DashboardLayout>
   );
 }

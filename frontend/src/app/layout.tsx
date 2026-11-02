@@ -1,18 +1,7 @@
 import { ServiceWorker } from "@/components/pwa/InstallApp";
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "LedgerSync",
@@ -25,7 +14,7 @@ export const metadata: Metadata = {
   icons: { apple: "/icon-192.png" },
 };
 
-export const viewport: Viewport = { themeColor: "#111827" };
+export const viewport: Viewport = { themeColor: "#4f806b" };
 
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
@@ -39,10 +28,16 @@ export default function RootLayout({
     "placeholder-client-id.apps.googleusercontent.com";
 
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          id="appearance"
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('ledgersync-appearance')||'light';if(['light','dark','system'].includes(t))document.documentElement.dataset.theme=t}catch{document.documentElement.dataset.theme='light'}`,
+          }}
+        />
+      </head>
+      <body className="antialiased">
         <GoogleOAuthProvider clientId={clientId}>
           <QueryProvider>
             {children}

@@ -35,6 +35,7 @@ export default function GroupDetails() {
     [members, setMembers] = useState<Person[]>([]),
     [deleteGroup, setDeleteGroup] = useState(false);
   const [comments, setComments] = useState<Split>();
+  const [tab, setTab] = useState("Expenses");
   const owner = group.data?.ownerId === user?.id;
   const action = useAction(
     (request: {
@@ -84,85 +85,141 @@ export default function GroupDetails() {
         </div>
       </header>
       <ErrorMessage error={group.error || splits.error || graph.error} />
-      {owner && <Invitations groupId={id} />}
-      {group.data && (
+      <section className="panel !py-4 flex justify-between items-center">
+        <div>
+          <p className="eyebrow">Your balance in this group</p>
+          <p
+            className={`text-xl font-semibold mt-1 ${Number(group.data?.myBalance ?? 0) < 0 ? "text-negative" : "text-positive"}`}
+          >
+            {Number(group.data?.myBalance ?? 0) === 0
+              ? "All settled up"
+              : `${Number(group.data?.myBalance ?? 0) > 0 ? "You are owed" : "You owe"} ${money(Math.abs(Number(group.data?.myBalance ?? 0)), group.data?.currency)}`}
+          </p>
+        </div>
+        <button className="btn-secondary" onClick={() => setSettle(true)}>
+          Settle up
+        </button>
+      </section>
+      <nav className="segmented overflow-x-auto" aria-label="Group sections">
+        {["Expenses", "Balances", "Recurring", "Activity", "Members"].map(
+          (t) => (
+            <button
+              className="segment whitespace-nowrap"
+              key={t}
+              aria-pressed={tab === t}
+              onClick={() => setTab(t)}
+            >
+              {t}
+            </button>
+          ),
+        )}
+      </nav>
+      {owner && tab === "Members" && <Invitations groupId={id} />}
+      {tab === "Members" && group.data && (
+        <section className="grouped-list">
+          {group.data.members.map((m) => (
+            <div className="list-row" key={m.userId}>
+              <span className="icon-tile !h-8 !w-8 text-xs">
+                {m.user?.name?.slice(0, 1) ?? "M"}
+              </span>
+              <span className="flex-1 text-sm">{m.user?.name ?? "Member"}</span>
+              {m.userId === group.data?.ownerId && (
+                <span className="text-xs text-text-secondary">Owner</span>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
+      {group.data && tab === "Recurring" && (
         <>
           <Templates group={group.data} />
           <Recurring group={group.data} />
           <DueDrafts groupId={id} />
         </>
       )}
-      <section className="panel space-y-4">
-        <h2 className="font-semibold text-lg">Simplified balances</h2>
-        {graph.isLoading && <p>Loading balances…</p>}
-        {graph.data?.simplifiedTransactions.length === 0 && (
-          <p className="text-positive">All debts are settled.</p>
-        )}
-        {graph.data?.simplifiedTransactions.map((d) => (
-          <div
-            key={`${d.fromUserId}-${d.toUserId}`}
-            className="flex justify-between gap-4 border-t border-border-soft pt-3"
-          >
-            <p>
-              {memberName(d.fromUserId)}{" "}
-              <span className="text-text-secondary">owes</span>{" "}
-              {memberName(d.toUserId)}
+      {tab === "Balances" && (
+        <section className="panel space-y-4">
+          <h2 className="font-semibold text-lg">Simplified balances</h2>
+          {graph.isLoading && <p>Loading balances…</p>}
+          {graph.data?.simplifiedTransactions.length === 0 && (
+            <p className="text-positive">All debts are settled.</p>
+          )}
+          {graph.data?.simplifiedTransactions.map((d) => (
+            <div
+              key={`${d.fromUserId}-${d.toUserId}`}
+              className="flex justify-between gap-4 border-t border-border-soft pt-3"
+            >
+              <p>
+                {memberName(d.fromUserId)}{" "}
+                <span className="text-text-secondary">owes</span>{" "}
+                {memberName(d.toUserId)}
+              </p>
+              <strong>{money(d.amount, group.data?.currency)}</strong>
+            </div>
+          ))}
+        </section>
+      )}
+      {tab === "Expenses" && (
+        <section className="space-y-3">
+          <h2 className="font-semibold text-lg">Expense history</h2>
+          {splits.isLoading && <p>Loading expenses…</p>}
+          {splits.data?.length === 0 && (
+            <p className="panel">
+              No expenses yet. Add a split to get started.
             </p>
-            <strong>{money(d.amount, group.data?.currency)}</strong>
-          </div>
-        ))}
-      </section>
-      <section className="space-y-3">
-        <h2 className="font-semibold text-lg">Expense history</h2>
-        {splits.isLoading && <p>Loading expenses…</p>}
-        {splits.data?.length === 0 && (
-          <p className="panel">No expenses yet. Add a split to get started.</p>
-        )}
-        {splits.data?.map((s) => (
-          <article
-            className="panel flex flex-wrap justify-between gap-3"
-            key={s.id}
-          >
-            <div>
-              <h3 className="font-semibold">{s.description}</h3>
-              <p className="text-xs text-text-secondary">
-                {date(s.date)} · {s.splitType}
-              </p>
-              <p className="text-sm mt-2">
-                {s.payers
-                  .map(
-                    (p) =>
-                      `${memberName(p.userId)} paid ${money(p.amountPaid)}`,
-                  )
-                  .join(", ")}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <strong>{money(s.totalAmount, s.currency)}</strong>
-              <button className="btn-secondary" onClick={() => setComments(s)}>
-                Comments
-              </button>
-              {(owner || s.creatorId === user?.id) && (
-                <>
-                  <button className="btn-secondary" onClick={() => setEdit(s)}>
-                    Edit
-                  </button>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => {
-                      deletion.reset();
-                      setRemove(s);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </article>
-        ))}
-      </section>
-      <GroupActivity groupId={id} />
+          )}
+          {splits.data?.map((s) => (
+            <article
+              className="panel flex flex-wrap justify-between gap-3"
+              key={s.id}
+            >
+              <div>
+                <h3 className="font-semibold">{s.description}</h3>
+                <p className="text-xs text-text-secondary">
+                  {date(s.date)} · {s.splitType}
+                </p>
+                <p className="text-sm mt-2">
+                  {s.payers
+                    .map(
+                      (p) =>
+                        `${memberName(p.userId)} paid ${money(p.amountPaid)}`,
+                    )
+                    .join(", ")}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <strong>{money(s.totalAmount, s.currency)}</strong>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setComments(s)}
+                >
+                  Comments
+                </button>
+                {(owner || s.creatorId === user?.id) && (
+                  <>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setEdit(s)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => {
+                        deletion.reset();
+                        setRemove(s);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+      {tab === "Activity" && <GroupActivity groupId={id} />}
       {comments && (
         <ExpenseComments
           splitId={comments.id}

@@ -38,6 +38,7 @@ export interface Member {
   user?: { id: string; name: string };
 }
 export interface Group {
+  myBalance?: number;
   id: string;
   name: string;
   currency: string;

@@ -1,4 +1,5 @@
 "use client";
+import { Appearance } from "@/components/settings/Appearance";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -88,6 +89,7 @@ export default function Settings() {
       >
         Sign out
       </button>
+      <Appearance />
       <InstallApp />
     </DashboardLayout>
   );

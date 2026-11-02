@@ -1114,6 +1114,10 @@ export type Database = {
       };
       list_expense_drafts: { Args: { p_group_id?: string }; Returns: Json };
       list_split_templates: { Args: { p_group_id: string }; Returns: Json };
+      local_date_bounds: {
+        Args: { p_from: string; p_to: string };
+        Returns: Json;
+      };
       lookup_user: {
         Args: { p_email: string };
         Returns: {

@@ -1,40 +1,90 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  House,
+  ArrowLeftRight,
+  Users,
+  ChartNoAxesCombined,
+  Wallet,
+  Target,
+  Shapes,
+  Settings,
+  Ellipsis,
+  CalendarDays,
+  LucideIcon,
+} from "lucide-react";
 export const navigation = [
-  ["/", "Home"],
-  ["/accounts", "Accounts"],
+  ["/", "Overview"],
   ["/transactions", "Transactions"],
-  ["/groups", "Groups"],
-  ["/analytics", "Analytics"],
+  ["/groups", "Shared expenses"],
+  ["/accounts", "Accounts"],
+  ["/analytics", "Insights"],
   ["/budgets", "Budgets"],
-  ["/goals", "Goals"],
+  ["/goals", "Savings goals"],
   ["/categories", "Categories"],
   ["/settings", "Settings"],
+];
+export const navIcons: Record<string, LucideIcon> = {
+  "/": House,
+  "/transactions": ArrowLeftRight,
+  "/groups": Users,
+  "/accounts": Wallet,
+  "/analytics": ChartNoAxesCombined,
+  "/budgets": CalendarDays,
+  "/goals": Target,
+  "/categories": Shapes,
+  "/settings": Settings,
+  "/more": Ellipsis,
+};
+export const mobileNavigation = [
+  ["/", "Home"],
+  ["/transactions", "Activity"],
+  ["/groups", "Shared"],
+  ["/analytics", "Insights"],
+  ["/more", "More"],
 ];
 export function Sidebar() {
   const path = usePathname();
   return (
-    <aside className="fixed inset-y-0 left-0 w-56 border-r border-border-soft bg-surface-primary hidden md:flex flex-col p-5 gap-8">
-      <Link href="/" className="text-xl font-bold text-brand-primary">
-        LedgerSync
+    <aside className="fixed inset-y-0 left-0 w-56 bg-surface-primary hidden md:flex flex-col px-5 py-7 border-r border-border-soft">
+      <Link href="/" className="flex items-center gap-2.5 mb-12 px-2">
+        <span className="icon-tile !h-8 !w-8 !rounded-[10px]">
+          <Wallet size={17} strokeWidth={1.8} />
+        </span>
+        <span className="text-[19px] font-bold tracking-tight">
+          LedgerSync<span className="text-brand-primary">.</span>
+        </span>
       </Link>
-      <nav className="space-y-2">
-        {navigation.map(([href, label]) => (
-          <Link
-            key={href}
-            href={href}
-            aria-current={
-              path === href || (href !== "/" && path.startsWith(href + "/"))
-                ? "page"
-                : undefined
-            }
-            className={`block rounded-lg px-3 py-2 ${path === href || (href !== "/" && path.startsWith(href + "/")) ? "bg-surface-secondary text-brand-primary" : "text-text-secondary"}`}
-          >
-            {label}
-          </Link>
-        ))}
+      <p className="eyebrow px-3 mb-3">Your money</p>
+      <nav className="space-y-1">
+        {navigation.map(([href, label], i) => {
+          const Icon = navIcons[href],
+            active =
+              path === href || (href !== "/" && path.startsWith(href + "/"));
+          return (
+            <div key={href}>
+              {i === 5 && (
+                <p className="eyebrow px-3 pt-8 pb-3">Planning & tools</p>
+              )}
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] ${active ? "bg-surface-secondary text-brand-primary font-semibold" : "text-text-secondary hover:text-text-primary"}`}
+              >
+                <Icon size={17} strokeWidth={active ? 2 : 1.65} />
+                {label}
+              </Link>
+            </div>
+          );
+        })}
       </nav>
+      <div className="mt-auto pt-8 px-3">
+        <div className="flex gap-2 items-center text-[11px] text-text-secondary">
+          <span className="h-1.5 w-1.5 rounded-full bg-positive" />
+          Personal & shared, together
+        </div>
+      </div>
     </aside>
   );
 }

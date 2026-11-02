@@ -14,6 +14,7 @@ export async function loadGroups(req: AuthRequest, id?: string) {
     .order("created_at");
   if (id) q = q.eq("id", id);
   const groups = dbResult(await q) ?? [];
+  const result = [];
   for (const group of groups) {
     const profiles =
       dbResult(
@@ -23,8 +24,15 @@ export async function loadGroups(req: AuthRequest, id?: string) {
       ...m,
       user: profiles.find((p: { id: string }) => p.id === m.user_id),
     }));
+    const graph = dbResult(
+      await req.db!.rpc("simplify_debts", { p_group_id: group.id }),
+    ) as unknown as { groupBalances: Record<string, number> };
+    result.push({
+      ...group,
+      my_balance: Number(graph.groupBalances?.[req.userId!] ?? 0),
+    });
   }
-  return camelCase(groups);
+  return camelCase(result);
 }
 router.get("/", async (req: AuthRequest, res) =>
   res.json(await loadGroups(req)),

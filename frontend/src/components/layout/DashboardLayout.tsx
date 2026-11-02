@@ -1,5 +1,5 @@
 "use client";
-import { Sidebar, navigation } from "./Sidebar";
+import { Sidebar, mobileNavigation, navIcons } from "./Sidebar";
 import { useAuthStore } from "@/store/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
@@ -11,8 +11,8 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { token, ready, error } = useAuthStore();
-  const router = useRouter(),
+  const { token, ready, error, user } = useAuthStore(),
+    router = useRouter(),
     path = usePathname();
   useEffect(() => {
     if (ready && !token && !error) router.replace("/login");
@@ -26,33 +26,67 @@ export default function DashboardLayout({
     );
   if (!ready || !token)
     return (
-      <p className="p-8" role="status">
-        Loading your session…
-      </p>
+      <main className="min-h-screen grid place-items-center">
+        <p className="text-text-secondary text-sm" role="status">
+          Opening your ledger…
+        </p>
+      </main>
     );
   return (
     <div className="min-h-screen">
       <Sidebar />
-      <main className="md:ml-56 p-4 md:p-8 pb-28">
-        <div className="flex justify-end mb-5">
-          <RemindersWidget />
-        </div>
-        <div className="max-w-5xl mx-auto space-y-6">
-          <ErrorMessage error={error} />
-          {children}
+      <main className="md:ml-56 app-content">
+        <div className="max-w-[1120px] mx-auto px-5 md:px-10">
+          <header className="h-20 flex justify-between items-center">
+            <Link href="/" className="text-sm font-semibold tracking-tight">
+              LedgerSync<span className="text-brand-primary">.</span>{" "}
+              <span className="hidden sm:inline text-text-secondary font-normal ml-3 text-xs">
+                Personal & shared finances
+              </span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <RemindersWidget />
+              <Link
+                href="/settings"
+                aria-label="Your profile"
+                className="grid place-items-center h-8 w-8 rounded-full bg-surface-secondary text-brand-primary text-xs font-semibold"
+              >
+                {user?.name?.slice(0, 1).toUpperCase() ?? "Y"}
+              </Link>
+            </div>
+          </header>
+          <div className="space-y-7 pb-12">
+            <ErrorMessage error={error} />
+            {children}
+          </div>
         </div>
       </main>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 flex gap-3 overflow-x-auto bg-surface-primary border-t border-border-soft p-3">
-        {navigation.map(([href, label]) => (
-          <Link
-            className={`text-xs whitespace-nowrap px-2 py-2 ${path === href ? "text-brand-primary" : "text-text-secondary"}`}
-            aria-current={path === href ? "page" : undefined}
-            key={href}
-            href={href}
-          >
-            {label}
-          </Link>
-        ))}
+      <nav
+        aria-label="Main navigation"
+        className="bottom-tabs md:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-5 pt-3 border-t border-border-soft bg-surface-primary/95 backdrop-blur-xl"
+      >
+        {mobileNavigation.map(([href, label]) => {
+          const active =
+            href === "/more"
+              ? !mobileNavigation.some(
+                  ([h]) =>
+                    h !== "/more" &&
+                    (path === h || (h !== "/" && path.startsWith(h + "/"))),
+                )
+              : path === href || (href !== "/" && path.startsWith(href + "/"));
+          const Icon = navIcons[href];
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-col items-center gap-1 text-[10px] font-medium ${active ? "text-brand-primary" : "text-text-secondary"}`}
+            >
+              <Icon size={21} strokeWidth={active ? 2.2 : 1.7} />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

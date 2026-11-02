@@ -10,6 +10,13 @@ const router = Router();
 router.use(authenticate);
 const filtersSchema = z
   .object({
+    month: z
+      .string()
+      .regex(/^[1-9]\d{3}-(0[1-9]|1[0-2])$/)
+      .optional(),
+    onDate: z.iso.date().optional(),
+    fromDate: z.iso.date().optional(),
+    toDate: z.iso.date().optional(),
     type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
     accountId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
@@ -36,7 +43,7 @@ const filtersSchema = z
       x.minAmount <= x.maxAmount,
     "Minimum must not exceed maximum",
   );
-function transactionQuery(req: AuthRequest) {
+async function transactionQuery(req: AuthRequest) {
   const parsed = filtersSchema.safeParse(req.query);
   if (!parsed.success) throw new HttpError(400, "Invalid transaction filters");
   const f = parsed.data;
@@ -53,6 +60,33 @@ function transactionQuery(req: AuthRequest) {
     sourceType: "source_type",
   }) as ["type" | "accountId" | "categoryId" | "sourceType", string][])
     if (f[key]) q = q.eq(column, f[key]!);
+  if (f.month || f.onDate) {
+    const start = f.onDate ?? `${f.month}-01`;
+    const last = new Date(`${start}T12:00:00Z`);
+    if (!f.onDate) {
+      last.setUTCMonth(last.getUTCMonth() + 1);
+      last.setUTCDate(0);
+    }
+    const end =
+      f.onDate ?? `${f.month}-${String(last.getUTCDate()).padStart(2, "0")}`;
+    const range = await rpc<{ from: string; to: string }>(
+      req.db!,
+      "local_date_bounds",
+      { p_from: start, p_to: end },
+    );
+    q = q.gte("date_time", range.from).lt("date_time", range.to);
+  }
+  if (f.fromDate || f.toDate) {
+    if (f.fromDate && f.toDate && f.fromDate > f.toDate)
+      throw new HttpError(400, "Start must precede end");
+    const range = await rpc<{ from: string; to: string }>(
+      req.db!,
+      "local_date_bounds",
+      { p_from: f.fromDate ?? f.toDate, p_to: f.toDate ?? f.fromDate },
+    );
+    if (f.fromDate) q = q.gte("date_time", range.from);
+    if (f.toDate) q = q.lt("date_time", range.to);
+  }
   if (f.from) q = q.gte("date_time", f.from);
   if (f.to) q = q.lte("date_time", f.to);
   if (f.minAmount !== undefined) q = q.gte("amount", f.minAmount);
@@ -66,7 +100,7 @@ function transactionQuery(req: AuthRequest) {
   return { q, f };
 }
 async function allTransactions(req: AuthRequest) {
-  const { q } = transactionQuery(req);
+  const { q } = await transactionQuery(req);
   const rows = [];
   for (let offset = 0; ; offset += 1000) {
     const page = dbResult(await q.range(offset, offset + 999)) ?? [];
@@ -79,7 +113,7 @@ router.get("/", async (req: AuthRequest, res) =>
   res.json(camelCase(await allTransactions(req))),
 );
 router.get("/page", async (req: AuthRequest, res) => {
-  const { q, f } = transactionQuery(req);
+  const { q, f } = await transactionQuery(req);
   const result = await q.range(f.offset, f.offset + f.limit - 1);
   res.json({
     items: camelCase(dbResult(result)),

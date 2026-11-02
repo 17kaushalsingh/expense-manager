@@ -1,3 +1,4 @@
+import { calendarSummary } from "../services/calendar";
 import { z } from "zod";
 import { HttpError } from "../errors/httpError";
 import { rpc } from "../db";
@@ -53,6 +54,39 @@ router.get("/debt-summary", async (req: AuthRequest, res) => {
 router.get("/debts", async (req: AuthRequest, res) =>
   res.json(await rpc(req.db!, "simplify_debts", { p_group_id: null })),
 );
+router.get("/calendar", async (req: AuthRequest, res) => {
+  const parsed = z
+    .string()
+    .regex(/^[1-9]\d{3}-(0[1-9]|1[0-2])$/)
+    .safeParse(req.query.month);
+  if (!parsed.success) throw new HttpError(400, "Choose a month (YYYY-MM)");
+  const month = parsed.data,
+    last = new Date(`${month}-01T12:00:00Z`);
+  last.setUTCMonth(last.getUTCMonth() + 1);
+  last.setUTCDate(0);
+  const range = await rpc<{ from: string; to: string; timezone: string }>(
+    req.db!,
+    "local_date_bounds",
+    { p_from: `${month}-01`, p_to: `${month}-${last.getUTCDate()}` },
+  );
+  const rows = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page =
+      dbResult(
+        await req
+          .db!.from("transactions")
+          .select("id,date_time,type,analytics_amount")
+          .gt("analytics_amount", 0)
+          .gte("date_time", range.from)
+          .lt("date_time", range.to)
+          .order("id")
+          .range(offset, offset + 999),
+      ) ?? [];
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
+  res.json(calendarSummary(rows, month, range.timezone));
+});
 router.get("/category-spending", async (req: AuthRequest, res) => {
   const parsed = z
     .enum(["1W", "1M", "3M", "1Y", "ALL"])

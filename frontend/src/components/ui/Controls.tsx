@@ -24,6 +24,7 @@ export function Modal({
   useEffect(() => {
     const dialog = ref.current;
     dialog?.showModal();
+    dialog?.querySelector<HTMLInputElement>("[data-autofocus]")?.focus();
     return () => dialog?.close();
   }, []);
   return (

@@ -15,6 +15,7 @@ interface Props {
   groupMembers?: Member[];
   split?: Split;
   initial?: SplitInput;
+  initialPeople?: Person[];
   templateMode?: boolean;
   initialName?: string;
   onSave?: (body: SplitInput, name: string) => Promise<unknown>;
@@ -33,6 +34,7 @@ function Editor({
   initial,
   templateMode = false,
   initialName = "",
+  initialPeople = [],
   onSave,
   onSaveDraft,
   title,
@@ -47,14 +49,23 @@ function Editor({
   const [amount, setAmount] = useState(String(seed?.totalAmount ?? "")),
     [description, setDescription] = useState(seed?.description ?? ""),
     [mode, setMode] = useState<Split["splitType"]>(seed?.splitType ?? "EQUAL");
-  const [extra, setExtra] = useState<Person[]>([]),
+  const partyIds = seed
+    ? [...new Set([...seed.participants, ...seed.payers].map((p) => p.userId))]
+    : [user.id];
+  const [extra, setExtra] = useState<Person[]>(
+      partyIds
+        .filter((id) => id !== user.id)
+        .map((id) => ({
+          id,
+          name: initialPeople.find((p) => p.id === id)?.name ?? "Member",
+        })),
+    ),
     [excluded, setExcluded] = useState<string[]>(
       seed
-        ? groupMembers
-            .filter(
-              (m) => !seed.participants.some((p) => p.userId === m.userId),
-            )
-            .map((m) => m.userId)
+        ? (groupMembers.length
+            ? groupMembers.map((m) => m.userId)
+            : partyIds
+          ).filter((id) => !seed.participants.some((p) => p.userId === id))
         : [],
     ),
     [values, setValues] = useState<Record<string, string>>(

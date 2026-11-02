@@ -169,6 +169,24 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
           .spent,
       ).toBe(7);
     }, 30000);
+    it("returns saved-timezone calendar days and matching date-filtered history", async () => {
+      const result = await api("/analytics/calendar?month=2026-02");
+      expect(result.status).toBe(200);
+      expect(result.data.timezone).toBe("Asia/Kolkata");
+      expect(result.data.days).toHaveLength(28);
+      const feb = await api(
+        `/transactions/page?accountId=${account}&month=2026-02`,
+      );
+      expect(feb.data.total).toBe(2);
+      const march = await api(
+        `/transactions/page?accountId=${account}&onDate=2026-03-01`,
+      );
+      expect(march.data.total).toBe(1);
+      expect(Number(march.data.items[0].amount)).toBe(7);
+      expect((await api("/analytics/calendar?month=2026-13")).status).toBe(400);
+      const groupInfo = await api(`/groups/${group}`);
+      expect(Number(groupInfo.data.myBalance)).toBe(0);
+    }, 30000);
     it("links goals to owned assets and never modifies balances", async () => {
       const before = (await api(`/accounts/${account}`)).data.balance;
       const g = await api("/planning/goals", "POST", {
@@ -306,16 +324,14 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       ).toBe(true);
       expect(
         (
-          await clients[1]
-            .from("group_activity")
-            .insert({
-              group_id: group,
-              actor_name: "Forged",
-              action: "INSERT",
-              entity_type: "fake",
-              entity_id: group,
-              summary: "fake",
-            })
+          await clients[1].from("group_activity").insert({
+            group_id: group,
+            actor_name: "Forged",
+            action: "INSERT",
+            entity_type: "fake",
+            entity_id: group,
+            summary: "fake",
+          })
         ).error,
       ).not.toBeNull();
       const summary = await api("/planning/budgets?month=2026-02");

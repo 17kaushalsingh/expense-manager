@@ -21,7 +21,7 @@ export default function Accounts() {
   return (
     <DashboardLayout>
       <header className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Accounts Vault</h1>
+        <h1 className="text-2xl font-bold">Accounts</h1>
         <button className="btn" onClick={() => setEdit(null)}>
           Add account
         </button>

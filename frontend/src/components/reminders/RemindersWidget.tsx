@@ -1,4 +1,5 @@
 "use client";
+import { Bell } from "lucide-react";
 import { useState } from "react";
 import {
   useReminders,
@@ -26,13 +27,16 @@ export function RemindersWidget() {
   return (
     <div>
       <button
-        className="btn-secondary"
+        className="relative grid place-items-center h-8 w-8 rounded-full hover:bg-surface-secondary text-text-secondary"
         onClick={() => setOpen(!open)}
+        aria-label={`Reminders (${reminders.data?.filter((r) => !r.isRead && !r.isCompleted).length ?? 0})`}
         aria-expanded={open}
       >
-        Reminders (
-        {reminders.data?.filter((r) => !r.isRead && !r.isCompleted).length ?? 0}
-        )
+        <Bell size={17} strokeWidth={1.7} />
+        {!!reminders.data?.filter((r) => !r.isRead && !r.isCompleted)
+          .length && (
+          <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-negative" />
+        )}
       </button>
       {open && (
         <section className="absolute right-4 z-40 panel w-[min(90vw,24rem)] space-y-3 shadow-lg mt-2">
