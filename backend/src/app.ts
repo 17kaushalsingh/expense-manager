@@ -20,6 +20,7 @@ import reminderRouter from "./routes/reminder.routes";
 import templateRouter from "./routes/template.routes";
 import recurringRouter from "./routes/recurring.routes";
 import invitationRouter from "./routes/invitation.routes";
+import receiptRouter from "./routes/receipt.routes";
 
 export const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api/categories", categoryRouter);
 app.use("/api/transactions", transactionRouter);
 app.use("/api/groups", groupRouter);
 app.use("/api/invitations", invitationRouter);
+app.use("/api/receipts", receiptRouter);
 app.use("/api/templates", templateRouter);
 app.use("/api/recurring", recurringRouter);
 app.use("/api/splits", splitRouter);

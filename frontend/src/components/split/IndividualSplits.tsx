@@ -5,7 +5,8 @@ import { Split } from "@/lib/types";
 import { useAuthStore } from "@/store/auth";
 import { useFormat } from "@/lib/format";
 import { apiClient } from "@/lib/api/client";
-import { Confirm, ErrorMessage } from "@/components/ui/Controls";
+import { Confirm, ErrorMessage, Modal } from "@/components/ui/Controls";
+import { Receipts } from "@/components/receipts/Receipts";
 import { SplitBuilder } from "./SplitBuilder";
 export function IndividualSplits() {
   const data = useResource<Split[]>("/splits"),
@@ -14,6 +15,7 @@ export function IndividualSplits() {
     { money, date } = useFormat();
   const [edit, setEdit] = useState<Split>(),
     [remove, setRemove] = useState<Split>();
+  const [evidence, setEvidence] = useState<Split>();
   const deletion = useAction(
     () => apiClient.delete(`/splits/${remove?.id}`),
     () => setRemove(undefined),
@@ -48,6 +50,7 @@ export function IndividualSplits() {
             <strong className="text-xs">
               {money(s.totalAmount, s.currency)}
             </strong>
+            <button className="btn-secondary !text-[10px]" onClick={() => setEvidence(s)}>Receipts</button>
             {s.creatorId === user?.id && (
               <div className="flex gap-1">
                 <button
@@ -70,6 +73,7 @@ export function IndividualSplits() {
           </article>
         ))}
       </div>
+      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><Receipts splitId={evidence.id} canManage={evidence.creatorId === user?.id} /></Modal>}
       {edit && (
         <SplitBuilder
           isOpen

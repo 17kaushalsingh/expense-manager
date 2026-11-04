@@ -20,6 +20,7 @@ import {
 import { Templates } from "@/components/groups/Templates";
 import { Invitations } from "@/components/groups/Invitations";
 import { useFormat } from "@/lib/format";
+import { Receipts } from "@/components/receipts/Receipts";
 export default function GroupDetails() {
   const id = useParams().id as string,
     router = useRouter(),
@@ -35,6 +36,7 @@ export default function GroupDetails() {
     [members, setMembers] = useState<Person[]>([]),
     [deleteGroup, setDeleteGroup] = useState(false);
   const [comments, setComments] = useState<Split>();
+  const [evidence, setEvidence] = useState<Split>();
   const [tab, setTab] = useState("Expenses");
   const owner = group.data?.ownerId === user?.id;
   const action = useAction(
@@ -189,6 +191,7 @@ export default function GroupDetails() {
               </div>
               <div className="flex items-center gap-2">
                 <strong>{money(s.totalAmount, s.currency)}</strong>
+                <button className="btn-secondary" onClick={() => setEvidence(s)}>Receipts</button>
                 <button
                   className="btn-secondary"
                   onClick={() => setComments(s)}
@@ -220,6 +223,7 @@ export default function GroupDetails() {
         </section>
       )}
       {tab === "Activity" && <GroupActivity groupId={id} />}
+      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><Receipts splitId={evidence.id} canManage={owner || evidence.creatorId === user?.id} /></Modal>}
       {comments && (
         <ExpenseComments
           splitId={comments.id}

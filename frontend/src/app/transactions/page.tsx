@@ -23,6 +23,7 @@ import {
   Transfer,
 } from "@/components/transactions/TransactionForms";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
+import { Receipts } from "@/components/receipts/Receipts";
 import {
   SpendingCalendar,
   CalendarData,
@@ -501,6 +502,7 @@ function Transactions() {
               </div>
             ))}
           </dl>
+          {detail.sourceType === "MANUAL" && <Receipts transactionId={detail.id} canManage />}
           {detail.sourceType === "MANUAL" ? (
             <div className="flex gap-2">
               <button
