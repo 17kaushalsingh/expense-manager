@@ -86,6 +86,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
             {busy ? "Please wait…" : register ? "Sign up" : "Sign in"}
           </button>
         </form>
+        {!register && <Link className="subtle-link block" href="/forgot-password">Forgot password?</Link>}
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
           <GoogleLogin
             onSuccess={async (response) => {
