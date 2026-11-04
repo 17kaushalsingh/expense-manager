@@ -14,7 +14,7 @@ Open **Activity → transaction → details** for a manual transaction, or **Det
 
 - Supported: JPEG, PNG, WebP and PDF, up to 5 MB each and 10 receipts per expense.
 - Files live in a private hosted Supabase Storage bucket, with metadata and object RLS. No service-role key is used by the app.
-- Uploads first reserve a permitted path, then upload, then verify stored size/media type before becoming visible to others. Incomplete uploads can be removed and retried.
+- Uploads first reserve a permitted path, then upload, then verify stored size/media type before becoming visible to ordinary readers. Current expense managers can inspect and remove incomplete uploads, including another manager’s abandoned upload, so pending files cannot permanently block expense deletion.
 - Downloads use attachment disposition and normalized media-appropriate filenames. Prepare a new link when its 60-second validity expires. An already issued link can remain usable until that short expiry even after membership changes.
 - File removal uses Storage API deletion followed by metadata deletion. Both stages are permission checked and retryable. The database refuses metadata deletion while an object remains, and refuses financial deletion while receipt records remain. Remove receipts first; this avoids orphan files during financial reversals.
 - Editing a manual transaction updates it in place, preserving receipt and import provenance links. Generated ledger entries cannot have personal receipt attachments; attach their evidence to the original shared expense.

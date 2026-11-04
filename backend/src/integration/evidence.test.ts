@@ -429,6 +429,10 @@ describe.skipIf(!live)(
       expect(record.status).toBe(201);
       receipts.push(record.data.id);
       expect(
+        (await api(`/receipts?splitId=${split.data.id}`, "GET", undefined, 1))
+          .data,
+      ).toEqual([]);
+      expect(
         (
           await clients[0].storage
             .from("receipts")
@@ -474,6 +478,76 @@ describe.skipIf(!live)(
       );
       splits.pop();
       expect((await api(`/groups/${gid}`, "DELETE")).status).toBe(204);
+      groups.pop();
+    });
+    it("lets the current group owner remove another creator's unfinished upload", async () => {
+      const b = "66666666-6666-4666-8666-666666666666";
+      const group = await api("/groups", "POST", {
+        name: "Pending receipt cleanup",
+        currency: "USD",
+        memberIds: [b],
+      });
+      expect(group.status).toBe(201);
+      groups.push(group.data.id);
+      const split = await api(
+        "/splits",
+        "POST",
+        {
+          groupId: group.data.id,
+          description: "Creator upload",
+          totalAmount: 1,
+          splitType: "EQUAL",
+          participants: [{ userId: b }],
+          payers: [{ userId: b, amountPaid: 1 }],
+        },
+        1,
+      );
+      expect(split.status).toBe(201);
+      splits.push(split.data.id);
+      const file = Buffer.from("%PDF-1.4\nunfinished upload\n%%EOF");
+      const record = await api(
+        "/receipts",
+        "POST",
+        {
+          splitId: split.data.id,
+          fileName: "unfinished.pdf",
+          mimeType: "application/pdf",
+          byteSize: file.length,
+        },
+        1,
+      );
+      expect(record.status).toBe(201);
+      receipts.push(record.data.id);
+      expect(
+        (
+          await clients[1].storage
+            .from("receipts")
+            .upload(record.data.objectPath, file, {
+              contentType: "application/pdf",
+            })
+        ).error,
+      ).toBeNull();
+      const ownerList = await api(`/receipts?splitId=${split.data.id}`);
+      expect(ownerList.data).toHaveLength(1);
+      expect(ownerList.data[0].status).toBe("PENDING");
+      expect((await api(`/receipts/${record.data.id}`, "DELETE")).status).toBe(
+        204,
+      );
+      receipts.pop();
+      expect(
+        (
+          await clients[1].storage
+            .from("receipts")
+            .download(record.data.objectPath)
+        ).error,
+      ).toBeTruthy();
+      expect((await api(`/splits/${split.data.id}`, "DELETE")).status).toBe(
+        204,
+      );
+      splits.pop();
+      expect((await api(`/groups/${group.data.id}`, "DELETE")).status).toBe(
+        204,
+      );
       groups.pop();
     });
   },
