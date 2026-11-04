@@ -1,3 +1,14 @@
+# Vercel preparation and HTTP hardening — 5 November 2026
+
+- Added Git-connected frontend/Express Vercel configuration and a hosting runbook; Supabase remains hosted separately, with its existing private Cron scheduler.
+- API auth/finance/error responses now explicitly prohibit caching, suppress framework identification, and set MIME/referrer protections. Oversized JSON returns 413 without logging submitted credentials. HTTP regression checks cover successful/unauthorized responses and real parser rejection.
+- Frontend response configuration suppresses framework identification and prevents invitation URLs leaking through outbound referrers.
+- Backend build and frontend lint/production build passed. **82 tests passed, one Cron-coordinated test skipped** with `RUN_SUPABASE_INTEGRATION=1`: 65 local tests plus 17 real hosted integration tests. The skipped scheduler-coordination test was not represented as live verification in this run.
+- Production dependency audit: zero reported vulnerabilities. Hosted security advisors still report the 20 intentional authenticated SECURITY DEFINER entrypoints and disabled leaked-password protection; no additional advisory categories appeared.
+- Vercel team access is authorized. Initial GitHub import failed because the Git provider was not connected; after account connection the API reported missing repository integration access. Production deployment and live URL walkthrough are pending that grant. Unrelated tracked dependency files and OAuth credentials remain excluded from commits.
+
+---
+
 # Everyday money redesign and calendar verification — 2 November 2026
 
 ## Delivered and checked
