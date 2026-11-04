@@ -260,7 +260,12 @@ function Transactions() {
           >
             <Download size={16} />
           </button>
-          <button className="btn-secondary !text-xs" onClick={() => setImporting(true)}>Import CSV</button>
+          <button
+            className="btn-secondary !text-xs"
+            onClick={() => setImporting(true)}
+          >
+            Import CSV
+          </button>
           <button
             className="btn-secondary !p-3"
             aria-label="Transfer between accounts"
@@ -468,7 +473,12 @@ function Transactions() {
           onClose={() => setEditor(undefined)}
         />
       )}{" "}
-      {importing && <CsvImport accounts={accounts.data ?? []} onClose={() => setImporting(false)} />}
+      {importing && (
+        <CsvImport
+          accounts={accounts.data ?? []}
+          onClose={() => setImporting(false)}
+        />
+      )}
       {transfer && (
         <Transfer
           accounts={accounts.data ?? []}
@@ -506,7 +516,9 @@ function Transactions() {
               </div>
             ))}
           </dl>
-          {detail.sourceType === "MANUAL" && <Receipts transactionId={detail.id} canManage />}
+          {detail.sourceType === "MANUAL" && (
+            <Receipts transactionId={detail.id} canManage />
+          )}
           {detail.sourceType === "MANUAL" ? (
             <div className="flex gap-2">
               <button

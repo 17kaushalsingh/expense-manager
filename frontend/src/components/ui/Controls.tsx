@@ -15,10 +15,12 @@ export function Modal({
   title,
   onClose,
   children,
+  busy = false,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  busy?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -30,7 +32,10 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      onCancel={onClose}
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) onClose();
+      }}
       className="bg-surface-primary text-text-primary rounded-2xl border border-border-soft w-[min(95vw,36rem)] max-h-[90vh] p-0 backdrop:bg-black/60"
     >
       <div className="flex justify-between items-center border-b border-border-soft p-5">
@@ -39,6 +44,7 @@ export function Modal({
           className="btn-secondary"
           onClick={onClose}
           aria-label="Close dialog"
+          disabled={busy}
         >
           ✕
         </button>

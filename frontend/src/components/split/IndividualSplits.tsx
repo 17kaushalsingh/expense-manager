@@ -51,7 +51,12 @@ export function IndividualSplits() {
             <strong className="text-xs">
               {money(s.totalAmount, s.currency)}
             </strong>
-            <button className="btn-secondary !text-[10px]" onClick={() => setEvidence(s)}>Details & receipts</button>
+            <button
+              className="btn-secondary !text-[10px]"
+              onClick={() => setEvidence(s)}
+            >
+              Details & receipts
+            </button>
             {s.creatorId === user?.id && (
               <div className="flex gap-1">
                 <button
@@ -74,7 +79,25 @@ export function IndividualSplits() {
           </article>
         ))}
       </div>
-      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><ItemSummary value={evidence.itemization} memberName={id => id === user?.id ? "You" : people.data?.find(p => p.id === id)?.name ?? "Member"} /><Receipts splitId={evidence.id} canManage={evidence.creatorId === user?.id} /></Modal>}
+      {evidence && (
+        <Modal
+          title={evidence.description}
+          onClose={() => setEvidence(undefined)}
+        >
+          <ItemSummary
+            value={evidence.itemization}
+            memberName={(id) =>
+              id === user?.id
+                ? "You"
+                : (people.data?.find((p) => p.id === id)?.name ?? "Member")
+            }
+          />
+          <Receipts
+            splitId={evidence.id}
+            canManage={evidence.creatorId === user?.id}
+          />
+        </Modal>
+      )}
       {edit && (
         <SplitBuilder
           isOpen

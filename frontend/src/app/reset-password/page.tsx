@@ -1,2 +1,4 @@
 import { PasswordRecovery } from "@/components/auth/PasswordRecovery";
-export default function Page() { return <PasswordRecovery reset />; }
+export default function Page() {
+  return <PasswordRecovery reset />;
+}

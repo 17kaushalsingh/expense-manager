@@ -190,9 +190,14 @@ export default function GroupDetails() {
                     .join(", ")}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <strong>{money(s.totalAmount, s.currency)}</strong>
-                <button className="btn-secondary" onClick={() => setEvidence(s)}>Details & receipts</button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => setEvidence(s)}
+                >
+                  Details & receipts
+                </button>
                 <button
                   className="btn-secondary"
                   onClick={() => setComments(s)}
@@ -224,7 +229,18 @@ export default function GroupDetails() {
         </section>
       )}
       {tab === "Activity" && <GroupActivity groupId={id} />}
-      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><ItemSummary value={evidence.itemization} memberName={memberName} /><Receipts splitId={evidence.id} canManage={owner || evidence.creatorId === user?.id} /></Modal>}
+      {evidence && (
+        <Modal
+          title={evidence.description}
+          onClose={() => setEvidence(undefined)}
+        >
+          <ItemSummary value={evidence.itemization} memberName={memberName} />
+          <Receipts
+            splitId={evidence.id}
+            canManage={owner || evidence.creatorId === user?.id}
+          />
+        </Modal>
+      )}
       {comments && (
         <ExpenseComments
           splitId={comments.id}

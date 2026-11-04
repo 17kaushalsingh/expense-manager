@@ -95,4 +95,3 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
 
 // Vercel imports the composed app; index.ts retains local server startup.
 export default app;
-

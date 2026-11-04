@@ -109,11 +109,22 @@ export const createSplitExpenseSchema = z.object({
     .min(1),
   participants: z.array(splitPartySchema).min(1),
   date: optionalDate,
-  itemization: z.object({
-    items: z.array(z.object({ label: z.string().trim().min(1).max(120), amount: money, participantIds: z.array(z.uuid()).min(1).max(50) })).min(1).max(100),
-    tax: z.number().finite().nonnegative().default(0),
-    tip: z.number().finite().nonnegative().default(0),
-  }).optional(),
+  itemization: z
+    .object({
+      items: z
+        .array(
+          z.object({
+            label: z.string().trim().min(1).max(120),
+            amount: money,
+            participantIds: z.array(z.uuid()).min(1).max(50),
+          }),
+        )
+        .min(1)
+        .max(100),
+      tax: z.number().finite().nonnegative().default(0),
+      tip: z.number().finite().nonnegative().default(0),
+    })
+    .optional(),
 });
 
 export const createSettlementSchema = z.object({
