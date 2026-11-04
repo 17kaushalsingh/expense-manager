@@ -24,6 +24,7 @@ import {
 } from "@/components/transactions/TransactionForms";
 import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { Receipts } from "@/components/receipts/Receipts";
+import { CsvImport } from "@/components/imports/CsvImport";
 import {
   SpendingCalendar,
   CalendarData,
@@ -76,6 +77,7 @@ function Transactions() {
     [remove, setRemove] = useState<Transaction>(),
     [exporting, setExporting] = useState(false),
     [exportError, setExportError] = useState<unknown>();
+  const [importing, setImporting] = useState(false);
   const text = useSearchText(filters.q),
     params = new URLSearchParams();
   for (const [k, v] of Object.entries(filters))
@@ -258,6 +260,7 @@ function Transactions() {
           >
             <Download size={16} />
           </button>
+          <button className="btn-secondary !text-xs" onClick={() => setImporting(true)}>Import CSV</button>
           <button
             className="btn-secondary !p-3"
             aria-label="Transfer between accounts"
@@ -465,6 +468,7 @@ function Transactions() {
           onClose={() => setEditor(undefined)}
         />
       )}{" "}
+      {importing && <CsvImport accounts={accounts.data ?? []} onClose={() => setImporting(false)} />}
       {transfer && (
         <Transfer
           accounts={accounts.data ?? []}

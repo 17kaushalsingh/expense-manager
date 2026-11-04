@@ -840,6 +840,7 @@ export type Database = {
           description: string
           group_id: string | null
           id: string
+          itemization: Json | null
           split_type: string
           total_amount: number
           updated_at: string
@@ -853,6 +854,7 @@ export type Database = {
           description: string
           group_id?: string | null
           id?: string
+          itemization?: Json | null
           split_type: string
           total_amount: number
           updated_at?: string
@@ -866,6 +868,7 @@ export type Database = {
           description?: string
           group_id?: string | null
           id?: string
+          itemization?: Json | null
           split_type?: string
           total_amount?: number
           updated_at?: string
@@ -1027,6 +1030,87 @@ export type Database = {
           },
         ]
       }
+      transaction_import_entries: {
+        Row: {
+          created_at: string
+          fingerprint: string
+          id: string
+          import_id: string
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint: string
+          id?: string
+          import_id: string
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string
+          id?: string
+          import_id?: string
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_import_entries_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "transaction_imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_import_entries_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transaction_import_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transaction_imports: {
+        Row: {
+          created_at: string
+          id: string
+          payload_hash: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          payload_hash: string
+          result: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload_hash?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transaction_imports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           account_id: string
@@ -1172,6 +1256,10 @@ export type Database = {
           id: string
           name: string
         }[]
+      }
+      import_transactions_atomic: {
+        Args: { p_input: Json; p_preview?: boolean }
+        Returns: Json
       }
       list_expense_drafts: { Args: { p_group_id?: string }; Returns: Json }
       list_split_templates: { Args: { p_group_id: string }; Returns: Json }

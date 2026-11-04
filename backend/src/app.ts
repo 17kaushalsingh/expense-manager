@@ -21,6 +21,7 @@ import templateRouter from "./routes/template.routes";
 import recurringRouter from "./routes/recurring.routes";
 import invitationRouter from "./routes/invitation.routes";
 import receiptRouter from "./routes/receipt.routes";
+import importRouter from "./routes/import.routes";
 
 export const app = express();
 
@@ -35,6 +36,7 @@ app.use((_req, res, next) => {
 });
 
 app.use(cors({ origin: config.corsOrigin }));
+app.use("/api/imports", express.json({ limit: "512kb" }));
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
@@ -47,6 +49,7 @@ app.use("/api/transactions", transactionRouter);
 app.use("/api/groups", groupRouter);
 app.use("/api/invitations", invitationRouter);
 app.use("/api/receipts", receiptRouter);
+app.use("/api/imports", importRouter);
 app.use("/api/templates", templateRouter);
 app.use("/api/recurring", recurringRouter);
 app.use("/api/splits", splitRouter);
