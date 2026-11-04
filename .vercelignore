@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/.next
+**/dist
+**/.env
+**/.env.*
+oauth_client_secret.json
+supabase/.temp
+supabase/.branches

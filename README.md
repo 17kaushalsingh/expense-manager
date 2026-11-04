@@ -2,6 +2,8 @@
 
 Personal accounts, income/expense tracking, and group splitting backed by **hosted Supabase PostgreSQL and Supabase Auth**, with an Express API and Next.js frontend. No Docker or local database is required.
 
+For GitHub-connected Vercel frontend/API hosting, environment variables, Auth redirects, and release verification, see [HOSTING.md](HOSTING.md).
+
 ## Hosted project
 
 The configured development project is [expense-manager (Mumbai)](https://supabase.com/dashboard/project/umguuvkeyeuhpgxvqxkt). Non-secret project metadata is in `supabase/project.json`. Database schema and accounting functions are versioned in `supabase/migrations/` and have been applied to this project through the Supabase integration.

@@ -32,6 +32,7 @@ app.use((_req, res, next) => {
   res.setHeader("Referrer-Policy", "no-referrer");
   next();
 });
+
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 
@@ -86,4 +87,7 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
   });
   res.status(500).json({ error: "Internal server error" });
 });
+
+// Vercel imports the composed app; index.ts retains local server startup.
+export default app;
 
