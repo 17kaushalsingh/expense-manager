@@ -25,7 +25,7 @@ Configure these variables before triggering the production builds. Substitute th
 
 The app needs no Supabase service-role key. Never upload `oauth_client_secret.json`, local environment files, integration-test credentials, or `.vercel` state. Public-prefixed values are visible in the frontend bundle. Configure production variables for Production only; previews should use a separately initialized staging Supabase project, not production financial data. Until staging exists, previews without Supabase configuration are not functional finance environments.
 
-In Supabase Auth, set the Site URL to the frontend production origin and allow its `/login` and `/join` URLs. Keep localhost redirects only if still required for development. Configure Google authorized origins/provider settings separately. Hosted Supabase Cron continues generating recurring drafts; Vercel does not run that scheduler.
+In Supabase Auth, set the Site URL to the frontend production origin and allow its `/login`, `/join`, and `/reset-password` URLs. Keep localhost redirects only if still required for development. Configure Google authorized origins/provider settings separately. Hosted Supabase Cron continues generating recurring drafts; Vercel does not run that scheduler.
 
 ## Release and verification
 
@@ -44,9 +44,9 @@ Both GitHub-linked projects are deployed in `kaushal-singhs-projects-18943219`:
 
 - Frontend: https://expense-manager-nine-sable.vercel.app
 - API: https://expense-manager-api-omega.vercel.app/api
-- Verified application release: `57105a9` on `main`, with both production deployments READY. Future pushes to `main` trigger production builds automatically.
-- Frontend deployment: `dpl_7T7maCbJspSUiEYZu1RoTZemJtPd`; API: `dpl_HvKUroSd33RjvsYaYf9LXEU5qhUX`.
+- Initial hosting verification: `57105a9` on `main`, with both production deployments READY. Future pushes to `main` trigger production builds automatically.
+- Initial frontend deployment: `dpl_7T7maCbJspSUiEYZu1RoTZemJtPd`; initial API deployment: `dpl_HvKUroSd33RjvsYaYf9LXEU5qhUX`. Use the Vercel projects to inspect subsequent release commits and deployments.
 - Production variables are configured; preview environments deliberately have no production Supabase variables. Existing preview protection remains enabled.
-- Supabase Site URL and the exact production `/login` and `/join` redirects were saved and verified in the dashboard. Confirmation-email delivery and Google consent remain separate provider checks; Google UI is currently disabled because no web client ID is configured.
+- Supabase Site URL and the exact production `/login`, `/join`, and `/reset-password` redirects were saved and verified in the dashboard. Confirmation/recovery-email delivery and Google consent remain separate provider checks; Google UI is currently disabled because no web client ID is configured.
 
 First Linux builds exposed missing optional native packages for TypeScript/Tailwind and implicit backend type discovery in the frontend. The lockfile now contains the platform packages, and frontend global types are explicitly limited to Node/React. Successful Vercel builds verify those repairs on Linux.

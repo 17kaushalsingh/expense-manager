@@ -4,6 +4,8 @@ Personal accounts, income/expense tracking, and group splitting backed by **host
 
 For GitHub-connected Vercel frontend/API hosting, environment variables, Auth redirects, and release verification, see [HOSTING.md](HOSTING.md).
 
+Password recovery, private receipt attachments, itemized shared expenses, and reviewed CSV imports are described in [the everyday tools guide](docs/RECEIPTS_AND_IMPORTS.md).
+
 ## Hosted project
 
 The configured development project is [expense-manager (Mumbai)](https://supabase.com/dashboard/project/umguuvkeyeuhpgxvqxkt). Non-secret project metadata is in `supabase/project.json`. Database schema and accounting functions are versioned in `supabase/migrations/` and have been applied to this project through the Supabase integration.
@@ -41,7 +43,7 @@ Design references and Reddit findings are recorded in [DESIGN_RESEARCH.md](DESIG
 
 Email/password registration, confirmation links, login, persistent sessions, automatic refresh, and logout use Supabase Auth. Credentials are never stored in application tables. The browser SDK owns session persistence; Express validates every bearer access token using Supabase before querying as that user. Query caches are cleared when the authenticated identity changes.
 
-In the Supabase Dashboard, set **Authentication → URL Configuration → Site URL** to `http://localhost:3000` for development and allow both `http://localhost:3000/login` and `http://localhost:3000/join` as redirect URLs. Set the deployed app's URL before production use. With email confirmation enabled, signup displays a confirmation instruction instead of creating an authenticated app session.
+In the Supabase Dashboard, keep **Authentication → URL Configuration → Site URL** set to the deployed frontend origin for production. Allow its exact `/login`, `/join`, and `/reset-password` redirect URLs. For a separate development project, use `http://localhost:3000` and the equivalent localhost redirects; adding authorized localhost callbacks to a shared project does not require replacing its production Site URL. With email confirmation enabled, signup displays a confirmation instruction instead of creating an authenticated app session.
 
 For Google sign-in, enable **Authentication → Sign In / Providers → Google**, configure your Google OAuth web client ID and secret there, and set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` to that client ID. Configure the allowed JavaScript origin in Google Cloud Console. Google sign-in is hidden until this public client ID is configured. The browser exchanges the Google ID token with Supabase; Google secrets never belong in frontend environment variables. Live Google consent and email delivery require provider/dashboard configuration and were not verified by the automated tests.
 
