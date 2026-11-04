@@ -23,7 +23,15 @@ import invitationRouter from "./routes/invitation.routes";
 
 export const app = express();
 
+app.disable("x-powered-by");
 app.set("json replacer", jsonReplacer);
+app.use((_req, res, next) => {
+  // Auth sessions and financial responses must never enter browser/CDN caches.
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 
@@ -60,6 +68,11 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
     return;
   }
 
+  if ("type" in error && error.type === "entity.too.large") {
+    res.status(413).json({ error: "Request body is too large" });
+    return;
+  }
+
   // Parser errors can contain the raw JSON body, including invitation/auth tokens.
   if (error instanceof SyntaxError && "body" in error) {
     res.status(400).json({ error: "Invalid JSON body" });
@@ -73,3 +86,4 @@ app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
   });
   res.status(500).json({ error: "Internal server error" });
 });
+
