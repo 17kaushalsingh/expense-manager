@@ -40,4 +40,13 @@ To recover from a faulty release, roll both projects back to a known compatible 
 
 ## Current provisioning status
 
-Configuration is prepared in the repository. Vercel team access for `kaushal-singhs-projects-18943219` is authorized. GitHub must be connected in Vercel account authentication settings before the repository can be imported; the initial import returned `repo_not_found` and provider lookup returned `github_response_error`. No production URL is recorded here until a deployment has actually been verified.
+Both GitHub-linked projects are deployed in `kaushal-singhs-projects-18943219`:
+
+- Frontend: https://expense-manager-nine-sable.vercel.app
+- API: https://expense-manager-api-omega.vercel.app/api
+- Verified application release: `57105a9` on `main`, with both production deployments READY. Future pushes to `main` trigger production builds automatically.
+- Frontend deployment: `dpl_7T7maCbJspSUiEYZu1RoTZemJtPd`; API: `dpl_HvKUroSd33RjvsYaYf9LXEU5qhUX`.
+- Production variables are configured; preview environments deliberately have no production Supabase variables. Existing preview protection remains enabled.
+- Supabase Site URL and the exact production `/login` and `/join` redirects were saved and verified in the dashboard. Confirmation-email delivery and Google consent remain separate provider checks; Google UI is currently disabled because no web client ID is configured.
+
+First Linux builds exposed missing optional native packages for TypeScript/Tailwind and implicit backend type discovery in the frontend. The lockfile now contains the platform packages, and frontend global types are explicitly limited to Node/React. Successful Vercel builds verify those repairs on Linux.
