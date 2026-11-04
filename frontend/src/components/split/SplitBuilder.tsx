@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { Itemization, calculateItemization } from "@/lib/itemization";
+import { ItemizationEditor } from "./ItemizationEditor";
 import { useAuthStore } from "@/store/auth";
 import { useAccounts } from "@/hooks/useDashboard";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -85,7 +87,9 @@ function Editor({
       split?.payers.find((p) => p.userId === user.id)?.accountId ?? "",
     ),
     [category, setCategory] = useState(seed?.categoryId ?? "");
-  const missingTotal = templateMode && amount.trim() === "";
+  const [itemized, setItemized] = useState(!!seed?.itemization);
+  const [items, setItems] = useState<Itemization>(seed?.itemization ?? { items: [], tax: 0, tip: 0 });
+  const missingTotal = templateMode && amount.trim() === "" && !itemized;
   const people = groupMembers.length
     ? groupMembers.map((m) => ({
         id: m.userId,
@@ -96,8 +100,14 @@ function Editor({
         ...extra.filter((p) => p.id !== user.id),
       ];
   const participants = people.filter((p) => !excluded.includes(p.id));
-  const total = Number(amount),
-    shares = participants.reduce(
+  let itemPreview: ReturnType<typeof calculateItemization> | undefined;
+  let itemError: unknown;
+  if (itemized) {
+    try { itemPreview = calculateItemization(items, participants.map(p => p.id)); }
+    catch (error) { itemError = error; }
+  }
+  const total = Number(itemized ? itemPreview?.total ?? 0 : amount),
+    shares = itemized ? total : participants.reduce(
       (n, p) => n + Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")),
       0,
     );
@@ -124,25 +134,27 @@ function Editor({
     payers.length > 0 &&
     payers.every((p) => people.some((person) => person.id === p.userId)) &&
     (missingTotal || Math.abs(payerSum - total) < 0.001) &&
-    (mode === "EQUAL" ||
+    (!itemized || !!itemPreview) &&
+    (itemized || mode === "EQUAL" ||
       (mode === "EXACT" &&
         (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
       (mode === "PERCENTAGE" && Math.abs(shares - 100) < 0.00001) ||
       (mode === "SHARES" && shares > 0)) &&
-    participants.every(
+    (itemized || participants.every(
       (p) => Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")) >= 0,
-    );
+    ));
   function buildBody(): SplitInput {
     return {
       groupId: groupId ?? null,
       description,
       totalAmount: missingTotal ? null : total,
-      splitType: mode,
+      splitType: itemized ? "EXACT" : mode,
+      ...(itemized ? { itemization: items } : {}),
       categoryId: category || null,
       payers,
       participants: participants.map((p) => ({
         userId: p.id,
-        ...(mode !== "EQUAL"
+        ...(itemized ? { shareValue: Number(itemPreview?.allocations[p.id] ?? 0) } : mode !== "EQUAL"
           ? {
               shareValue: Number(
                 values[p.id] ?? (mode === "SHARES" ? "1" : "0"),
@@ -212,7 +224,8 @@ function Editor({
             step="0.01"
             min="0.01"
             required={!templateMode}
-            value={amount}
+            readOnly={itemized}
+            value={itemized ? itemPreview?.total ?? "" : amount}
             onChange={(e) => setAmount(e.target.value)}
           />
         </label>
@@ -309,7 +322,10 @@ function Editor({
         <p className="text-xs text-text-secondary">
           Other members’ payments use their default cash account.
         </p>
-        <label className="label">
+        {!templateMode && !onSave && <label className="flex gap-2 text-sm"><input type="checkbox" checked={itemized} onChange={e => setItemized(e.target.checked)} />Split by receipt items</label>}
+        {itemized && <ItemizationEditor value={items} onChange={setItems} people={participants} />}
+        {itemized && <ErrorMessage error={itemError} />}
+        {!itemized && <label className="label">
           Split method
           <select
             className="field"
@@ -323,7 +339,7 @@ function Editor({
               <option key={m}>{m}</option>
             ))}
           </select>
-        </label>
+        </label>}
         <div className="space-y-3">
           {people.map((p) => (
             <div className="flex items-center justify-between gap-3" key={p.id}>
@@ -342,7 +358,7 @@ function Editor({
                 {p.name}
               </label>
               {!excluded.includes(p.id) &&
-                (mode === "EQUAL" ? (
+                (itemized ? <span className="text-sm tabular-nums">{itemPreview?.allocations[p.id] ?? "—"}</span> : mode === "EQUAL" ? (
                   <span className="text-sm">Equal share</span>
                 ) : (
                   <input

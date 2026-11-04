@@ -8,7 +8,7 @@ dotenv.config({ path: ".env.integration.local", quiet: true });
 const live = process.env.RUN_SUPABASE_INTEGRATION === "1";
 describe.skipIf(!live)("hosted receipt access and accounting preservation", () => {
   let server: Server, base: string, account: string, transaction: string;
-  const clients: SupabaseClient[] = [], tokens: string[] = [], receipts: string[] = [];
+  const clients: SupabaseClient[] = [], tokens: string[] = [], receipts: string[] = [], splits: string[] = [];
   async function api(path: string, method = "GET", body?: unknown, actor = 0) {
     const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json", Authorization: `Bearer ${tokens[actor]}` }, body: body === undefined ? undefined : JSON.stringify(body) });
     return { status: response.status, data: response.status === 204 ? null : await response.json() };
@@ -30,6 +30,7 @@ describe.skipIf(!live)("hosted receipt access and accounting preservation", () =
   });
   afterAll(async () => {
     for (const id of receipts) await api(`/receipts/${id}`, "DELETE");
+    for (const id of splits) await api(`/splits/${id}`, "DELETE");
     if (transaction) await api(`/transactions/${transaction}`, "DELETE");
     if (account) await api(`/accounts/${account}`, "DELETE");
     for (const c of clients) await c.auth.signOut({ scope: "local" });
@@ -66,4 +67,26 @@ describe.skipIf(!live)("hosted receipt access and accounting preservation", () =
     receipts.splice(receipts.indexOf(r.id), 1);
     expect((await clients[0].storage.from("receipts").download(r.objectPath)).error).toBeTruthy();
   });
+  it("posts item shares once, ignores forged exact allocations, and rolls back invalid replacement", async () => {
+    const a = "55555555-5555-4555-8555-555555555555", b = "66666666-6666-4666-8666-666666666666";
+    const body = { description: "Itemization integration", totalAmount: 12.02, splitType: "EXACT",
+      payers: [{ userId: a, amountPaid: 12.02, accountId: account }],
+      participants: [{ userId: a, shareValue: 12.02 }, { userId: b, shareValue: 0 }],
+      itemization: { items: [{ label: "Shared", amount: 5.01, participantIds: [b, a] }, { label: "Bob", amount: 5, participantIds: [b] }], tax: 1, tip: 1.01 } };
+    const created = await api("/splits", "POST", body);
+    expect(created.status).toBe(201); const id = created.data.id; splits.push(id);
+    expect(created.data.itemization.items).toHaveLength(2);
+    expect(created.data.participants.find((p: { userId: string }) => p.userId === a).amountOwed).toBe(3.02);
+    expect(created.data.participants.find((p: { userId: string }) => p.userId === b).amountOwed).toBe(9);
+    for (const [index, amount] of [[0, 3.02], [1, 9]]) {
+      const entries = await clients[index].from("transactions").select("analytics_amount").eq("source_id", id).eq("type", "EXPENSE");
+      expect(entries.error).toBeNull(); expect(entries.data).toEqual([{ analytics_amount: amount }]);
+    }
+    const before = (await api(`/accounts/${account}`)).data.balance;
+    expect((await api(`/splits/${id}`, "PUT", { ...body, totalAmount: 12.03 })).status).toBe(400);
+    expect((await api(`/accounts/${account}`)).data.balance).toBe(before);
+    expect((await api(`/splits/${id}`, "PUT", body, 1)).status).toBe(403);
+    expect((await api(`/splits/${id}`, "DELETE")).status).toBe(204); splits.pop();
+  });
+
 });

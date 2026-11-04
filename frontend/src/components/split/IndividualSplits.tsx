@@ -7,6 +7,7 @@ import { useFormat } from "@/lib/format";
 import { apiClient } from "@/lib/api/client";
 import { Confirm, ErrorMessage, Modal } from "@/components/ui/Controls";
 import { Receipts } from "@/components/receipts/Receipts";
+import { ItemSummary } from "@/components/receipts/ItemSummary";
 import { SplitBuilder } from "./SplitBuilder";
 export function IndividualSplits() {
   const data = useResource<Split[]>("/splits"),
@@ -50,7 +51,7 @@ export function IndividualSplits() {
             <strong className="text-xs">
               {money(s.totalAmount, s.currency)}
             </strong>
-            <button className="btn-secondary !text-[10px]" onClick={() => setEvidence(s)}>Receipts</button>
+            <button className="btn-secondary !text-[10px]" onClick={() => setEvidence(s)}>Details & receipts</button>
             {s.creatorId === user?.id && (
               <div className="flex gap-1">
                 <button
@@ -73,7 +74,7 @@ export function IndividualSplits() {
           </article>
         ))}
       </div>
-      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><Receipts splitId={evidence.id} canManage={evidence.creatorId === user?.id} /></Modal>}
+      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><ItemSummary value={evidence.itemization} memberName={id => id === user?.id ? "You" : people.data?.find(p => p.id === id)?.name ?? "Member"} /><Receipts splitId={evidence.id} canManage={evidence.creatorId === user?.id} /></Modal>}
       {edit && (
         <SplitBuilder
           isOpen

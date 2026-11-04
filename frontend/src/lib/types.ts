@@ -46,6 +46,7 @@ export interface Group {
   members: Member[];
 }
 export interface Split {
+  itemization?: import("./itemization").Itemization | null;
   id: string;
   groupId: string | null;
   creatorId: string;
@@ -78,6 +79,7 @@ export interface Reminder {
 }
 
 export interface SplitInput {
+  itemization?: import("./itemization").Itemization;
   groupId?: string | null;
   description: string;
   totalAmount: number | null;

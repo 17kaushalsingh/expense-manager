@@ -49,6 +49,6 @@ export async function createSplitExpense(
   client: SupabaseClient,
   input: CreateSplitExpenseInput,
 ) {
-  calculateSplitParticipants(input);
+  if (!input.itemization) calculateSplitParticipants(input);
   return rpc(client, "create_split_expense_atomic", { p_input: input });
 }

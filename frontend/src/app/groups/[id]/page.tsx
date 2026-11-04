@@ -21,6 +21,7 @@ import { Templates } from "@/components/groups/Templates";
 import { Invitations } from "@/components/groups/Invitations";
 import { useFormat } from "@/lib/format";
 import { Receipts } from "@/components/receipts/Receipts";
+import { ItemSummary } from "@/components/receipts/ItemSummary";
 export default function GroupDetails() {
   const id = useParams().id as string,
     router = useRouter(),
@@ -191,7 +192,7 @@ export default function GroupDetails() {
               </div>
               <div className="flex items-center gap-2">
                 <strong>{money(s.totalAmount, s.currency)}</strong>
-                <button className="btn-secondary" onClick={() => setEvidence(s)}>Receipts</button>
+                <button className="btn-secondary" onClick={() => setEvidence(s)}>Details & receipts</button>
                 <button
                   className="btn-secondary"
                   onClick={() => setComments(s)}
@@ -223,7 +224,7 @@ export default function GroupDetails() {
         </section>
       )}
       {tab === "Activity" && <GroupActivity groupId={id} />}
-      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><Receipts splitId={evidence.id} canManage={owner || evidence.creatorId === user?.id} /></Modal>}
+      {evidence && <Modal title={evidence.description} onClose={() => setEvidence(undefined)}><ItemSummary value={evidence.itemization} memberName={memberName} /><Receipts splitId={evidence.id} canManage={owner || evidence.creatorId === user?.id} /></Modal>}
       {comments && (
         <ExpenseComments
           splitId={comments.id}
