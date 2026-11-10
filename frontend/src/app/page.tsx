@@ -276,28 +276,35 @@ export default function Home() {
               </Link>
             </div>
             <div className="grouped-list">
-              {groups.data?.slice(0, 3).map((g) => (
-                <Link className="list-row" key={g.id} href={`/groups/${g.id}`}>
-                  <span className="icon-tile">
-                    <Users size={17} />
-                  </span>
-                  <span className="flex-1">
-                    <span className="block text-[13px] font-medium">
-                      {g.name}
-                    </span>
-                    <span className="text-[11px] text-text-secondary">
-                      {g.members.length} members
-                    </span>
-                  </span>
-                  <span
-                    className={`text-xs font-medium ${Number(g.myBalance) < 0 ? "text-negative" : "text-positive"}`}
+              {groups.data
+                ?.filter((g) => !g.archived)
+                .slice(0, 3)
+                .map((g) => (
+                  <Link
+                    className="list-row"
+                    key={g.id}
+                    href={`/groups/${g.id}`}
                   >
-                    {Number(g.myBalance) === 0
-                      ? "Settled up"
-                      : `${Number(g.myBalance) > 0 ? "Owed to you" : "You owe"} ${money(Math.abs(Number(g.myBalance)), g.currency)}`}
-                  </span>
-                </Link>
-              ))}
+                    <span className="icon-tile">
+                      <Users size={17} />
+                    </span>
+                    <span className="flex-1">
+                      <span className="block text-[13px] font-medium">
+                        {g.name}
+                      </span>
+                      <span className="text-[11px] text-text-secondary">
+                        {g.members.length} members
+                      </span>
+                    </span>
+                    <span
+                      className={`text-xs font-medium ${Number(g.myBalance) < 0 ? "text-negative" : "text-positive"}`}
+                    >
+                      {Number(g.myBalance) === 0
+                        ? "Settled up"
+                        : `${Number(g.myBalance) > 0 ? "Owed to you" : "You owe"} ${money(Math.abs(Number(g.myBalance)), g.currency)}`}
+                    </span>
+                  </Link>
+                ))}
               {groups.data?.length === 0 && (
                 <Link
                   href="/groups"
@@ -361,7 +368,6 @@ export default function Home() {
       )}
       <SplitBuilder isOpen={split} onClose={() => setSplit(false)} />
       {settle && <SettlementModal onClose={() => setSettle(false)} />}
-
     </DashboardLayout>
   );
 }

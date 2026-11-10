@@ -38,6 +38,7 @@ export interface Member {
   user?: { id: string; name: string };
 }
 export interface Group {
+  archived?: boolean;
   myBalance?: number;
   id: string;
   name: string;

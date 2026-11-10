@@ -4,12 +4,20 @@ import Link from "next/link";
 import { Users, Plus, ChevronRight } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { ErrorMessage } from "@/components/ui/Controls";
+import { useAction } from "@/hooks/useResource";
+import { apiClient } from "@/lib/api/client";
 import { useGroups } from "@/hooks/useGroups";
 import { useFormat } from "@/lib/format";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 export default function GroupsPage() {
   const { data: groups, isLoading, error } = useGroups(),
     { money } = useFormat();
+  const archive = useAction((value: { id: string; archived: boolean }) =>
+    apiClient.put(`/groups/${value.id}/preferences`, {
+      archived: value.archived,
+    }),
+  );
+  const [view, setView] = useState("active");
   const [create, setCreate] = useState(false);
   const [search, setSearch] = useState(""),
     [balanceFilter, setBalanceFilter] = useState("all");
@@ -24,6 +32,7 @@ export default function GroupsPage() {
     const balance = Number(g.myBalance ?? 0);
     return (
       matches &&
+      (view === "all" || (view === "archived" ? !!g.archived : !g.archived)) &&
       (balanceFilter === "all" ||
         (balanceFilter === "owe" && balance < 0) ||
         (balanceFilter === "owed" && balance > 0) ||
@@ -56,6 +65,22 @@ export default function GroupsPage() {
       <Link href="/deleted-expenses" className="text-sm text-brand-primary">
         Recover deleted expenses →
       </Link>
+      <nav className="segmented" aria-label="Group archive views">
+        {["active", "archived", "all"].map((v) => (
+          <button
+            key={v}
+            className="segment capitalize"
+            aria-pressed={view === v}
+            onClick={() => setView(v)}
+          >
+            {v}
+          </button>
+        ))}
+      </nav>
+      <p className="text-xs text-text-secondary">
+        Archiving hides a group only for you. Its balances and history stay
+        intact.
+      </p>
       <section
         className="panel grid sm:grid-cols-2 gap-3"
         aria-label="Group filters"
@@ -100,13 +125,14 @@ export default function GroupsPage() {
             onClick={() => {
               setSearch("");
               setBalanceFilter("all");
+              setView("all");
             }}
           >
             Clear filters
           </button>
         </p>
       )}
-      <ErrorMessage error={error} />
+      <ErrorMessage error={error || archive.error} />
       {isLoading && (
         <p className="text-sm text-text-secondary">Loading your groups…</p>
       )}
@@ -129,50 +155,62 @@ export default function GroupsPage() {
         {visibleGroups?.map((g, i) => {
           const balance = Number(g.myBalance ?? 0);
           return (
-            <Link
-              key={g.id}
-              href={`/groups/${g.id}`}
-              className="panel !p-0 overflow-hidden hover:ring-1 hover:ring-brand-primary/20 transition-shadow"
-            >
-              <div className="px-5 pt-5 pb-4 flex gap-3 items-center">
-                <span
-                  className="icon-tile !h-12 !w-12 !rounded-2xl"
-                  style={{
-                    background: ["#e7f0eb", "#eeeaf4", "#f7eee1"][i % 3],
-                    color: ["#527b63", "#8a77a4", "#b18b58"][i % 3],
-                  }}
-                >
-                  <Users size={22} strokeWidth={1.6} />
-                </span>
-                <div className="flex-1">
-                  <h2 className="font-semibold text-base">{g.name}</h2>
-                  <p className="text-[11px] text-text-secondary mt-1">
-                    {g.members.length} members · {g.currency}
+            <article key={g.id} className="panel !p-0 overflow-hidden">
+              <Link
+                href={`/groups/${g.id}`}
+                className="block hover:bg-surface-secondary/40"
+              >
+                <div className="px-5 pt-5 pb-4 flex gap-3 items-center">
+                  <span
+                    className="icon-tile !h-12 !w-12 !rounded-2xl"
+                    style={{
+                      background: ["#e7f0eb", "#eeeaf4", "#f7eee1"][i % 3],
+                      color: ["#527b63", "#8a77a4", "#b18b58"][i % 3],
+                    }}
+                  >
+                    <Users size={22} strokeWidth={1.6} />
+                  </span>
+                  <div className="flex-1">
+                    <h2 className="font-semibold text-base">{g.name}</h2>
+                    <p className="text-[11px] text-text-secondary mt-1">
+                      {g.members.length} members · {g.currency}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-text-secondary" />
+                </div>
+                <div className="px-5 py-4 border-t border-border-soft flex justify-between items-center">
+                  <div className="flex -space-x-1.5">
+                    {g.members.slice(0, 4).map((m) => (
+                      <span
+                        className="h-7 w-7 rounded-full bg-surface-secondary border-2 border-surface-primary grid place-items-center text-[10px] text-text-secondary font-medium"
+                        title={m.user?.name}
+                        key={m.userId}
+                      >
+                        {m.user?.name?.slice(0, 1).toUpperCase() ?? "M"}
+                      </span>
+                    ))}
+                  </div>
+                  <p
+                    className={`text-xs font-medium ${balance < 0 ? "text-negative" : "text-positive"}`}
+                  >
+                    {balance === 0
+                      ? "All settled up"
+                      : `${balance > 0 ? "You are owed" : "You owe"} ${money(Math.abs(balance), g.currency)}`}
                   </p>
                 </div>
-                <ChevronRight size={16} className="text-text-secondary" />
-              </div>
-              <div className="px-5 py-4 border-t border-border-soft flex justify-between items-center">
-                <div className="flex -space-x-1.5">
-                  {g.members.slice(0, 4).map((m) => (
-                    <span
-                      className="h-7 w-7 rounded-full bg-surface-secondary border-2 border-surface-primary grid place-items-center text-[10px] text-text-secondary font-medium"
-                      title={m.user?.name}
-                      key={m.userId}
-                    >
-                      {m.user?.name?.slice(0, 1).toUpperCase() ?? "M"}
-                    </span>
-                  ))}
-                </div>
-                <p
-                  className={`text-xs font-medium ${balance < 0 ? "text-negative" : "text-positive"}`}
+              </Link>
+              <div className="border-t border-border-soft px-5 py-3 flex justify-end">
+                <button
+                  className="text-sm text-brand-primary"
+                  disabled={archive.isPending}
+                  onClick={() =>
+                    archive.mutate({ id: g.id, archived: !g.archived })
+                  }
                 >
-                  {balance === 0
-                    ? "All settled up"
-                    : `${balance > 0 ? "You are owed" : "You owe"} ${money(Math.abs(balance), g.currency)}`}
-                </p>
+                  {g.archived ? "Unarchive" : "Archive"}
+                </button>
               </div>
-            </Link>
+            </article>
           );
         })}
       </div>
