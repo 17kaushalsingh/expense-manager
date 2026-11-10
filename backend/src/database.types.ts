@@ -504,6 +504,39 @@ export type Database = {
           },
         ];
       };
+      group_preferences: {
+        Row: {
+          archived: boolean;
+          group_id: string;
+          user_id: string;
+        };
+        Insert: {
+          archived?: boolean;
+          group_id: string;
+          user_id: string;
+        };
+        Update: {
+          archived?: boolean;
+          group_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_preferences_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       group_split_defaults: {
         Row: {
           group_id: string;
