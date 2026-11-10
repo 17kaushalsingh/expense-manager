@@ -144,6 +144,43 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       );
       expect(other.data.items[0].payers[0].accountId).toBeTruthy();
     });
+    it("isolates personal archives and preserves group accounting", async () => {
+      const before = await api(`/groups/${group}/simplify-debts`);
+      expect(
+        (await api(`/groups/${group}/preferences`, "PUT", { archived: true }))
+          .status,
+      ).toBe(200);
+      expect((await api(`/groups/${group}`)).data.archived).toBe(true);
+      expect(
+        (await api(`/groups/${group}`, "GET", undefined, 1)).data.archived,
+      ).toBe(false);
+      expect(
+        (
+          await api(
+            `/groups/${group}/preferences`,
+            "PUT",
+            { archived: true },
+            2,
+          )
+        ).status,
+      ).toBe(403);
+      const forged = await clients[1]
+        .from("group_preferences")
+        .upsert({ user_id: A, group_id: group, archived: false });
+      expect(forged.error).toBeTruthy();
+      expect((await api(`/groups/${group}/simplify-debts`)).data).toEqual(
+        before.data,
+      );
+      expect(
+        (await api(`/groups/${group}/preferences`, "PUT", { archived: false }))
+          .status,
+      ).toBe(200);
+      expect((await api(`/groups/${group}`)).data.archived).toBe(false);
+      expect(
+        (await api(`/groups/${group}/preferences`, "PUT", { archived: "yes" }))
+          .status,
+      ).toBe(400);
+    }, 30000);
     it("reports personal paid/share/payment totals and emits a private-field-free CSV", async () => {
       const summary = await api(`/groups/${group}/summary?month=2026-11`);
       expect(summary.status).toBe(200);

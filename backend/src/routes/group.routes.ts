@@ -11,7 +11,9 @@ router.use(authenticate);
 export async function loadGroups(req: AuthRequest, id?: string) {
   let q = req
     .db!.from("groups")
-    .select("*,members:group_members(*)")
+    .select(
+      "*,members:group_members(*),preferences:group_preferences(archived)",
+    )
     .order("created_at");
   if (id) q = q.eq("id", id);
   const groups = dbResult(await q) ?? [];
@@ -28,8 +30,10 @@ export async function loadGroups(req: AuthRequest, id?: string) {
     const graph = dbResult(
       await req.db!.rpc("simplify_debts", { p_group_id: group.id }),
     ) as unknown as { groupBalances: Record<string, number> };
+    const { preferences, ...sharedGroup } = group;
     result.push({
-      ...group,
+      ...sharedGroup,
+      archived: Boolean(preferences[0]?.archived),
       my_balance: Number(graph.groupBalances?.[req.userId!] ?? 0),
     });
   }
@@ -37,6 +41,27 @@ export async function loadGroups(req: AuthRequest, id?: string) {
 }
 router.get("/", async (req: AuthRequest, res) =>
   res.json(await loadGroups(req)),
+);
+router.put(
+  "/:id/preferences",
+  validateBody(z.object({ archived: z.boolean() }).strict()),
+  async (req: AuthRequest, res) => {
+    const row = dbResult(
+      await req
+        .db!.from("group_preferences")
+        .upsert(
+          {
+            user_id: req.userId!,
+            group_id: req.params.id as string,
+            archived: req.body.archived,
+          },
+          { onConflict: "user_id,group_id" },
+        )
+        .select("archived")
+        .single(),
+    );
+    res.json(row);
+  },
 );
 router.post(
   "/",
