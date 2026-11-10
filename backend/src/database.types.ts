@@ -504,6 +504,49 @@ export type Database = {
           },
         ];
       };
+      group_split_defaults: {
+        Row: {
+          group_id: string;
+          template_id: string;
+          updated_at: string;
+          updated_by: string;
+        };
+        Insert: {
+          group_id: string;
+          template_id: string;
+          updated_at?: string;
+          updated_by: string;
+        };
+        Update: {
+          group_id?: string;
+          template_id?: string;
+          updated_at?: string;
+          updated_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "group_split_defaults_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: true;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_split_defaults_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "split_templates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "group_split_defaults_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       groups: {
         Row: {
           created_at: string;
@@ -692,6 +735,71 @@ export type Database = {
           {
             foreignKeyName: "savings_goals_user_id_fkey";
             columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      settlement_reversals: {
+        Row: {
+          amount: number;
+          currency: string;
+          group_id: string | null;
+          payee_id: string;
+          payer_id: string;
+          payment_date: string;
+          reversed_at: string;
+          reversed_by: string;
+          settlement_id: string;
+        };
+        Insert: {
+          amount: number;
+          currency: string;
+          group_id?: string | null;
+          payee_id: string;
+          payer_id: string;
+          payment_date: string;
+          reversed_at?: string;
+          reversed_by: string;
+          settlement_id: string;
+        };
+        Update: {
+          amount?: number;
+          currency?: string;
+          group_id?: string | null;
+          payee_id?: string;
+          payer_id?: string;
+          payment_date?: string;
+          reversed_at?: string;
+          reversed_by?: string;
+          settlement_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "settlement_reversals_group_id_fkey";
+            columns: ["group_id"];
+            isOneToOne: false;
+            referencedRelation: "groups";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "settlement_reversals_payee_id_fkey";
+            columns: ["payee_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "settlement_reversals_payer_id_fkey";
+            columns: ["payer_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "settlement_reversals_reversed_by_fkey";
+            columns: ["reversed_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -1250,6 +1358,10 @@ export type Database = {
         Returns: Json;
       };
       execute_settlement_atomic: { Args: { p_input: Json }; Returns: Json };
+      group_financial_summary: {
+        Args: { p_group_id: string; p_month?: string };
+        Returns: Json;
+      };
       group_member_profiles: {
         Args: { p_group_id: string };
         Returns: {
@@ -1257,6 +1369,7 @@ export type Database = {
           name: string;
         }[];
       };
+      group_split_default: { Args: { p_group_id: string }; Returns: Json };
       import_transactions_atomic: {
         Args: { p_input: Json; p_preview?: boolean };
         Returns: Json;
@@ -1318,6 +1431,11 @@ export type Database = {
       };
       mutate_transaction_atomic: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json };
+        Returns: Json;
+      };
+      reverse_settlement_atomic: { Args: { p_id: string }; Returns: Json };
+      set_group_split_default: {
+        Args: { p_group_id: string; p_template_id?: string };
         Returns: Json;
       };
       simplify_debts: { Args: { p_group_id?: string }; Returns: Json };
