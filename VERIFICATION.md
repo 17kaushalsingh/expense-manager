@@ -1,3 +1,10 @@
+# Personal archives and completed recovery walkthrough — 10 November 2026
+
+- Added private member-owned group archive preferences, archive/unarchive controls, active/archived/all views and Dashboard card filtering. Debt totals, history and settlement access remain intact.
+- **134 tests passed, one Cron test skipped** across 19 files with hosted integration enabled and 30-second network timeouts. Backend build and frontend lint/build passed. Archive tests verify isolation, outsider/forged-owner denial and unchanged financial balances.
+- Completed desktop/mobile expense recovery and group-filter walkthroughs against hosted data using synthetic test users. Restored a 10.00 bill with the expected 5.00 balance; archive/unarchive preserves it. Mobile width 390 matched document width. Walkthrough group, bill and preferences cleaned up.
+- One additive hosted migration applied. Advisors retain the prior intentional definer/disabled leaked-password-protection/unused-index notices, with no new categories. Four milestone commits remain on `codex/splitwise-parity`, unmerged and undeployed. Full parity is still tracked in [the feature map](docs/SPLITWISE_PARITY.md).
+
 # Expense recovery continuation — 10 November 2026
 
 - Added private recoverable shared-expense snapshots, atomic idempotent restoration, original account/type preservation, comment recovery, and a paginated Deleted expenses UI. Existing settlement, membership and currency constraints remain enforced. Earlier hard deletions and removed receipt files are not recoverable.
