@@ -1357,6 +1357,10 @@ export type Database = {
         Args: { p_decision: string; p_group_id: string; p_request_id: string };
         Returns: Json;
       };
+      deleted_split_expenses: {
+        Args: { p_limit?: number; p_offset?: number };
+        Returns: Json;
+      };
       execute_settlement_atomic: { Args: { p_input: Json }; Returns: Json };
       group_financial_summary: {
         Args: { p_group_id: string; p_month?: string };
@@ -1433,6 +1437,7 @@ export type Database = {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json };
         Returns: Json;
       };
+      restore_split_expense_atomic: { Args: { p_id: string }; Returns: Json };
       reverse_settlement_atomic: { Args: { p_id: string }; Returns: Json };
       set_group_split_default: {
         Args: { p_group_id: string; p_template_id?: string };
