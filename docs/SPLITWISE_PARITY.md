@@ -46,7 +46,7 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 | SW34 | Personal expenses | Accounts, manual income/expense and transfers | Implemented | This app additionally provides budgets and savings goals. |
 | SW35 | Full/partial settle-up records | `execute_settlement_atomic`, settlement dialog | Implemented | Actual external payment execution is SW18/SW48. |
 | SW36 | Undo a recorded cash settlement | `reverse_settlement_atomic`, `/settlements/:id/reverse`, payment history | Implemented | Atomic source-linked cash/AR/AP reversal, immutable tombstone/audit, concurrent retry protection; available for group and ad-hoc payment records. Does not cancel external funds. |
-| SW37 | Restore a deleted expense | Hard deletion/reversal; audit headers | Missing | Complete recoverable snapshot, retained identity/history, authorization, duplicate restore protection and reconciliation. |
+| SW37 | Restore a deleted expense | Private recovery snapshots, `restore_split_expense_atomic`, `/deleted-expenses` | Partial | Engine/API/UI implemented; hosted concurrency, private account retention, comment recovery, outsider denial and rollback verified. New browser walkthrough remains. Only deletions after the recovery migration are recoverable; missing accounts/groups, changed account types/currency, lost membership or settlement history block restoration. Removed receipt files cannot be restored. |
 | SW38 | Delete/undelete a group with its history | Hard delete only when financial references allow | Different | Recoverable archive/delete state and restoration of the whole context. |
 | SW39 | Add unregistered friends by name/email/phone | Parties must have registered Auth identities | Missing | Guest identity/claiming model without impersonation, duplicate identities or private-account leakage. |
 | SW40 | Shared refunds/reimbursements | Positive shared expense totals only | Missing | Reverse shared obligations and cash appropriately; reduce spending analytics rather than fabricate income. |
@@ -60,7 +60,7 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 | SW48 | Splitwise Pay wallet / bank funding | No wallet or money movement | Commercial | Regulated payment provider, identity checks, authorizations, funding/withdrawal lifecycle, disputes and approval. |
 | SW49 | Splitwise Card | No issuing programme | Commercial | Issuer partnership, supported market, identity/compliance and physical/virtual card lifecycle. A renamed expense account is not equivalent. |
 | SW50 | Full personal data export | Transaction CSV only | Partial | Include profile, memberships, comments, preferences, provenance and receipt metadata while respecting other members' privacy. |
-| SW51 | Group organization / settled-up hiding | Basic group list | Partial | Search/filter/archive and recoverable history rather than destructive clearing. |
+| SW51 | Group organization / settled-up hiding | Group/member search and caller-balance filters | Partial | Hide groups where caller is settled, filter owed/owing/settled and clear empty results. Persistent archive/preferences and whole-group recovery remain. |
 | SW52 | Change default currency independently | Currency immutable after activity | Different | Separate display/default preferences from stored accounting currency; depends on SW17/SW21. |
 | SW53 | Turn a purchase into a shared expense | Manual and split forms are independent | Missing | Atomic conversion of a manual expense without double-counting cash or personal spending. |
 | SW54 | Authentication / recovery | Supabase email/password, Google ID token and recovery screens | Partial | Core code exists; real email recovery and Google provider consent remain unverified/configuration dependent. |
@@ -110,3 +110,11 @@ The matrix is a release checklist. Overall parity remains **incomplete** until e
 - [Splitwise Pay](https://kb.splitwise.com/splitwise-pay)
 
 Additional rows inferred from combinations of documented workflows are implementation requirements, not claims about undocumented Splitwise internals. Provider and market availability must be rechecked before integration.
+
+## Recovery continuation — 10 November 2026
+
+- Added three hosted migrations for private deleted-expense snapshots, original-account-type validation and deny-all client table policy. The existing ledger implementation remains private behind its public, actor-checked wrapper. Failed or unauthorized deletion rolls back the snapshot too.
+- Recovery retains expense/payer/participant identities, itemization, original accounts, comments and ordinary ledger effects. It recalculates current AR/AP instead of replaying obsolete debt adjustments. No account IDs or full snapshots are returned by the deleted-bill listing.
+- **133 tests passed, one Cron test skipped** across 19 files with the same hosted command above. The six-test parity suite subsequently passed with additional account-type-change rejection assertions. Backend build and frontend lint/build passed. No browser walkthrough was performed for the new recovery/filter screens; UI acceptance remains open.
+- Advisors: 28 intentionally authenticated SECURITY DEFINER entrypoints and existing leaked-password-protection warning; 18 unused-index information notices. No missing RLS policy/search-path/FK-index findings remain. Recovery snapshot table has no client grants and an explicit deny policy.
+- Original working-tree vendor changes and ignored credentials remain excluded. Changes remain on `codex/splitwise-parity`, not merged/deployed. No paid providers or money movement were enabled.

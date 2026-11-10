@@ -1,3 +1,11 @@
+# Expense recovery continuation — 10 November 2026
+
+- Added private recoverable shared-expense snapshots, atomic idempotent restoration, original account/type preservation, comment recovery, and a paginated Deleted expenses UI. Existing settlement, membership and currency constraints remain enforced. Earlier hard deletions and removed receipt files are not recoverable.
+- Hosted tests verify participant restoration, concurrent retries producing one expense, original private account attribution, restored comments, outsider rejection, and missing-account/type-change rejection without partial writes. **133 tests passed, one Cron test skipped** across 19 files; backend build and frontend lint/build passed. The new recovery/filter UI has not had its browser walkthrough yet.
+- Added group/member search and caller-balance filters. Archive preferences and whole-group recovery remain open.
+- Three hosted migrations applied. Advisors report only 28 intentional authenticated definer entrypoints, existing disabled leaked-password protection and 18 unused-index information notices. No additional security categories remain.
+- Work remains on `codex/splitwise-parity`; not merged or deployed. Full parity remains incomplete; see [the mapping](docs/SPLITWISE_PARITY.md).
+
 # Splitwise parity milestone — 10 November 2026
 
 - Added a [56-capability mapping](docs/SPLITWISE_PARITY.md) to official Splitwise Core/Pro/help-center features. Full parity remains incomplete; provider-backed banking/payments, multi-currency/FX, OCR, offline financial writes, recovery and native packaging remain visible in the checklist. Paid provisioning and real money movement require approval.
