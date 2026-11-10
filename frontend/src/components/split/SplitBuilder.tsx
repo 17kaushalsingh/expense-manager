@@ -6,7 +6,13 @@ import { useAuthStore } from "@/store/auth";
 import { useAccounts } from "@/hooks/useDashboard";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
-import { Split, Member, Category, SplitInput } from "@/lib/types";
+import {
+  Split,
+  Member,
+  Category,
+  SplitInput,
+  SplitTemplate,
+} from "@/lib/types";
 import { Modal, ErrorMessage } from "@/components/ui/Controls";
 import { MemberPicker, Person } from "@/components/groups/MemberPicker";
 import { useFormat } from "@/lib/format";
@@ -26,7 +32,55 @@ interface Props {
   submitLabel?: string;
 }
 export function SplitBuilder(props: Props) {
-  return props.isOpen ? <Editor {...props} /> : null;
+  return props.isOpen ? <DefaultEditor {...props} /> : null;
+}
+function DefaultEditor(props: Props) {
+  const enabled =
+    !!props.groupId &&
+    !props.split &&
+    !props.initial &&
+    !props.templateMode &&
+    !props.onSave &&
+    !props.onSaveDraft;
+  const defaults = useResource<Pick<
+    SplitTemplate,
+    "id" | "name" | "payload" | "needsCorrection"
+  > | null>(`/groups/${props.groupId}/default-split`, enabled);
+  const [custom, setCustom] = useState(false);
+  if (
+    enabled &&
+    !custom &&
+    (defaults.isLoading || defaults.error || defaults.data?.needsCorrection)
+  )
+    return (
+      <Modal title="Group split preference" onClose={props.onClose}>
+        {defaults.isLoading && <p>Loading group default…</p>}
+        <ErrorMessage error={defaults.error} />
+        {defaults.data?.needsCorrection && (
+          <p>
+            A saved participant is unavailable. Repair the default in Split
+            templates or choose a custom allocation.
+          </p>
+        )}
+        {!defaults.isLoading && (
+          <button className="btn-secondary" onClick={() => setCustom(true)}>
+            Use a custom split
+          </button>
+        )}
+      </Modal>
+    );
+  // Automatic defaults carry allocations only; each bill gets its own description,
+  // total, date, payer and private account. Exact values are never rescaled.
+  const initial =
+    enabled && !custom && defaults.data
+      ? {
+          ...defaults.data.payload,
+          description: "",
+          totalAmount: null,
+          payers: [],
+        }
+      : props.initial;
+  return <Editor {...props} initial={initial} />;
 }
 function Editor({
   onClose,
@@ -135,7 +189,14 @@ function Editor({
     ...(p.userId === user.id && account ? { accountId: account } : {}),
   }));
   const payerSum = payers.reduce((n, p) => n + (p.amountPaid ?? 0), 0);
+  const [removeUnavailable, setRemoveUnavailable] = useState(false);
+  const missingParty =
+    !!seed &&
+    [...seed.participants, ...seed.payers].some(
+      (p) => !people.some((person) => person.id === p.userId),
+    );
   const valid =
+    (!missingParty || removeUnavailable) &&
     (missingTotal ||
       (total > 0 &&
         Number.isFinite(total) &&
@@ -439,6 +500,14 @@ function Editor({
             <p className="text-negative text-sm">
               A saved member is no longer in this group. Choose current
               participants and payers before saving.
+              <label className="flex gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  checked={removeUnavailable}
+                  onChange={(e) => setRemoveUnavailable(e.target.checked)}
+                />
+                Remove unavailable members from this allocation
+              </label>
             </p>
           )}
         {onSaveDraft && (

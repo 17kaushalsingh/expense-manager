@@ -162,7 +162,7 @@ export function ExpenseComments({
           />
         </label>
         <p className="text-xs">
-          Visible to current group members. {body.length}/2000
+          Visible to people with access to this expense. {body.length}/2000
         </p>
         <ErrorMessage error={save.error} />
         <div className="flex gap-2">

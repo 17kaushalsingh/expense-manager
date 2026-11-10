@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api/client";
 import { Confirm, ErrorMessage, Modal } from "@/components/ui/Controls";
 import { Receipts } from "@/components/receipts/Receipts";
 import { ItemSummary } from "@/components/receipts/ItemSummary";
+import { ExpenseComments } from "@/components/collaboration/GroupCollaboration";
 import { SplitBuilder } from "./SplitBuilder";
 export function IndividualSplits() {
   const data = useResource<Split[]>("/splits"),
@@ -16,6 +17,7 @@ export function IndividualSplits() {
     { money, date } = useFormat();
   const [edit, setEdit] = useState<Split>(),
     [remove, setRemove] = useState<Split>();
+  const [comments, setComments] = useState<Split>();
   const [evidence, setEvidence] = useState<Split>();
   const deletion = useAction(
     () => apiClient.delete(`/splits/${remove?.id}`),
@@ -57,6 +59,12 @@ export function IndividualSplits() {
             >
               Details & receipts
             </button>
+            <button
+              className="btn-secondary !text-[10px]"
+              onClick={() => setComments(s)}
+            >
+              Comments
+            </button>
             {s.creatorId === user?.id && (
               <div className="flex gap-1">
                 <button
@@ -97,6 +105,14 @@ export function IndividualSplits() {
             canManage={evidence.creatorId === user?.id}
           />
         </Modal>
+      )}
+      {comments && (
+        <ExpenseComments
+          splitId={comments.id}
+          description={comments.description}
+          owner={false}
+          onClose={() => setComments(undefined)}
+        />
       )}
       {edit && (
         <SplitBuilder

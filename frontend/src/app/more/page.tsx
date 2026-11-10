@@ -15,6 +15,8 @@ export default function More() {
           .filter(([href]) =>
             [
               "/accounts",
+              "/shared-expenses",
+              "/settlements",
               "/budgets",
               "/goals",
               "/categories",

@@ -8,6 +8,12 @@ import { ErrorMessage } from "@/components/ui/Controls";
 import { useAuthStore } from "@/store/auth";
 export function Templates({ group }: { group: Group }) {
   const data = useResource<SplitTemplate[]>(`/templates/groups/${group.id}`);
+  const defaults = useResource<{ id: string; name: string } | null>(
+    `/groups/${group.id}/default-split`,
+  );
+  const setDefault = useAction((templateId: string | null) =>
+    apiClient.put(`/groups/${group.id}/default-split`, { templateId }),
+  );
   const user = useAuthStore((s) => s.user);
   const [edit, setEdit] = useState<SplitTemplate | null | undefined>();
   const [use, setUse] = useState<SplitTemplate>();
@@ -38,6 +44,20 @@ export function Templates({ group }: { group: Group }) {
           New template
         </button>
       </div>
+      <p className="text-sm text-text-secondary">
+        Automatic allocation:{" "}
+        {defaults.data?.name ?? "Equal split (no default)"}. New bills use this
+        preference and remain editable.
+      </p>
+      {defaults.data && group.ownerId === user?.id && (
+        <button
+          className="btn-secondary"
+          disabled={setDefault.isPending}
+          onClick={() => setDefault.mutate(null)}
+        >
+          Clear default
+        </button>
+      )}
       {data.isLoading && <p>Loading templates…</p>}
       {data.data?.length === 0 && (
         <p>
@@ -60,6 +80,18 @@ export function Templates({ group }: { group: Group }) {
               </p>
             )}
           </div>
+          {group.ownerId === user?.id && t.id !== defaults.data?.id && (
+            <button
+              className="btn-secondary"
+              disabled={t.needsCorrection || setDefault.isPending}
+              onClick={() => setDefault.mutate(t.id)}
+            >
+              Make default
+            </button>
+          )}
+          {t.id === defaults.data?.id && (
+            <span className="text-xs text-brand-primary">Group default</span>
+          )}
           <button
             className="btn-secondary"
             disabled={t.needsCorrection}
@@ -83,7 +115,11 @@ export function Templates({ group }: { group: Group }) {
           )}
         </article>
       ))}
-      <ErrorMessage error={data.error || archive.error} />
+      <ErrorMessage
+        error={
+          data.error || archive.error || defaults.error || setDefault.error
+        }
+      />
       {edit !== undefined && (
         <SplitBuilder
           isOpen

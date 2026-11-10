@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   House,
+  Search,
+  Receipt,
   ArrowLeftRight,
   Users,
   ChartNoAxesCombined,
@@ -18,6 +20,8 @@ export const navigation = [
   ["/", "Overview"],
   ["/transactions", "Transactions"],
   ["/groups", "Shared expenses"],
+  ["/shared-expenses", "Find a bill"],
+  ["/settlements", "Payments"],
   ["/accounts", "Accounts"],
   ["/analytics", "Insights"],
   ["/budgets", "Budgets"],
@@ -29,6 +33,8 @@ export const navIcons: Record<string, LucideIcon> = {
   "/": House,
   "/transactions": ArrowLeftRight,
   "/groups": Users,
+  "/shared-expenses": Search,
+  "/settlements": Receipt,
   "/accounts": Wallet,
   "/analytics": ChartNoAxesCombined,
   "/budgets": CalendarDays,
@@ -58,13 +64,13 @@ export function Sidebar() {
       </Link>
       <p className="eyebrow px-3 mb-3">Your money</p>
       <nav className="space-y-1">
-        {navigation.map(([href, label], i) => {
+        {navigation.map(([href, label]) => {
           const Icon = navIcons[href],
             active =
               path === href || (href !== "/" && path.startsWith(href + "/"));
           return (
             <div key={href}>
-              {i === 5 && (
+              {href === "/budgets" && (
                 <p className="eyebrow px-3 pt-8 pb-3">Planning & tools</p>
               )}
               <Link

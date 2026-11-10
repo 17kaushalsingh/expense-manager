@@ -20,6 +20,8 @@ import {
 import { Templates } from "@/components/groups/Templates";
 import { Invitations } from "@/components/groups/Invitations";
 import { useFormat } from "@/lib/format";
+import { GroupReport } from "@/components/groups/GroupReport";
+import { SettlementHistory } from "@/components/settlements/SettlementHistory";
 import { Receipts } from "@/components/receipts/Receipts";
 import { ItemSummary } from "@/components/receipts/ItemSummary";
 export default function GroupDetails() {
@@ -104,18 +106,23 @@ export default function GroupDetails() {
         </button>
       </section>
       <nav className="segmented overflow-x-auto" aria-label="Group sections">
-        {["Expenses", "Balances", "Recurring", "Activity", "Members"].map(
-          (t) => (
-            <button
-              className="segment whitespace-nowrap"
-              key={t}
-              aria-pressed={tab === t}
-              onClick={() => setTab(t)}
-            >
-              {t}
-            </button>
-          ),
-        )}
+        {[
+          "Expenses",
+          "Balances",
+          "Totals",
+          "Recurring",
+          "Activity",
+          "Members",
+        ].map((t) => (
+          <button
+            className="segment whitespace-nowrap"
+            key={t}
+            aria-pressed={tab === t}
+            onClick={() => setTab(t)}
+          >
+            {t}
+          </button>
+        ))}
       </nav>
       {owner && tab === "Members" && <Invitations groupId={id} />}
       {tab === "Members" && group.data && (
@@ -227,6 +234,10 @@ export default function GroupDetails() {
             </article>
           ))}
         </section>
+      )}
+      {tab === "Totals" && <GroupReport groupId={id} />}
+      {tab === "Balances" && group.data && (
+        <SettlementHistory group={group.data} />
       )}
       {tab === "Activity" && <GroupActivity groupId={id} />}
       {evidence && (

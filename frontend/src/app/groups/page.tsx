@@ -27,6 +27,12 @@ export default function GroupsPage() {
           <span className="sm:hidden">New</span>
         </button>
       </header>
+      <Link href="/shared-expenses" className="btn-secondary self-start">
+        Search all shared expenses
+      </Link>
+      <Link href="/settlements" className="text-sm text-brand-primary">
+        Payment history & reversals →
+      </Link>
       <ErrorMessage error={error} />
       {isLoading && (
         <p className="text-sm text-text-secondary">Loading your groups…</p>
