@@ -168,6 +168,54 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       expect(csv.data).not.toContain("account_id");
       expect(csv.data).not.toContain(account);
     });
+    it("normalizes discounted receipt shares in SQL and rolls back invalid discounts", async () => {
+      const body = {
+        description: "Discount parity integration",
+        totalAmount: 10.02,
+        splitType: "EXACT",
+        payers: [{ userId: B, amountPaid: 10.02 }],
+        participants: [
+          { userId: A, shareValue: 999 },
+          { userId: B, shareValue: 999 },
+        ],
+        itemization: {
+          items: [
+            { label: "Shared", amount: 5.01, participantIds: [A, B] },
+            { label: "Bob", amount: 5, participantIds: [B] },
+          ],
+          tax: 1,
+          tip: 1.01,
+          discount: 2,
+        },
+      };
+      const posted = await api("/splits", "POST", body);
+      expect(posted.status).toBe(201);
+      try {
+        const allocations = Object.fromEntries(
+          posted.data.participants.map(
+            (p: { userId: string; amountOwed: number }) => [
+              p.userId,
+              p.amountOwed,
+            ],
+          ),
+        );
+        expect(allocations).toEqual({ [A]: 2.52, [B]: 7.5 });
+        expect(posted.data.itemization.discount).toBe(2);
+        const failed = await api("/splits", "POST", {
+          ...body,
+          itemization: { ...body.itemization, discount: 20 },
+        });
+        expect(failed.status).toBe(400);
+        const search = await api(
+          "/splits/search?q=Discount%20parity%20integration&context=individual",
+        );
+        expect(search.data.total).toBe(1);
+      } finally {
+        expect((await api(`/splits/${posted.data.id}`, "DELETE")).status).toBe(
+          204,
+        );
+      }
+    }, 30000);
     it("sets valid defaults only for owners and rejects direct writes", async () => {
       const result = await api(`/templates/groups/${group}`, "POST", {
         name: "Couple shares",

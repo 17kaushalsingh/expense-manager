@@ -123,6 +123,7 @@ export const createSplitExpenseSchema = z.object({
         .max(100),
       tax: z.number().finite().nonnegative().default(0),
       tip: z.number().finite().nonnegative().default(0),
+      discount: z.number().finite().nonnegative().default(0),
     })
     .optional(),
 });

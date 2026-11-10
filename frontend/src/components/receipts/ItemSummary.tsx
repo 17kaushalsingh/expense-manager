@@ -22,7 +22,8 @@ export function ItemSummary({
       ))}
       <p className="text-sm">
         Tax {Number(value.tax ?? 0).toFixed(2)} · Tip{" "}
-        {Number(value.tip ?? 0).toFixed(2)}
+        {Number(value.tip ?? 0).toFixed(2)} · Discount{" "}
+        {Number(value.discount ?? 0).toFixed(2)}
       </p>
     </section>
   );

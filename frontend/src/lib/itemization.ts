@@ -4,6 +4,7 @@ export interface Itemization {
   items: { label: string; amount: number; participantIds: string[] }[];
   tax: number;
   tip: number;
+  discount?: number;
 }
 export function calculateItemization(
   value: Itemization,
@@ -57,8 +58,15 @@ export function calculateItemization(
     }
     subtotal = subtotal.plus(amount);
   }
-  const extras = cents(value.tax, true).plus(cents(value.tip, true));
+  const discount = cents(value.discount ?? 0, true);
+  if (discount.gt(subtotal))
+    throw new Error("Discount cannot exceed the item subtotal.");
+  const extras = cents(value.tax, true)
+    .plus(cents(value.tip, true))
+    .minus(discount);
   const total = subtotal.plus(extras);
+  if (total.lte(0))
+    throw new Error("The expense total must be positive after discount.");
   if (total.gte(1e14)) throw new Error("The expense total is too large.");
   let extraAllocated = new ItemDecimal(0);
   const original = { ...allocations };

@@ -21,8 +21,9 @@ export function ItemizationEditor({
     <fieldset className="min-w-0 space-y-4 rounded-xl border border-border-soft p-3">
       <legend className="px-2 font-semibold text-sm">Receipt items</legend>
       <p className="text-xs text-text-secondary">
-        Enter each line’s full amount, then choose who shares it. Tax and tip
-        are distributed in proportion to each person’s allocated items.
+        Enter each line’s full amount, then choose who shares it. Tax, tip and
+        discounts are distributed in proportion to each person’s allocated
+        items.
       </p>
       {value.items.map((item, index) => (
         <div key={index} className="space-y-2 border-b border-border-soft pb-3">
@@ -121,15 +122,15 @@ export function ItemizationEditor({
         Add item
       </button>
       <div className="grid grid-cols-2 gap-3">
-        {(["tax", "tip"] as const).map((key) => (
+        {(["tax", "tip", "discount"] as const).map((key) => (
           <label className="label" key={key}>
-            {key === "tax" ? "Tax" : "Tip"}
+            {key === "tax" ? "Tax" : key === "tip" ? "Tip" : "Discount"}
             <input
               className="field"
               type="number"
               min="0"
               step="0.01"
-              value={value[key]}
+              value={value[key] ?? 0}
               onChange={(e) =>
                 onChange({ ...value, [key]: Number(e.target.value) })
               }

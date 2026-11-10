@@ -56,6 +56,64 @@ describe("itemized receipt allocations", () => {
       calculateItemization({ items: [item], tax: 0, tip: 0 }, ["a"]),
     ).toThrow();
   });
+  it("allocates discounts and extras without negative or unassigned cents", () => {
+    const input = {
+      items: [{ label: "Shared", amount: 0.03, participantIds: ["a", "b"] }],
+      tax: 0,
+      tip: 0,
+      discount: 0.01,
+    };
+    expect(calculateItemization(input, ["c", "a", "b"])).toMatchObject({
+      total: "0.02",
+      allocations: { c: "0.00", a: "0.02", b: "0.00" },
+    });
+    expect(
+      calculateItemization({ ...input, tax: 0.01, tip: 0.01, discount: 0.03 }, [
+        "a",
+        "b",
+      ]).total,
+    ).toBe("0.02");
+    for (const discount of [-1, 0.001, 0.04, Infinity, NaN])
+      expect(() =>
+        calculateItemization({ ...input, discount }, ["a", "b"]),
+      ).toThrow();
+    expect(() =>
+      calculateItemization({ ...input, discount: 0.03 }, ["a", "b"]),
+    ).toThrow(/positive/);
+  });
+  it("preserves every cent across many discount and participant combinations", () => {
+    for (let n = 1; n <= 9; n++)
+      for (let subtotal = 1; subtotal <= 30; subtotal++)
+        for (let discount = 0; discount < subtotal; discount++) {
+          const ids = Array.from({ length: n }, (_, i) => String(i));
+          const result = calculateItemization(
+            {
+              items: [
+                {
+                  label: "Shared",
+                  amount: subtotal / 100,
+                  participantIds: ids,
+                },
+              ],
+              tax: 0,
+              tip: 0,
+              discount: discount / 100,
+            },
+            ids,
+          );
+          expect(
+            Object.values(result.allocations).reduce(
+              (sum, value) => sum + Math.round(Number(value) * 100),
+              0,
+            ),
+          ).toBe(subtotal - discount);
+          expect(
+            Object.values(result.allocations).every(
+              (value) => Number(value) >= 0,
+            ),
+          ).toBe(true);
+        }
+  });
   it("rejects negative adjustments and duplicate participants", () => {
     const input = {
       items: [{ label: "Tea", amount: 1, participantIds: ["a"] }],
