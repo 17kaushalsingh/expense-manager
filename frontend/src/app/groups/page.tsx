@@ -11,6 +11,26 @@ export default function GroupsPage() {
   const { data: groups, isLoading, error } = useGroups(),
     { money } = useFormat();
   const [create, setCreate] = useState(false);
+  const [search, setSearch] = useState(""),
+    [balanceFilter, setBalanceFilter] = useState("all");
+  const visibleGroups = groups?.filter((g) => {
+    const matches =
+      g.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()) ||
+      g.members.some((m) =>
+        m.user?.name
+          .toLocaleLowerCase()
+          .includes(search.trim().toLocaleLowerCase()),
+      );
+    const balance = Number(g.myBalance ?? 0);
+    return (
+      matches &&
+      (balanceFilter === "all" ||
+        (balanceFilter === "owe" && balance < 0) ||
+        (balanceFilter === "owed" && balance > 0) ||
+        (balanceFilter === "settled" && balance === 0) ||
+        (balanceFilter === "outstanding" && balance !== 0))
+    );
+  });
   return (
     <DashboardLayout>
       <header className="flex justify-between items-end gap-3">
@@ -33,6 +53,59 @@ export default function GroupsPage() {
       <Link href="/settlements" className="text-sm text-brand-primary">
         Payment history & reversals →
       </Link>
+      <Link href="/deleted-expenses" className="text-sm text-brand-primary">
+        Recover deleted expenses →
+      </Link>
+      <section
+        className="panel grid sm:grid-cols-2 gap-3"
+        aria-label="Group filters"
+      >
+        <label className="label">
+          Find a group or member
+          <input
+            className="field"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            maxLength={200}
+          />
+        </label>
+        <label className="label">
+          Your balance
+          <select
+            className="field"
+            value={balanceFilter}
+            onChange={(e) => setBalanceFilter(e.target.value)}
+          >
+            <option value="all">All groups</option>
+            <option value="outstanding">
+              Hide groups where you are settled
+            </option>
+            <option value="owe">You owe</option>
+            <option value="owed">You are owed</option>
+            <option value="settled">You are settled</option>
+          </select>
+        </label>
+      </section>
+      {groups && groups.length > 0 && (
+        <p className="text-xs text-text-secondary" role="status">
+          {visibleGroups?.length} of {groups.length} groups
+        </p>
+      )}
+      {groups && groups.length > 0 && visibleGroups?.length === 0 && (
+        <p className="panel">
+          No groups match these filters.{" "}
+          <button
+            className="text-brand-primary"
+            onClick={() => {
+              setSearch("");
+              setBalanceFilter("all");
+            }}
+          >
+            Clear filters
+          </button>
+        </p>
+      )}
       <ErrorMessage error={error} />
       {isLoading && (
         <p className="text-sm text-text-secondary">Loading your groups…</p>
@@ -53,7 +126,7 @@ export default function GroupsPage() {
         </section>
       )}
       <div className="grid md:grid-cols-2 gap-4">
-        {groups?.map((g, i) => {
+        {visibleGroups?.map((g, i) => {
           const balance = Number(g.myBalance ?? 0);
           return (
             <Link

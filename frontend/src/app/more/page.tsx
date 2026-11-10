@@ -17,6 +17,7 @@ export default function More() {
               "/accounts",
               "/shared-expenses",
               "/settlements",
+              "/deleted-expenses",
               "/budgets",
               "/goals",
               "/categories",

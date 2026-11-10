@@ -5,6 +5,7 @@ import {
   House,
   Search,
   Receipt,
+  ArchiveRestore,
   ArrowLeftRight,
   Users,
   ChartNoAxesCombined,
@@ -22,6 +23,7 @@ export const navigation = [
   ["/groups", "Shared expenses"],
   ["/shared-expenses", "Find a bill"],
   ["/settlements", "Payments"],
+  ["/deleted-expenses", "Deleted expenses"],
   ["/accounts", "Accounts"],
   ["/analytics", "Insights"],
   ["/budgets", "Budgets"],
@@ -35,6 +37,7 @@ export const navIcons: Record<string, LucideIcon> = {
   "/groups": Users,
   "/shared-expenses": Search,
   "/settlements": Receipt,
+  "/deleted-expenses": ArchiveRestore,
   "/accounts": Wallet,
   "/analytics": ChartNoAxesCombined,
   "/budgets": CalendarDays,
@@ -53,7 +56,7 @@ export const mobileNavigation = [
 export function Sidebar() {
   const path = usePathname();
   return (
-    <aside className="fixed inset-y-0 left-0 w-56 bg-surface-primary hidden md:flex flex-col px-5 py-7 border-r border-border-soft">
+    <aside className="fixed inset-y-0 left-0 w-56 overflow-y-auto bg-surface-primary hidden md:flex flex-col px-5 py-7 border-r border-border-soft">
       <Link href="/" className="flex items-center gap-2.5 mb-12 px-2">
         <span className="icon-tile !h-8 !w-8 !rounded-[10px]">
           <Wallet size={17} strokeWidth={1.8} />
