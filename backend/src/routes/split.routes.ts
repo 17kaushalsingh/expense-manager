@@ -13,6 +13,21 @@ import { escapeLike } from "../services/csv";
 import { HttpError } from "../errors/httpError";
 const router = Router();
 router.use(authenticate);
+router.get("/deleted", async (req: AuthRequest, res) => {
+  const filters = sharedFilters.safeParse(req.query);
+  if (!filters.success) throw new HttpError(400, "Invalid pagination");
+  res.json(
+    await rpc(req.db!, "deleted_split_expenses", {
+      p_limit: filters.data.limit,
+      p_offset: filters.data.offset,
+    }),
+  );
+});
+router.post("/:id/restore", async (req: AuthRequest, res) =>
+  res.json(
+    await rpc(req.db!, "restore_split_expense_atomic", { p_id: req.params.id }),
+  ),
+);
 router.get("/search", async (req: AuthRequest, res) => {
   const parsed = sharedFilters.safeParse(req.query);
   if (!parsed.success)

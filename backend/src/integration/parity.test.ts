@@ -342,5 +342,96 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
         .eq("settlement_id", payment.data.id);
       expect(forbidden.error).toBeTruthy();
     }, 30000);
+    it("restores original accounts and comments once, isolates snapshots and rolls back unavailable accounts", async () => {
+      const created = await api("/accounts", "POST", {
+        name: "Recovery private account",
+        type: "CASH",
+        currency: "USD",
+      });
+      const recoveryAccount = created.data.id;
+      const expense = await api("/splits", "POST", {
+        groupId: group,
+        description: "Recovery integration",
+        totalAmount: 7.02,
+        splitType: "EQUAL",
+        payers: [{ userId: A, amountPaid: 7.02, accountId: recoveryAccount }],
+        participants: [{ userId: A }, { userId: B }],
+      });
+      expect(expense.status).toBe(201);
+      const id = expense.data.id;
+      try {
+        expect(
+          (
+            await api(`/collaboration/splits/${id}/comments`, "POST", {
+              body: "Synthetic recovery comment",
+            })
+          ).status,
+        ).toBe(201);
+        expect((await api(`/splits/${id}`, "DELETE")).status).toBe(204);
+        expect((await api(`/accounts/${recoveryAccount}`)).data.balance).toBe(
+          0,
+        );
+        const listing = await api("/splits/deleted");
+        const saved = listing.data.items.find(
+          (x: { id: string }) => x.id === id,
+        );
+        expect(saved).toBeTruthy();
+        expect(JSON.stringify(saved)).not.toContain(recoveryAccount);
+        expect((await api(`/splits/${id}/restore`, "POST", {}, 2)).status).toBe(
+          403,
+        );
+        const restored = await Promise.all([
+          api(`/splits/${id}/restore`, "POST", {}, 1),
+          api(`/splits/${id}/restore`, "POST", {}),
+        ]);
+        expect(restored.map((r) => r.status)).toEqual([200, 200]);
+        expect((await api(`/accounts/${recoveryAccount}`)).data.balance).toBe(
+          -7.02,
+        );
+        const rows = await api(`/splits/group/${group}`);
+        expect(
+          rows.data.find((s: { id: string }) => s.id === id).payers[0]
+            .accountId,
+        ).toBe(recoveryAccount);
+        const comments = await api(`/collaboration/splits/${id}/comments`);
+        expect(JSON.stringify(comments.data)).toContain(
+          "Synthetic recovery comment",
+        );
+        expect((await api(`/splits/${id}`, "DELETE")).status).toBe(204);
+        expect(
+          (
+            await api(`/accounts/${recoveryAccount}`, "PUT", {
+              type: "CREDIT_CARD",
+            })
+          ).status,
+        ).toBe(200);
+        expect((await api(`/splits/${id}/restore`, "POST", {})).status).toBe(
+          400,
+        );
+        expect(
+          (await api(`/accounts/${recoveryAccount}`, "PUT", { type: "CASH" }))
+            .status,
+        ).toBe(200);
+        expect(
+          (await api(`/accounts/${recoveryAccount}`, "DELETE")).status,
+        ).toBe(204);
+        const failed = await api(`/splits/${id}/restore`, "POST", {});
+        expect(failed.status).toBe(400);
+        expect(
+          (
+            await api(
+              `/splits/search?groupId=${group}&q=Recovery%20integration`,
+            )
+          ).data.total,
+        ).toBe(0);
+      } finally {
+        const remaining = await api(
+          `/splits/search?groupId=${group}&q=Recovery%20integration`,
+        );
+        for (const row of remaining.data.items ?? [])
+          await api(`/splits/${row.id}`, "DELETE");
+        await api(`/accounts/${recoveryAccount}`, "DELETE");
+      }
+    }, 30000);
   },
 );
