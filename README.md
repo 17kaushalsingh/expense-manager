@@ -150,3 +150,5 @@ See `VERIFICATION.md` for passed checks and external provider limitations.
 ## Contribution workflow
 
 Develop on a `codex/` feature branch and commit each logical milestone atomically. Never stage credentials, local environment files, or unrelated working-tree changes. The workspace root `package-lock.json` is the dependency source of truth for both applications.
+
+See the [Splitwise function-by-function parity audit](docs/SPLITWISE_PARITY.md) for implemented equivalents, remaining gaps, provider approval boundaries and the latest hosted verification. Full Splitwise parity is still in progress.

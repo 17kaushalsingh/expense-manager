@@ -23,7 +23,7 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 | SW11 | Recurring expenses | Hosted Cron, schedules and occurrence drafts | Different | Posting requires review; automatic recurring expense creation and full recurrence-edit semantics differ. |
 | SW12 | Offline expense entry / synchronization | Public offline fallback only | Missing | Opt-in private device storage, idempotent queued writes, conflict resolution, safe replay after membership changes. |
 | SW13 | Cloud synchronization | Supabase persistence, refreshed query cache | Implemented | Immediate cross-device subscriptions are separate from basic cloud persistence. |
-| SW14 | Group totals by month / all time | Personal cash-flow and category analytics | Partial | Group total, caller paid/share, payments sent/received, period balance change. |
+| SW14 | Group totals by month / all time | `group_financial_summary`, `GroupReport`, `/groups/:id/summary` | Implemented | SQL aggregates, caller-local month boundaries, paid/share/payments and period net change; pending drafts excluded. |
 | SW15 | Categories | Personal categories, split selection | Implemented | Group category reports are tracked with reporting. |
 | SW16 | Seven-plus UI languages | English UI | Missing | Translation catalogue, locale setting, translated errors and responsive checks. |
 | SW17 | 100-plus currencies per expense / group | Small currency picker, one accounting currency | Different | Currency registry, minor-unit correctness, per-currency graphs and settlement rules; no cross-currency netting without conversion. |
@@ -32,20 +32,20 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 | SW20 | Connected card/bank transaction import | Reviewed CSV import | Missing | Bank consent, provider sync cursor, pending/posted reconciliation, disconnect and purchase-to-split flow. |
 | SW21 | Currency conversion | No conversion engine | Missing | Explicit rate/date/source and immutable original amounts, atomic conversion, reversals and rounding reconciliation. |
 | SW22 | Receipt scanning / OCR | Private receipt upload | Missing | Extract candidate fields/items, confidence/reconciliation, explicit review, no automatic ledger posting. |
-| SW23 | Itemized bills with tax/tip/discounts | `itemization.ts`, trusted DB normalization | Partial | Manual lines/tax/tip exist; discounts and scan-assisted itemization are missing. |
+| SW23 | Itemized bills with tax/tip/discounts | `itemization.ts`, `private.itemized_split_input`, item editor/summary | Implemented | Manual shared lines, proportional tax/tip/discount, deterministic cent allocation and independent SQL normalization. Scan-assisted entry is tracked under SW22. |
 | SW24 | Charts and graphs | Personal Recharts cash flow/category views | Partial | Group/category/member reports and shared-expense period comparisons. |
-| SW25 | Search all shared expenses | Personal transaction note search | Partial | Dedicated RLS-scoped shared bill search, filters, pagination and result navigation. |
-| SW26 | Saved automatic group default split | Manually applied split templates | Partial | Default selection, automatic editor initialization, invalid-member and changed-total review. |
+| SW25 | Search all shared expenses | `/splits/search`, `/shared-expenses` | Implemented | Group/ad-hoc scope, literal description search, local dates, amount/mode/currency filters, stable pagination and details/comments/receipts. |
+| SW26 | Saved automatic group default split | `group_split_defaults`, `Templates`, `DefaultEditor` | Implemented | Owner selects preference; new bills load ordered participants/weights automatically. Description, total, payer and private account are reviewed per bill; exact shares never silently rescale. Archived/invalid preferences are handled explicitly. |
 | SW27 | Native iOS / Android apps | Installable responsive PWA | Partial | Native packages, secure storage/background behavior and real-device/store verification. |
 | SW28 | Early-access Pro entitlement | No subscription tiers | Commercial | A product-release programme is not an accounting feature. No artificial paywall is planned. |
 | SW29 | Expense receipt/image evidence | Private Storage receipts and scoped downloads | Implemented | Explicit upload limits; no public file URLs. |
-| SW30 | Notes and comments | Group comment UI, split-comment API | Partial | Ad-hoc comments UI and broader notification/history linking. |
+| SW30 | Notes and comments | Group, individual-split and search-result comment dialogs; split-comment API | Implemented | Existing scoped create/edit/delete comment operations are reachable from both group and ad-hoc bills. Notification linking is tracked separately. |
 | SW31 | Personal recent activity / change history | Group activity UI, immutable audit records | Partial | Private account-wide activity with actor identities and links to affected records. |
 | SW32 | Expense-change email/mobile notifications | Manually created in-app reminders | Partial | Notification inbox/events/preferences, push/email delivery, deduplication and mute rules. |
-| SW33 | Group/friend/data export | Private transaction CSV | Partial | Shared expense and settlement CSV, friend/group scope and complete personal data export. |
+| SW33 | Group/friend/data export | Private transaction CSV; `/groups/:id/export` | Partial | Group expense/settlement export now supports month/all time, names and allocations without private account/category IDs. Friend-scoped and full personal data export remain. |
 | SW34 | Personal expenses | Accounts, manual income/expense and transfers | Implemented | This app additionally provides budgets and savings goals. |
 | SW35 | Full/partial settle-up records | `execute_settlement_atomic`, settlement dialog | Implemented | Actual external payment execution is SW18/SW48. |
-| SW36 | Undo a recorded cash settlement | Settlement list has no reversal endpoint | Missing | Reverse source-linked effects atomically, refresh debt graph, keep immutable audit, distinguish record reversal from payment cancellation. |
+| SW36 | Undo a recorded cash settlement | `reverse_settlement_atomic`, `/settlements/:id/reverse`, payment history | Implemented | Atomic source-linked cash/AR/AP reversal, immutable tombstone/audit, concurrent retry protection; available for group and ad-hoc payment records. Does not cancel external funds. |
 | SW37 | Restore a deleted expense | Hard deletion/reversal; audit headers | Missing | Complete recoverable snapshot, retained identity/history, authorization, duplicate restore protection and reconciliation. |
 | SW38 | Delete/undelete a group with its history | Hard delete only when financial references allow | Different | Recoverable archive/delete state and restoration of the whole context. |
 | SW39 | Add unregistered friends by name/email/phone | Parties must have registered Auth identities | Missing | Guest identity/claiming model without impersonation, duplicate identities or private-account leakage. |
@@ -69,13 +69,29 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 
 ## Implementation sequence and release gates
 
-1. Close shared search, group totals/export, automatic defaults and settlement reversal; test real RLS, rounding, pagination and balance invariance.
+1. **Implemented this milestone:** shared search, group totals/export, automatic defaults, settlement reversal, receipt discounts and ad-hoc comments entry points. Real hosted permission/accounting tests and desktop/mobile walkthroughs are recorded below.
 2. Friendship pages, comments/activity/inbox, archive/recovery, adjustments/discounts, purchase-to-split and refunds. Preserve source references and personal account attribution.
 3. Multi-currency/minor units and audited conversion, then offline queues. These require accounting migrations and concurrency/replay tests, not UI-only changes.
 4. On-device OCR and localization, native packaging and device checks. Do not send receipt images to a third-party OCR service without an approved provider/data flow.
 5. Provider-backed bank/card import, email/push and payment products. Prepare concrete integrations for review; obtain approval before paid provisioning or money movement. No provider-dependent feature is marked complete before live verification.
 
 The matrix is a release checklist. Overall parity remains **incomplete** until every applicable row meets its acceptance criteria. In-progress and provider-blocked rows must stay visible; screenshots, placeholders and mocks do not change their status.
+
+## November 10 implementation verification
+
+- Local/backend suite: **132 passed, one Cron test skipped** across 19 files with `RUN_SUPABASE_INTEGRATION=1 npm test --workspace=backend -- --testTimeout=30000 --hookTimeout=30000`. This includes 105 local tests and 27 hosted tests. The existing receipt test exceeded the five-second default on the first full run; the network-appropriate rerun passed. Cron generation was verified in the prior release and was not re-exercised in this run.
+- New `backend/src/integration/parity.test.ts` covers RLS isolation, literal wildcard search, pagination, timezone-local dates, SQL totals, private-field-free CSV, owner-only defaults, rejected direct writes, partial settlement, unauthorized reversal and concurrent/retried reversal. `sharedExpenses.test.ts` covers invalid filters and API private-field projection. The discount test proves SQL ignores forged exact shares and rolls back over-discounted bills; 4,185 subtotal/discount/party combinations verify nonnegative allocations with exact totals.
+- Backend TypeScript build, frontend ESLint and production build pass. All three new hosted migrations were applied and generated types refreshed.
+- Browser walkthrough: 390×844 search/details and group totals; 1365×900 totals; automatic 2:1 allocation posted as 8/4 for a total of 12; partial recorded payment changed debt 11→8, reversal restored 11; mobile payment navigation and individual empty state. A separate receipt walkthrough entered a 10.00 shared line with a 2.00 discount, previewed/posted total 8.00 and shares 4.00/4.00, and verified the persisted discount in the receipt details. No external money moved. The CSV body was tested over HTTP; browser file download was not repeated after the earlier declined download permission.
+- Database advisors: no missing RLS, search-path or FK-index findings. Fixed the new reversal-policy initialization warning in a follow-up migration. Remaining findings are 26 intentionally authenticated actor-checking SECURITY DEFINER functions, 16 unused-index information notices, and existing disabled [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Reviewed RPC authorization is tested; the warning is not silently suppressed.
+- New temporary walkthrough group, template, bills and payment were removed through their authorized APIs. Immutable reversal/audit provenance remains. Existing working-tree vendor changes and the ignored OAuth credential file are excluded from commits.
+- Code remains on `codex/splitwise-parity`; frontend/API deployment and merging to main are not implied by a hosted additive migration. Email recovery delivery and Google OAuth still require live provider verification.
+
+## Code entry points
+
+- [Shared search and privacy projection](../backend/src/routes/split.routes.ts), [filter/privacy tests](../backend/src/services/sharedExpenses.test.ts), [search UI](../frontend/src/app/shared-expenses/page.tsx).
+- [Group reports/export/default API](../backend/src/routes/group.routes.ts), [group totals UI](../frontend/src/components/groups/GroupReport.tsx), [default selection](../frontend/src/components/groups/Templates.tsx), [automatic split editor](../frontend/src/components/split/SplitBuilder.tsx).
+- [Atomic reporting/default/reversal migration](../supabase/migrations/20261110133037_splitwise_core_parity.sql), [payment API](../backend/src/routes/settlement.routes.ts), [payment history/reversal UI](../frontend/src/components/settlements/SettlementHistory.tsx), [hosted acceptance tests](../backend/src/integration/parity.test.ts).
 
 ## Official sources
 

@@ -1,3 +1,12 @@
+# Splitwise parity milestone — 10 November 2026
+
+- Added a [56-capability mapping](docs/SPLITWISE_PARITY.md) to official Splitwise Core/Pro/help-center features. Full parity remains incomplete; provider-backed banking/payments, multi-currency/FX, OCR, offline financial writes, recovery and native packaging remain visible in the checklist. Paid provisioning and real money movement require approval.
+- Implemented shared bill search and privacy projections, group period totals/CSV export, automatic group allocation defaults, atomic settlement-record reversal with payment history, individual comment entry points, and proportional receipt discounts. Three additive migrations were applied to hosted Supabase.
+- **132 tests passed, one Cron test skipped** in 19 files, using `RUN_SUPABASE_INTEGRATION=1 npm test --workspace=backend -- --testTimeout=30000 --hookTimeout=30000`. The skipped Cron coordination was not repeated in this run. New hosted tests cover isolation, literal search, local-date filtering, reports, default ownership, immutable records, concurrent reversal, SQL-derived discount shares and failed-discount rollback.
+- Backend build, frontend ESLint and frontend production build passed. Desktop/mobile search, totals, automatic 2:1 splits, partial payment/reversal, mobile navigation and receipt discount posting were exercised against the hosted database using reserved synthetic users. CSV HTTP contents were verified; browser downloading was not retried. Temporary financial fixtures were removed and provenance retained.
+- Advisors show 26 intentional actor-authorized SECURITY DEFINER entrypoints, existing disabled [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection), and 16 unused-index information notices. The new RLS initialization performance warning was fixed; no RLS/search-path/FK-index findings remain.
+- Changes are committed on `codex/splitwise-parity`. They have not been merged into main or deployed as a frontend/API release. Live email recovery and Google consent remain unverified.
+
 # Recovery, receipts, itemization and CSV imports — 5 November 2026
 
 - Implemented Supabase password recovery, private expense attachments, manual receipt-line splitting, and reviewed CSV imports. Five versioned hosted migrations add receipt metadata/storage policies, itemized split normalization, import provenance, and final permission/size hardening. The feature guide is `docs/RECEIPTS_AND_IMPORTS.md`.
