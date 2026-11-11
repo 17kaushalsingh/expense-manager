@@ -6,6 +6,8 @@ For GitHub-connected Vercel frontend/API hosting, environment variables, Auth re
 
 Password recovery, private receipt attachments, itemized shared expenses, and reviewed CSV imports are described in [the everyday tools guide](docs/RECEIPTS_AND_IMPORTS.md).
 
+Flexible budgets/payday planning, private loans, assets/net-worth history, trips/events, personal bills, card statements, labels, multi-account payments and PDF/Excel reports are described in [Personal finance](docs/PERSONAL_FINANCE.md). The [Money Manager comparison](docs/MONEY_MANAGER_PARITY.md) maps Gunawan Santoso's advertised capabilities one-to-one and explicitly tracks remaining parity gaps. These additions have no premium paywall; full native/offline/multicurrency parity is not yet implemented.
+
 ## Hosted project
 
 The configured development project is [expense-manager (Mumbai)](https://supabase.com/dashboard/project/umguuvkeyeuhpgxvqxkt). Non-secret project metadata is in `supabase/project.json`. Database schema and accounting functions are versioned in `supabase/migrations/` and have been applied to this project through the Supabase integration.

@@ -1,3 +1,5 @@
+> Personal finance release — 11 November 2026: added flexible budgets/payday plans, assets, private loans, events, reviewed personal bills, card terms/statements, labels/subcategories, bulk/manual multi-account workflows, PDF/Excel reports and savings milestones. See docs/MONEY_MANAGER_PARITY.md for the one-to-one comparison and remaining gaps; this is not full Money Manager parity. Frontend/API source is on the release branch; hosted migrations are applied. See VERIFICATION.md for evidence.
+
 > Design and usability release — 2 November 2026: implemented the Gunawan Santoso Money Manager-inspired interface, five mobile tabs, spending calendar, Decimal calculator, local-date history filters, and inline shared balances. Updated dependency patches. See DESIGN_RESEARCH.md and VERIFICATION.md for evidence and remaining checks.
 
 > Additional release — 2 November 2026: added monthly budgets and dashboard alerts, account-linked savings goals, advanced transaction search/pagination/CSV export, live category reports, group activity/comments, and an installable responsive web app with a private offline fallback. See README.md and VERIFICATION.md for setup and checks.
