@@ -1,4 +1,5 @@
 "use client";
+import { ConversionEditor } from "@/components/transactions/ConversionEditor";
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -83,6 +84,15 @@ function Transactions() {
     [remove, setRemove] = useState<Transaction>(),
     [exporting, setExporting] = useState(false),
     [exportError, setExportError] = useState<unknown>();
+  const [conversion, setConversion] = useState<string | null | undefined>();
+  const [conversionRemove, setConversionRemove] = useState<string>();
+  const deleteConversion = useAction(
+    () => apiClient.delete(`/exchange/entries/${conversionRemove}`),
+    () => {
+      setConversionRemove(undefined);
+      setDetail(undefined);
+    },
+  );
   const [importing, setImporting] = useState(false);
   const [personal, setPersonal] = useState<string | null | undefined>(),
     [personalDelete, setPersonalDelete] = useState<string>(),
@@ -159,6 +169,29 @@ function Transactions() {
           <span className="sm:hidden">Add</span>
         </button>
       </header>
+      <button className="btn-secondary" onClick={() => setConversion(null)}>
+        Foreign currency entry
+      </button>
+      {conversion !== undefined && (
+        <Modal
+          title="Currency conversion"
+          onClose={() => setConversion(undefined)}
+        >
+          <ConversionEditor
+            id={conversion ?? undefined}
+            onDone={() => setConversion(undefined)}
+          />
+        </Modal>
+      )}
+      {conversionRemove && (
+        <Confirm
+          message="Delete this converted entry and reverse its balance effect?"
+          onClose={() => setConversionRemove(undefined)}
+          onConfirm={() => deleteConversion.mutate()}
+          busy={deleteConversion.isPending}
+          error={deleteConversion.error}
+        />
+      )}
       <section className="space-y-4">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <div className="flex items-center gap-2">
@@ -710,6 +743,25 @@ function Transactions() {
             </div>
           ) : (
             <p className="text-xs text-text-secondary">
+              {detail.sourceType === "CONVERSION" && (
+                <span className="flex gap-3 mb-3">
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setConversion(detail.sourceId);
+                      setDetail(undefined);
+                    }}
+                  >
+                    Review conversion
+                  </button>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setConversionRemove(detail.sourceId)}
+                  >
+                    Delete converted entry
+                  </button>
+                </span>
+              )}
               This entry belongs to a shared expense, payment, bill, loan or
               transfer. Make changes from its original record.
             </p>

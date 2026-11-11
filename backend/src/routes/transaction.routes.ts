@@ -30,6 +30,7 @@ const filtersSchema = z
         "PERSONAL_LOAN",
         "PERSONAL_BILL",
         "PERSONAL_ENTRY",
+        "CONVERSION",
       ])
       .optional(),
     q: z.string().trim().max(200).optional(),

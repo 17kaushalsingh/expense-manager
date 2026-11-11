@@ -509,6 +509,101 @@ export type Database = {
           },
         ]
       }
+      currency_conversions: {
+        Row: {
+          base_amount: number
+          base_currency: string
+          created_at: string
+          deleted_at: string | null
+          exchange_rate: number
+          id: string
+          original_amount: number
+          original_currency: string
+          rate_date: string
+          rate_source: string
+          request_key: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_amount: number
+          base_currency: string
+          created_at?: string
+          deleted_at?: string | null
+          exchange_rate: number
+          id?: string
+          original_amount: number
+          original_currency: string
+          rate_date: string
+          rate_source: string
+          request_key: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_amount?: number
+          base_currency?: string
+          created_at?: string
+          deleted_at?: string | null
+          exchange_rate?: number
+          id?: string
+          original_amount?: number
+          original_currency?: string
+          rate_date?: string
+          rate_source?: string
+          request_key?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "currency_conversions_base_currency_fkey"
+            columns: ["base_currency"]
+            isOneToOne: false
+            referencedRelation: "currency_units"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "currency_conversions_original_currency_fkey"
+            columns: ["original_currency"]
+            isOneToOne: false
+            referencedRelation: "currency_units"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "currency_conversions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "currency_conversions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      currency_units: {
+        Row: {
+          code: string
+          minor_units: number
+        }
+        Insert: {
+          code: string
+          minor_units: number
+        }
+        Update: {
+          code?: string
+          minor_units?: number
+        }
+        Relationships: []
+      }
       event_planned_costs: {
         Row: {
           amount: number
@@ -2348,6 +2443,10 @@ export type Database = {
         Returns: Json
       }
       monthly_plan_summary: { Args: { p_month: string }; Returns: Json }
+      mutate_currency_conversion: {
+        Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
       mutate_expense_draft: {
         Args: { p_action: string; p_id: string; p_input?: Json }
         Returns: Json

@@ -1,3 +1,4 @@
+import exchangeRouter from "./routes/exchange.routes";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { config } from "./config";
@@ -47,6 +48,7 @@ app.use(express.json());
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/exchange", exchangeRouter);
 app.use("/api/accounts", accountRouter);
 app.use("/api/planning", planningRouter);
 app.use("/api/personal-planning", personalPlanningRouter);
