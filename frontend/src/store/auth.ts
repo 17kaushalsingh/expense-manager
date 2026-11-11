@@ -25,6 +25,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
   setReady: (error) => set({ ready: true, error: error ?? null }),
   setProfile: (user) => set((state) => ({ user: { ...state.user, ...user } })),
   logout: async () => {
+    if (typeof window !== "undefined")
+      window.dispatchEvent(new Event("ledgersync-signout"));
     try {
       await supabase().auth.signOut();
     } finally {
@@ -32,3 +34,23 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
   },
 }));
+
+if (typeof window !== "undefined")
+  window.addEventListener("ledgersync-lock", () =>
+    useAuthStore.setState({
+      token: null,
+      user: null,
+      ready: false,
+      error: null,
+    }),
+  );
+
+if (typeof window !== "undefined")
+  window.addEventListener("ledgersync-auth-reset", () =>
+    useAuthStore.setState({
+      token: null,
+      user: null,
+      ready: true,
+      error: null,
+    }),
+  );

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { Sidebar, mobileNavigation, navIcons } from "./Sidebar";
 import { useAuthStore } from "@/store/auth";
 import { useRouter, usePathname } from "next/navigation";
@@ -21,14 +22,16 @@ export default function DashboardLayout({
     return (
       <main className="p-8">
         <ErrorMessage error={error} />
-        <Link href="/login">Sign in</Link>
+        <Link href="/login">
+          <T text="Sign in" />
+        </Link>
       </main>
     );
   if (!ready || !token)
     return (
       <main className="min-h-screen grid place-items-center">
         <p className="text-text-secondary text-sm" role="status">
-          Opening your ledger…
+          <T text="Opening your ledger…" />
         </p>
       </main>
     );
@@ -83,7 +86,7 @@ export default function DashboardLayout({
               className={`flex flex-col items-center gap-1 text-[10px] font-medium ${active ? "text-brand-primary" : "text-text-secondary"}`}
             >
               <Icon size={21} strokeWidth={active ? 2.2 : 1.7} />
-              {label}
+              <T text={label} />
             </Link>
           );
         })}

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import Link from "next/link";
 import { useState } from "react";
 import {
@@ -65,7 +66,9 @@ export default function Home() {
       <header className="flex justify-between items-end gap-4">
         <div>
           <p className="eyebrow mb-1.5">{dateLabel}</p>
-          <h1 className="text-[32px]">Overview</h1>
+          <h1 className="text-[32px]">
+            <T text="Overview" />
+          </h1>
           <p className="text-text-secondary text-xs mt-1">
             Your accounts and shared expenses.
           </p>
@@ -75,7 +78,7 @@ export default function Home() {
           onClick={() => setEntry(true)}
         >
           <Plus size={16} />
-          Add transaction
+          <T text="Add transaction" />
         </button>
       </header>
       <ErrorMessage
@@ -123,7 +126,9 @@ export default function Home() {
         </section>
         <section className="panel !p-0 overflow-hidden order-3 lg:order-2">
           <div className="flex justify-between items-center px-5 pt-5 pb-3">
-            <h2 className="section-title">Accounts</h2>
+            <h2 className="section-title">
+              <T text="Accounts" />
+            </h2>
             <Link href="/accounts" className="subtle-link">
               View all
               <ChevronRight size={13} />
@@ -208,7 +213,9 @@ export default function Home() {
             <span className="h-11 w-11 rounded-2xl grid place-items-center bg-[#f8e9e7] text-[#a97469]">
               <Shapes size={19} strokeWidth={1.7} />
             </span>
-            <span className="text-[11px] font-medium">Budgets</span>
+            <span className="text-[11px] font-medium">
+              <T text="Budgets" />
+            </span>
           </Link>
           <Link className="flex flex-col items-center gap-2 py-2" href="/goals">
             <span className="h-11 w-11 rounded-2xl grid place-items-center bg-[#eeebf5] text-[#8e7aab]">
@@ -261,7 +268,7 @@ export default function Home() {
                     className="subtle-link mt-3"
                     onClick={() => setEntry(true)}
                   >
-                    Add an expense
+                    <T text="Add an expense" />
                     <Plus size={13} />
                   </button>
                 </div>
@@ -329,7 +336,7 @@ export default function Home() {
                 </strong>
               </span>
               <button className="subtle-link" onClick={() => setSettle(true)}>
-                Settle up
+                <T text="Settle up" />
               </button>
             </div>
           </section>

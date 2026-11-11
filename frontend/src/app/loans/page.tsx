@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -65,7 +66,9 @@ export default function Loans() {
       <header className="flex flex-wrap justify-between gap-3">
         <div>
           <p className="eyebrow">Keep promises in view</p>
-          <h1 className="text-3xl font-bold mt-2">Borrowing & lending</h1>
+          <h1 className="text-3xl font-bold mt-2">
+            <T text="Borrowing & lending" />
+          </h1>
         </div>
         <button className="btn" onClick={() => setEdit(null)}>
           New loan
@@ -161,7 +164,7 @@ export default function Loans() {
                     setRemove(l);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
               <details>
@@ -384,7 +387,7 @@ function LoanForm({
           </select>
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea
             className="field"
             name="notes"
@@ -460,9 +463,11 @@ function PaymentForm({
         }}
       >
         <label className="label">
-          Account
+          <T text="Account" />
           <select className="field" name="account" required>
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {cashAccounts(accounts).map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -508,7 +513,7 @@ function PaymentForm({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea className="field" name="notes" maxLength={2000} />
         </label>
         <ErrorMessage error={action.error} />

@@ -604,6 +604,41 @@ export type Database = {
         }
         Relationships: []
       }
+      device_commands: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          payload_hash: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          kind: string
+          payload_hash: string
+          result: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          payload_hash?: string
+          result?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_commands_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_planned_costs: {
         Row: {
           amount: number
@@ -2375,7 +2410,17 @@ export type Database = {
         Returns: Json
       }
       event_finance_summary: { Args: never; Returns: Json }
+      execute_device_command: {
+        Args: {
+          p_expected_updated_at?: string
+          p_id: string
+          p_kind: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
       execute_settlement_atomic: { Args: { p_input: Json }; Returns: Json }
+      export_device_snapshot: { Args: never; Returns: Json }
       group_financial_summary: {
         Args: { p_group_id: string; p_month?: string }
         Returns: Json

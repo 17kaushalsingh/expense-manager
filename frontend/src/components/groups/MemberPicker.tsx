@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useAction } from "@/hooks/useResource";
@@ -61,7 +62,8 @@ export function MemberPicker({
               setEmail("");
             }}
           >
-            Add {p.name}
+            <T text="Add" />
+            {p.name}
           </button>
         ))}
       <div className="flex flex-wrap gap-2">

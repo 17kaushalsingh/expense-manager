@@ -279,3 +279,23 @@ dialog::backdrop {
     animation: none !important;
   }
 }
+
+/* Mirror structure for right-to-left locales without reversing currency or numeric values. */
+[dir="rtl"] .md\:ml-56 {
+  margin-left: 0;
+}
+@media (min-width: 768px) {
+  [dir="rtl"] .app-content {
+    margin-right: 14rem;
+  }
+}
+[dir="rtl"] aside.fixed {
+  left: auto;
+  right: 0;
+  border-left: 1px solid var(--border-soft);
+  border-right: 0;
+}
+[dir="rtl"] .tabular-nums {
+  direction: ltr;
+  unicode-bidi: isolate;
+}

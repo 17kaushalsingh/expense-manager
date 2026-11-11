@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import {
   ResponsiveContainer,
@@ -38,7 +39,9 @@ export default function Analytics() {
   return (
     <DashboardLayout>
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold">Insights</h1>
+        <h1 className="text-2xl font-bold">
+          <T text="Insights" />
+        </h1>
         <p className="text-sm text-text-secondary">
           Your income and personal expenses, in {currency}. Dates use {timezone}
           .

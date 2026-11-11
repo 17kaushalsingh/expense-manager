@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/auth";
@@ -62,7 +63,7 @@ export default function Join() {
               approve your request.
             </p>
             <Link className="btn inline-block" href="/login">
-              Sign in
+              <T text="Sign in" />
             </Link>{" "}
             <Link href="/register">Create account</Link>
           </>

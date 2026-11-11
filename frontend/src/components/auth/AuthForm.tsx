@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { authDestination, pendingInvitation } from "@/lib/invitations";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -52,7 +53,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
         <form onSubmit={submit} className="space-y-4">
           {register && (
             <label className="label">
-              Name
+              <T text="Name" />
               <input
                 className="field"
                 name="name"
@@ -72,7 +73,7 @@ export function AuthForm({ register = false }: { register?: boolean }) {
             />
           </label>
           <label className="label">
-            Password
+            <T text="Password" />
             <input
               className="field"
               name="password"

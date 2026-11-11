@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { ConversionEditor } from "@/components/transactions/ConversionEditor";
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -161,16 +162,22 @@ function Transactions() {
       <header className="flex justify-between items-end gap-3">
         <div>
           <p className="eyebrow mb-1.5">Your daily money record</p>
-          <h1 className="text-3xl">Transactions</h1>
+          <h1 className="text-3xl">
+            <T text="Transactions" />
+          </h1>
         </div>
         <button className="btn gap-2" onClick={() => setEditor(null)}>
           <Plus size={16} />
-          <span className="hidden sm:inline">Add transaction</span>
-          <span className="sm:hidden">Add</span>
+          <span className="hidden sm:inline">
+            <T text="Add transaction" />
+          </span>
+          <span className="sm:hidden">
+            <T text="Add" />
+          </span>
         </button>
       </header>
       <button className="btn-secondary" onClick={() => setConversion(null)}>
-        Foreign currency entry
+        <T text="Foreign currency entry" />
       </button>
       {conversion !== undefined && (
         <Modal
@@ -203,7 +210,7 @@ function Transactions() {
               <ChevronLeft size={16} />
             </button>
             <label className="sr-only" htmlFor="activity-month">
-              Month
+              <T text="Month" />
             </label>
             <input
               id="activity-month"
@@ -224,7 +231,7 @@ function Transactions() {
               className="subtle-link ml-1 hidden sm:inline-flex"
               onClick={() => setPeriod("")}
             >
-              All dates
+              <T text="All dates" />
             </button>
           </div>
           <div className="segmented">
@@ -233,7 +240,7 @@ function Transactions() {
               aria-pressed={view === "daily"}
               onClick={() => setView("daily")}
             >
-              Daily
+              <T text="Daily" />
             </button>
             <button
               className="segment"
@@ -243,7 +250,7 @@ function Transactions() {
                 if (!month) setPeriod(calendarMonth);
               }}
             >
-              Calendar
+              <T text="Calendar" />
             </button>
           </div>
         </div>
@@ -461,7 +468,7 @@ function Transactions() {
           disabled={offset === 0 || rows.isFetching}
           onClick={() => setOffset(Math.max(0, offset - 50))}
         >
-          Previous
+          <T text="Previous" />
         </button>
         <p className="text-[11px] text-text-secondary">
           {rows.data?.total ?? 0} entries · page {Math.floor(offset / 50) + 1}
@@ -473,7 +480,7 @@ function Transactions() {
           }
           onClick={() => setOffset(offset + 50)}
         >
-          Next
+          <T text="Next" />
         </button>
       </div>
       {showFilters && (
@@ -738,7 +745,7 @@ function Transactions() {
                   deletion.reset();
                 }}
               >
-                Delete
+                <T text="Delete" />
               </button>
             </div>
           ) : (

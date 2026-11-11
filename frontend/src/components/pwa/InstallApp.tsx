@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useEffect, useState } from "react";
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -24,7 +25,9 @@ export function InstallApp() {
   }, []);
   return (
     <section className="panel space-y-3">
-      <h2 className="font-semibold text-lg">Install LedgerSync</h2>
+      <h2 className="font-semibold text-lg">
+        <T text="Install LedgerSync" />
+      </h2>
       <p className="text-sm">
         Use LedgerSync from your home screen in its own app window. On iPhone or
         iPad, open Safari’s Share menu and choose Add to Home Screen. Other
@@ -48,8 +51,10 @@ export function InstallApp() {
       )}
       {error && <p role="status">{error}</p>}
       <p className="text-xs text-text-secondary">
-        An internet connection is required for your finances. Financial pages,
-        API responses, and credentials are not added to the offline cache.
+        Create an encrypted device workspace in Settings for offline personal
+        finances. Open /device while offline. Cloud collaboration syncs after
+        reconnection. API responses and credentials are never added to the
+        service-worker cache.
       </p>
     </section>
   );

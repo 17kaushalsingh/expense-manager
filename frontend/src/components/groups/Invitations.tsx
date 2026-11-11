@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
@@ -104,14 +105,14 @@ export function Invitations({ groupId }: { groupId: string }) {
                 disabled={decide.isPending}
                 onClick={() => decide.mutate({ id: r.id, decision: "APPROVE" })}
               >
-                Approve
+                <T text="Approve" />
               </button>
               <button
                 className="btn-secondary"
                 disabled={decide.isPending}
                 onClick={() => decide.mutate({ id: r.id, decision: "REJECT" })}
               >
-                Reject
+                <T text="Reject" />
               </button>
             </>
           )}

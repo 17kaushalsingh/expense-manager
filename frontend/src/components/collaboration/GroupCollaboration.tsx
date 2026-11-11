@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
@@ -126,7 +127,7 @@ export function ExpenseComments({
                     save.reset();
                   }}
                 >
-                  Edit
+                  <T text="Edit" />
                 </button>
               )}
               {(c.userId === user?.id || owner) && (
@@ -137,7 +138,7 @@ export function ExpenseComments({
                     deletion.reset();
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               )}
             </div>
@@ -178,7 +179,7 @@ export function ExpenseComments({
                 setBody("");
               }}
             >
-              Cancel edit
+              <T text="Cancel edit" />
             </button>
           )}
         </div>

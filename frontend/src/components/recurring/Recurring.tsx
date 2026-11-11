@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -80,7 +81,7 @@ export function Recurring({ group }: { group: Group }) {
                     action.mutate({ id: s.id, status: "ARCHIVED" })
                   }
                 >
-                  Archive
+                  <T text="Archive" />
                 </button>
               </div>
             )}
@@ -185,7 +186,7 @@ function ScheduleForm({
               />
             </label>
             <label className="label">
-              Timezone
+              <T text="Timezone" />
               <input
                 className="field"
                 value={tz}

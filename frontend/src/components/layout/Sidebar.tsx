@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -96,7 +97,7 @@ export function Sidebar() {
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] ${active ? "bg-surface-secondary text-brand-primary font-semibold" : "text-text-secondary hover:text-text-primary"}`}
               >
                 <Icon size={17} strokeWidth={active ? 2 : 1.65} />
-                {label}
+                <T text={label} />
               </Link>
             </div>
           );

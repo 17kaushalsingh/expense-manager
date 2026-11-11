@@ -1,3 +1,4 @@
+import { authStorage } from "./device/vault";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 let client: SupabaseClient | undefined;
 export function supabase() {
@@ -10,6 +11,7 @@ export function supabase() {
       );
     client = createClient(url, key, {
       auth: {
+        storage: authStorage,
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
@@ -18,3 +20,15 @@ export function supabase() {
   }
   return client;
 }
+
+if (typeof window !== "undefined")
+  window.addEventListener("ledgersync-lock", () => {
+    void client?.auth.stopAutoRefresh();
+    client = undefined;
+  });
+
+if (typeof window !== "undefined")
+  window.addEventListener("ledgersync-auth-reset", () => {
+    void client?.auth.stopAutoRefresh();
+    client = undefined;
+  });

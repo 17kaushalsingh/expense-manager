@@ -121,6 +121,93 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
           .data!.balance,
       ).toBe(before);
     });
+    it("exports an RLS snapshot and executes device commands exactly once with conflict protection", async () => {
+      const snap = await a.rpc("export_device_snapshot");
+      expect(snap.error).toBeNull();
+      expect(snap.data.ownerId).toBe((await a.auth.getUser()).data.user!.id);
+      expect(snap.data.tables.users).toHaveLength(1);
+      expect(JSON.stringify(snap.data.tables.group_invitations)).not.toContain(
+        "token_hash",
+      );
+      const id = crypto.randomUUID(),
+        payload = {
+          input: {
+            accountId: account,
+            type: "EXPENSE",
+            amount: 1.11,
+            dateTime: "2026-11-11T01:00:00Z",
+            notes: "Synthetic offline retry",
+          },
+        };
+      const before = (
+        await a.from("accounts").select("balance").eq("id", account).single()
+      ).data!.balance;
+      const rs = await Promise.all([
+        a.rpc("execute_device_command", {
+          p_id: id,
+          p_kind: "TX_CREATE",
+          p_payload: payload,
+        }),
+        a.rpc("execute_device_command", {
+          p_id: id,
+          p_kind: "TX_CREATE",
+          p_payload: payload,
+        }),
+      ]);
+      for (const r of rs) expect(r.error).toBeNull();
+      expect(rs[0].data.id).toBe(rs[1].data.id);
+      expect(
+        (await a.from("accounts").select("balance").eq("id", account).single())
+          .data!.balance,
+      ).toBeCloseTo(Number(before) - 1.11, 4);
+      expect(
+        (
+          await a.rpc("execute_device_command", {
+            p_id: id,
+            p_kind: "TX_CREATE",
+            p_payload: { input: { ...payload.input, amount: 100 } },
+          })
+        ).error,
+      ).toBeTruthy();
+      const tx = rs[0].data;
+      expect(
+        (
+          await a.rpc("execute_device_command", {
+            p_id: crypto.randomUUID(),
+            p_kind: "TX_UPDATE",
+            p_payload: { id: tx.id, input: payload.input },
+            p_expected_updated_at: "2000-01-01T00:00:00Z",
+          })
+        ).error,
+      ).toBeTruthy();
+      expect(
+        (
+          await b.rpc("execute_device_command", {
+            p_id: crypto.randomUUID(),
+            p_kind: "TX_DELETE",
+            p_payload: { id: tx.id },
+            p_expected_updated_at: tx.updated_at,
+          })
+        ).error,
+      ).toBeTruthy();
+      expect(
+        (
+          await a.rpc("execute_device_command", {
+            p_id: crypto.randomUUID(),
+            p_kind: "TX_DELETE",
+            p_payload: { id: tx.id },
+            p_expected_updated_at: tx.updated_at,
+          })
+        ).error,
+      ).toBeNull();
+      expect(
+        (await a.from("accounts").select("balance").eq("id", account).single())
+          .data!.balance,
+      ).toBe(before);
+      expect(
+        (await b.from("device_commands").select("*").eq("id", id)).data,
+      ).toEqual([]);
+    });
     it("edits in place, prevents manual bypass and reverses once", async () => {
       const record = (
         await a

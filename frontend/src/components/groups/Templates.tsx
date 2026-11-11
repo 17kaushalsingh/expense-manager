@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
@@ -102,14 +103,14 @@ export function Templates({ group }: { group: Group }) {
           {(t.creatorId === user?.id || group.ownerId === user?.id) && (
             <>
               <button className="btn-secondary" onClick={() => setEdit(t)}>
-                Edit
+                <T text="Edit" />
               </button>
               <button
                 className="btn-secondary"
                 disabled={archive.isPending}
                 onClick={() => archive.mutate(t.id)}
               >
-                Archive
+                <T text="Archive" />
               </button>
             </>
           )}

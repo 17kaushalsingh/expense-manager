@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -167,7 +168,7 @@ export function PasswordRecovery({ reset = false }: { reset?: boolean }) {
           </Link>
         )}
         <Link className="subtle-link block" href="/login">
-          Back to sign in
+          <T text="Back to sign in" />
         </Link>
       </section>
     </main>

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -224,7 +225,7 @@ export default function Bills() {
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - 25))}
             >
-              Previous
+              <T text="Previous" />
             </button>
             <p className="text-sm">
               {offset + 1}–{Math.min(offset + 25, occurrences.data.total)} of{" "}
@@ -235,7 +236,7 @@ export default function Bills() {
               disabled={offset + 25 >= occurrences.data.total}
               onClick={() => setOffset(offset + 25)}
             >
-              Next
+              <T text="Next" />
             </button>
           </div>
         )}
@@ -386,7 +387,7 @@ function BillForm({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -397,14 +398,18 @@ function BillForm({
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className="label">
-            Type
+            <T text="Type" />
             <select
               className="field"
               value={type}
               onChange={(e) => setType(e.target.value)}
             >
-              <option value="EXPENSE">Expense</option>
-              <option value="INCOME">Income</option>
+              <option value="EXPENSE">
+                <T text="Expense" />
+              </option>
+              <option value="INCOME">
+                <T text="Income" />
+              </option>
             </select>
           </label>
           <label className="label">
@@ -441,7 +446,7 @@ function BillForm({
           </select>
         </label>
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             key={type}
             className="field"
@@ -454,7 +459,9 @@ function BillForm({
                 : ""
             }
           >
-            <option value="">Uncategorized</option>
+            <option value="">
+              <T text="Uncategorized" />
+            </option>
             {categories
               .filter((c) => c.type === type)
               .map((c) => (
@@ -531,7 +538,7 @@ function BillForm({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea
             className="field"
             name="notes"
@@ -593,14 +600,16 @@ function RecordBill({
         }}
       >
         <label className="label">
-          Account
+          <T text="Account" />
           <select
             className="field"
             name="account"
             defaultValue={row.payload.accountId ?? ""}
             required
           >
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {accounts
               .filter(
                 (a) =>
@@ -626,13 +635,15 @@ function RecordBill({
           />
         </label>
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             className="field"
             name="category"
             defaultValue={row.payload.categoryId ?? ""}
           >
-            <option value="">Uncategorized</option>
+            <option value="">
+              <T text="Uncategorized" />
+            </option>
             {categories
               .filter((c) => c.type === row.payload.type)
               .map((c) => (
@@ -643,7 +654,7 @@ function RecordBill({
           </select>
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea
             className="field"
             name="notes"

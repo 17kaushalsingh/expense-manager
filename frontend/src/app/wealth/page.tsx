@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import {
   ResponsiveContainer,
@@ -55,10 +56,12 @@ export default function Wealth() {
       <header className="flex flex-wrap justify-between gap-4">
         <div>
           <p className="eyebrow">The bigger picture</p>
-          <h1 className="text-3xl font-bold mt-2">Wealth & assets</h1>
+          <h1 className="text-3xl font-bold mt-2">
+            <T text="Wealth & assets" />
+          </h1>
         </div>
         <button className="btn" onClick={() => setEdit(null)}>
-          Add asset
+          <T text="Add asset" />
         </button>
       </header>
       <ErrorMessage error={assets.error || worth.error || history.error} />
@@ -185,7 +188,7 @@ export default function Wealth() {
                   Update value
                 </button>
                 <button className="btn-secondary" onClick={() => setEdit(a)}>
-                  Edit
+                  <T text="Edit" />
                 </button>
                 <button
                   className="btn-secondary"
@@ -194,7 +197,7 @@ export default function Wealth() {
                     setRemove(a);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
               <details>
@@ -305,7 +308,7 @@ function AssetForm({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -355,7 +358,7 @@ function AssetForm({
           </div>
         )}
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea
             className="field"
             name="notes"
@@ -428,7 +431,7 @@ function ValueForm({
           />
         </label>
         <label className="label">
-          Date
+          <T text="Date" />
           <input
             name="date"
             type="date"
@@ -439,7 +442,7 @@ function ValueForm({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea name="notes" className="field" maxLength={1000} />
         </label>
         <ErrorMessage error={action.error} />

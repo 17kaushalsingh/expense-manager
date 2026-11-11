@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -31,8 +32,12 @@ export default function SharedExpenseSearch() {
   return (
     <DashboardLayout>
       <header>
-        <p className="eyebrow">Shared expenses</p>
-        <h1 className="text-3xl">Find a bill</h1>
+        <p className="eyebrow">
+          <T text="Shared expenses" />
+        </p>
+        <h1 className="text-3xl">
+          <T text="Find a bill" />
+        </h1>
         <p className="text-sm text-text-secondary mt-2">
           Search across your groups and individual splits.
         </p>
@@ -50,7 +55,7 @@ export default function SharedExpenseSearch() {
         }}
       >
         <label className="label sm:col-span-2">
-          Description
+          <T text="Description" />
           <input
             name="q"
             className="field"
@@ -171,7 +176,7 @@ export default function SharedExpenseSearch() {
             disabled={offset === 0 || results.isFetching}
             onClick={() => setOffset((n) => Math.max(0, n - 25))}
           >
-            Previous
+            <T text="Previous" />
           </button>
           <span className="text-sm">Page {Math.floor(offset / 25) + 1}</span>
           <button
@@ -179,7 +184,7 @@ export default function SharedExpenseSearch() {
             disabled={offset + 25 >= results.data.total || results.isFetching}
             onClick={() => setOffset((n) => n + 25)}
           >
-            Next
+            <T text="Next" />
           </button>
         </nav>
       )}
@@ -195,7 +200,9 @@ export default function SharedExpenseSearch() {
               {money(p.amountPaid, detail.currency)}
             </p>
           ))}
-          <h3 className="font-semibold">Shares</h3>
+          <h3 className="font-semibold">
+            <T text="Shares" />
+          </h3>
           {detail.participants.map((p) => (
             <p key={p.userId}>
               {memberName(detail, p.userId)} ·{" "}

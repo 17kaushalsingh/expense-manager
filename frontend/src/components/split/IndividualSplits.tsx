@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { Split } from "@/lib/types";
@@ -71,7 +72,7 @@ export function IndividualSplits() {
                   className="btn-secondary !text-[10px]"
                   onClick={() => setEdit(s)}
                 >
-                  Edit
+                  <T text="Edit" />
                 </button>
                 <button
                   className="btn-secondary !text-[10px]"
@@ -80,7 +81,7 @@ export function IndividualSplits() {
                     setRemove(s);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
             )}

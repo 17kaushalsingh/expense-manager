@@ -1,9 +1,13 @@
 import Decimal from "decimal.js";
 /** Deliberately small arithmetic grammar; no eval, variables, functions, or exponents. */
 export function calculateAmount(expression: string): string {
-  const normalized=expression.replaceAll("×","*").replaceAll("÷","/").replaceAll("−","-");
-  if(normalized.includes(",")&&normalized.includes("."))throw Error("Use one decimal separator and no thousands separators.");
-  const input = normalized.replaceAll(",",".").replace(/\s/g, "");
+  const normalized = expression
+    .replaceAll("×", "*")
+    .replaceAll("÷", "/")
+    .replaceAll("−", "-");
+  if (normalized.includes(",") && normalized.includes("."))
+    throw Error("Use one decimal separator and no thousands separators.");
+  const input = normalized.replaceAll(",", ".").replace(/\s/g, "");
   if (!input || input.length > 200)
     throw Error("Enter an amount or calculation.");
   const tokens = input.match(/\d+(?:\.\d*)?|\.\d+|[()+\-*/]/g) ?? [];

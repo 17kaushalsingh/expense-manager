@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { useFormat } from "@/lib/format";
@@ -40,7 +41,7 @@ export function GroupReport({ groupId }: { groupId: string }) {
           </p>
         </div>
         <label className="label">
-          Month
+          <T text="Month" />
           <input
             className="field"
             type="month"
@@ -51,7 +52,7 @@ export function GroupReport({ groupId }: { groupId: string }) {
           />
         </label>
         <button className="btn-secondary" onClick={() => setMonth("")}>
-          All time
+          <T text="All time" />
         </button>
         <button
           className="btn-secondary"

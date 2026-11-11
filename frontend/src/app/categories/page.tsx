@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -16,7 +17,9 @@ export default function Categories() {
   return (
     <DashboardLayout>
       <header className="flex justify-between">
-        <h1 className="text-2xl font-bold">Categories</h1>
+        <h1 className="text-2xl font-bold">
+          <T text="Categories" />
+        </h1>
         <button className="btn" onClick={() => setEdit(null)}>
           New category
         </button>
@@ -44,7 +47,7 @@ export default function Categories() {
             {c.userId && (
               <div className="flex gap-2">
                 <button className="btn-secondary" onClick={() => setEdit(c)}>
-                  Edit
+                  <T text="Edit" />
                 </button>
                 <button
                   className="btn-secondary"
@@ -53,7 +56,7 @@ export default function Categories() {
                     setRemove(c);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
             )}
@@ -115,7 +118,7 @@ function CategoryEditor({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -124,7 +127,7 @@ function CategoryEditor({
           />
         </label>
         <label className="label">
-          Type
+          <T text="Type" />
           <select
             className="field"
             name="type"
@@ -160,7 +163,7 @@ function CategoryEditor({
         </label>
         <ErrorMessage error={action.error} />
         <button className="btn" disabled={action.isPending}>
-          Save category
+          <T text="Save category" />
         </button>
       </form>
     </Modal>

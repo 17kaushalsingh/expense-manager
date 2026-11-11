@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -40,7 +41,9 @@ export default function Cards() {
     <DashboardLayout>
       <header>
         <p className="eyebrow">Stay ahead of the statement</p>
-        <h1 className="text-3xl font-bold mt-2">Credit cards</h1>
+        <h1 className="text-3xl font-bold mt-2">
+          <T text="Credit cards" />
+        </h1>
       </header>
       <ErrorMessage error={accounts.error || terms.error} />
       {accounts.isLoading && <p>Loading cards…</p>}
@@ -48,7 +51,7 @@ export default function Cards() {
         <p className="panel">
           Add a credit-card account under{" "}
           <Link href="/accounts" className="text-brand-primary">
-            Accounts
+            <T text="Accounts" />
           </Link>{" "}
           to configure its terms.
         </p>

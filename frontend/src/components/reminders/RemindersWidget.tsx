@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { Bell } from "lucide-react";
 import { useState } from "react";
 import {
@@ -41,12 +42,14 @@ export function RemindersWidget() {
       {open && (
         <section className="absolute right-4 z-40 panel w-[min(90vw,24rem)] space-y-3 shadow-lg mt-2">
           <div className="flex justify-between">
-            <h2 className="font-semibold">Reminders</h2>
+            <h2 className="font-semibold">
+              <T text="Reminders" />
+            </h2>
             <button
               className="text-brand-primary"
               onClick={() => setCreate(true)}
             >
-              Add
+              <T text="Add" />
             </button>
           </div>
           <ErrorMessage
@@ -95,7 +98,7 @@ export function RemindersWidget() {
                     disabled={remove.isPending}
                     onClick={() => remove.mutate(r.id)}
                   >
-                    Delete
+                    <T text="Delete" />
                   </button>
                 </div>
               </article>
@@ -123,11 +126,11 @@ export function RemindersWidget() {
               <input className="field" name="title" required />
             </label>
             <label className="label">
-              Description
+              <T text="Description" />
               <textarea className="field" name="description" />
             </label>
             <label className="label">
-              Type
+              <T text="Type" />
               <select className="field" name="type">
                 {["CUSTOM", "DEBT", "CREDIT_CARD_BILL", "EMI"].map((t) => (
                   <option key={t}>{t}</option>

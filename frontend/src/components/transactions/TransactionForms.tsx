@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { AmountCalculator } from "./AmountCalculator";
 import { useState } from "react";
 import { Account, Category, Transaction } from "@/lib/types";
@@ -71,7 +72,7 @@ export function TransactionEditor({
         }}
       >
         <label className="label">
-          Type
+          <T text="Type" />
           <select
             className="field"
             value={type}
@@ -82,7 +83,7 @@ export function TransactionEditor({
           </select>
         </label>
         <label className="label">
-          Account
+          <T text="Account" />
           <select
             className="field"
             name="accountId"
@@ -93,7 +94,9 @@ export function TransactionEditor({
             }
             required
           >
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {usable(accounts).map((a) => (
               <option value={a.id} key={a.id}>
                 {a.name}
@@ -102,7 +105,7 @@ export function TransactionEditor({
           </select>
         </label>
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             key={type}
             className="field"
@@ -111,7 +114,9 @@ export function TransactionEditor({
               transaction?.type === type ? (transaction.categoryId ?? "") : ""
             }
           >
-            <option value="">Uncategorized</option>
+            <option value="">
+              <T text="Uncategorized" />
+            </option>
             {categories
               .filter((c) => c.type === type)
               .map((c) => (
@@ -122,7 +127,7 @@ export function TransactionEditor({
           </select>
         </label>
         <label className="label">
-          Amount
+          <T text="Amount" />
           <input
             className="field"
             name="amount"
@@ -155,7 +160,7 @@ export function TransactionEditor({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <input
             className="field"
             name="notes"
@@ -224,7 +229,9 @@ export function Transfer({
           <label className="label" key={name}>
             {i === 0 ? "From" : "To"}
             <select className="field" name={name} required>
-              <option value="">Choose account</option>
+              <option value="">
+                <T text="Choose account" />
+              </option>
               {usable(accounts).map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
@@ -234,7 +241,7 @@ export function Transfer({
           </label>
         ))}
         <label className="label">
-          Amount
+          <T text="Amount" />
           <input
             className="field"
             type="number"
@@ -256,7 +263,7 @@ export function Transfer({
         </label>
         <ErrorMessage error={action.error} />
         <button className="btn" disabled={action.isPending}>
-          Transfer
+          <T text="Transfer" />
         </button>
       </form>
     </Modal>

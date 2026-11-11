@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -21,9 +22,11 @@ export default function Accounts() {
   return (
     <DashboardLayout>
       <header className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Accounts</h1>
+        <h1 className="text-2xl font-bold">
+          <T text="Accounts" />
+        </h1>
         <button className="btn" onClick={() => setEdit(null)}>
-          Add account
+          <T text="Add account" />
         </button>
       </header>
       <ErrorMessage error={accounts.error} />
@@ -61,7 +64,7 @@ export default function Accounts() {
                       className="btn-secondary"
                       onClick={() => setEdit(a)}
                     >
-                      Edit
+                      <T text="Edit" />
                     </button>
                     <button
                       className="btn-secondary"
@@ -70,7 +73,7 @@ export default function Accounts() {
                         setRemove(a);
                       }}
                     >
-                      Delete
+                      <T text="Delete" />
                     </button>
                   </>
                 )}

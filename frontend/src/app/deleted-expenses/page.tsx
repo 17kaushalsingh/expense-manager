@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -28,7 +29,9 @@ export default function DeletedExpenses() {
     <DashboardLayout>
       <header>
         <p className="eyebrow">Expense recovery</p>
-        <h1 className="text-3xl">Deleted expenses</h1>
+        <h1 className="text-3xl">
+          <T text="Deleted expenses" />
+        </h1>
         <p className="text-sm text-text-secondary mt-2">
           Restore eligible shared bills with their original accounts,
           allocations and comments.
@@ -57,7 +60,7 @@ export default function DeletedExpenses() {
                 setSelected(e);
               }}
             >
-              Restore
+              <T text="Restore" />
             </button>
           </article>
         ))}
@@ -72,14 +75,14 @@ export default function DeletedExpenses() {
             disabled={offset === 0 || data.isFetching}
             onClick={() => setOffset((n) => Math.max(0, n - 25))}
           >
-            Previous
+            <T text="Previous" />
           </button>
           <button
             className="btn-secondary"
             disabled={offset + 25 >= data.data.total || data.isFetching}
             onClick={() => setOffset((n) => n + 25)}
           >
-            Next
+            <T text="Next" />
           </button>
         </nav>
       )}
@@ -92,7 +95,8 @@ export default function DeletedExpenses() {
           }}
         >
           <p>
-            Restore {selected.description} (
+            <T text="Restore" />
+            {selected.description} (
             {money(selected.totalAmount, selected.currency)}) and its original
             accounting effects?
           </p>

@@ -1,4 +1,5 @@
 "use client";
+import { workspace } from "@/lib/device/vault";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Session } from "@supabase/supabase-js";
@@ -23,9 +24,29 @@ export default function QueryProvider({
     let disposed = false,
       lastUser: string | undefined;
     let generation = 0;
+    const onLock = () => {
+      generation++;
+      queries.clear();
+    };
+    window.addEventListener("ledgersync-lock", onLock);
     function apply(session: Session | null) {
       if (disposed) return;
       const run = ++generation;
+      const device = workspace();
+      if (
+        session &&
+        device?.mode === "CLOUD" &&
+        device.ownerId !== session.user.id
+      ) {
+        queries.clear();
+        useAuthStore.getState().setAuth(null, null);
+        useAuthStore
+          .getState()
+          .setReady(
+            "Unlock a device workspace for this account before continuing.",
+          );
+        return;
+      }
       if (session?.user.id !== lastUser) {
         queries.clear();
         lastUser = session?.user.id;
@@ -79,6 +100,8 @@ export default function QueryProvider({
       return () => {
         disposed = true;
         subscription.unsubscribe();
+        queries.clear();
+        window.removeEventListener("ledgersync-lock", onLock);
       };
     } catch (error) {
       useAuthStore

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -47,7 +48,9 @@ export default function Events() {
       <header className="flex flex-wrap justify-between gap-3">
         <div>
           <p className="eyebrow">Plan for the moments that matter</p>
-          <h1 className="text-3xl font-bold mt-2">Trips & events</h1>
+          <h1 className="text-3xl font-bold mt-2">
+            <T text="Trips & events" />
+          </h1>
         </div>
         <button className="btn" onClick={() => setEdit(null)}>
           New event
@@ -143,7 +146,7 @@ export default function Events() {
                     {selectedId === e.id ? "Close details" : "Costs & expenses"}
                   </button>
                   <button className="btn-secondary" onClick={() => setEdit(e)}>
-                    Edit
+                    <T text="Edit" />
                   </button>
                   <button
                     className="btn-secondary"
@@ -152,7 +155,7 @@ export default function Events() {
                       setRemove(e);
                     }}
                   >
-                    Delete
+                    <T text="Delete" />
                   </button>
                 </div>
               </article>
@@ -392,7 +395,7 @@ function EventForm({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -448,7 +451,7 @@ function EventForm({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <textarea
             className="field"
             name="notes"
@@ -540,7 +543,9 @@ function CostForm({
             name="category"
             defaultValue={cost?.categoryId ?? ""}
           >
-            <option value="">Uncategorized</option>
+            <option value="">
+              <T text="Uncategorized" />
+            </option>
             {categories
               .filter((c) => c.type === "EXPENSE")
               .map((c) => (
@@ -593,9 +598,11 @@ function RecordCost({
         }}
       >
         <label className="label">
-          Account
+          <T text="Account" />
           <select className="field" name="account" required>
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {accounts
               .filter(
                 (a) =>

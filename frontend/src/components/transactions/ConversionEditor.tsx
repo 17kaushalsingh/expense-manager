@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Decimal from "decimal.js";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -131,14 +132,16 @@ function Form({
         exchange or move money.
       </p>
       <label className="label">
-        Account
+        <T text="Account" />
         <select
           className="field"
           required
           value={value.accountId}
           onChange={(e) => change("accountId", e.target.value)}
         >
-          <option value="">Choose account</option>
+          <option value="">
+            <T text="Choose account" />
+          </option>
           {accounts.data
             ?.filter(
               (a) =>
@@ -152,7 +155,7 @@ function Form({
         </select>
       </label>
       <label className="label">
-        Type
+        <T text="Type" />
         <select
           className="field"
           value={value.type}
@@ -167,7 +170,7 @@ function Form({
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="label">
-          Original currency
+          <T text="Original currency" />
           <select
             className="field"
             value={value.originalCurrency}
@@ -181,7 +184,7 @@ function Form({
           </select>
         </label>
         <label className="label">
-          Original amount
+          <T text="Original amount" />
           <input
             className="field"
             type="number"
@@ -194,7 +197,7 @@ function Form({
         </label>
       </div>
       <label className="label">
-        Rate date
+        <T text="Rate date" />
         <input
           className="field"
           type="date"
@@ -234,13 +237,15 @@ function Form({
         {converted ? money(Number(converted)) : "Enter an amount and rate"}
       </p>
       <label className="label">
-        Category
+        <T text="Category" />
         <select
           className="field"
           value={value.categoryId}
           onChange={(e) => change("categoryId", e.target.value)}
         >
-          <option value="">Uncategorized</option>
+          <option value="">
+            <T text="Uncategorized" />
+          </option>
           {categories.data
             ?.filter((c) => c.type === value.type)
             .map((c) => (
@@ -251,7 +256,7 @@ function Form({
         </select>
       </label>
       <label className="label">
-        Date and time (UTC)
+        <T text="Date and time (UTC)" />
         <input
           className="field"
           type="datetime-local"
@@ -261,7 +266,7 @@ function Form({
         />
       </label>
       <label className="label">
-        Notes
+        <T text="Notes" />
         <input
           className="field"
           maxLength={2000}

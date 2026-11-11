@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -12,7 +13,9 @@ export default function More() {
     <DashboardLayout>
       <header>
         <p className="eyebrow mb-2">Make it yours</p>
-        <h1 className="text-3xl">More</h1>
+        <h1 className="text-3xl">
+          <T text="More" />
+        </h1>
       </header>
       <section className="grouped-list">
         {navigation

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -72,7 +73,9 @@ export default function Reports() {
       <header className="flex flex-wrap justify-between gap-3">
         <div>
           <p className="eyebrow">From records to perspective</p>
-          <h1 className="text-3xl font-bold mt-2">Money reports</h1>
+          <h1 className="text-3xl font-bold mt-2">
+            <T text="Money reports" />
+          </h1>
         </div>
         <div className="flex gap-2">
           <button
@@ -111,13 +114,15 @@ export default function Reports() {
           />
         </label>
         <label className="label">
-          Account
+          <T text="Account" />
           <select
             className="field"
             value={account}
             onChange={(e) => setAccount(e.target.value)}
           >
-            <option value="">All accounts</option>
+            <option value="">
+              <T text="All accounts" />
+            </option>
             {accounts.data?.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -29,9 +30,11 @@ export default function Goals() {
   return (
     <DashboardLayout>
       <header className="flex flex-wrap justify-between gap-3">
-        <h1 className="text-2xl font-bold">Savings goals</h1>
+        <h1 className="text-2xl font-bold">
+          <T text="Savings goals" />
+        </h1>
         <button className="btn" onClick={() => setEdit(null)}>
-          Add goal
+          <T text="Add goal" />
         </button>
       </header>
       <p className="text-text-secondary">
@@ -90,7 +93,7 @@ export default function Goals() {
               </div>
               <div className="flex gap-2">
                 <button className="btn-secondary" onClick={() => setEdit(g)}>
-                  Edit
+                  <T text="Edit" />
                 </button>
                 <button
                   className="btn-secondary"
@@ -99,7 +102,7 @@ export default function Goals() {
                     setRemove(g);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
             </article>
@@ -181,7 +184,9 @@ function GoalForm({
             defaultValue={goal?.accountId ?? ""}
             required
           >
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {accounts
               .filter((a) =>
                 ["CASH", "BANK_ACCOUNT", "PREPAID_CARD", "INVESTMENT"].includes(

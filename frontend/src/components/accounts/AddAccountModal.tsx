@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { apiClient } from "@/lib/api/client";
 import { useAction } from "@/hooks/useResource";
 import { Account } from "@/lib/types";
@@ -46,7 +47,7 @@ export function AddAccountModal({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -57,7 +58,7 @@ export function AddAccountModal({
         {!account && (
           <>
             <label className="label">
-              Type
+              <T text="Type" />
               <select className="field" name="type">
                 {[
                   "CASH",
@@ -86,7 +87,7 @@ export function AddAccountModal({
         )}
         <ErrorMessage error={action.error} />
         <button className="btn" disabled={action.isPending}>
-          Save account
+          <T text="Save account" />
         </button>
       </form>
     </Modal>

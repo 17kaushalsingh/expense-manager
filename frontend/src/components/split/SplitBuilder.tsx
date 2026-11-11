@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { Itemization, calculateItemization } from "@/lib/itemization";
 import { ItemizationEditor } from "./ItemizationEditor";
@@ -283,7 +284,7 @@ function Editor({
           </label>
         )}
         <label className="label">
-          Description
+          <T text="Description" />
           <input
             className="field"
             required
@@ -307,13 +308,15 @@ function Editor({
         {!groupId && <MemberPicker selected={extra} onChange={setExtra} />}
         {!templateMode && (
           <label className="label">
-            Category
+            <T text="Category" />
             <select
               className="field"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="">Uncategorized</option>
+              <option value="">
+                <T text="Uncategorized" />
+              </option>
               {categories.data
                 ?.filter((c) => c.type === "EXPENSE")
                 .map((c) => (

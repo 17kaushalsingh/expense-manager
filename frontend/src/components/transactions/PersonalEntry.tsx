@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Decimal from "decimal.js";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -126,7 +127,7 @@ function EntryForm({
       >
         <div className="grid grid-cols-2 gap-3">
           <label className="label">
-            Type
+            <T text="Type" />
             <select
               className="field"
               value={type}
@@ -150,14 +151,16 @@ function EntryForm({
           </label>
         </div>
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             key={type}
             className="field"
             name="category"
             defaultValue={entry?.type === type ? (entry.categoryId ?? "") : ""}
           >
-            <option value="">Uncategorized</option>
+            <option value="">
+              <T text="Uncategorized" />
+            </option>
             {categories
               .filter((c) => c.type === type)
               .map((c) => (
@@ -174,7 +177,8 @@ function EntryForm({
           {parts.map((p, i) => (
             <div key={i} className="flex gap-2 items-end">
               <label className="label flex-1 min-w-0">
-                Account {i + 1}
+                <T text="Account" />
+                {i + 1}
                 <select
                   className="field"
                   value={p.accountId}
@@ -203,7 +207,7 @@ function EntryForm({
                 </select>
               </label>
               <label className="label w-28">
-                Amount
+                <T text="Amount" />
                 <input
                   className="field"
                   type="number"
@@ -260,7 +264,7 @@ function EntryForm({
           />
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <input
             className="field"
             name="notes"
@@ -352,9 +356,11 @@ export function BulkTransactions({
         </label>
         {field === "category" && (
           <label className="label">
-            Category
+            <T text="Category" />
             <select className="field" name="category">
-              <option value="">Uncategorized</option>
+              <option value="">
+                <T text="Uncategorized" />
+              </option>
               {categories
                 .filter((c) => c.type === type)
                 .map((c) => (
@@ -373,7 +379,7 @@ export function BulkTransactions({
         )}
         {field === "notes" && (
           <label className="label">
-            Notes
+            <T text="Notes" />
             <textarea className="field" name="notes" maxLength={2000} />
           </label>
         )}

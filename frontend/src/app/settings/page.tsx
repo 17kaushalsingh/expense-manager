@@ -1,4 +1,7 @@
 "use client";
+import { T } from "@/components/i18n/Language";
+import { LanguageSettings } from "@/components/i18n/Language";
+import { DeviceSecurity } from "@/components/device/DeviceSecurity";
 import { Appearance } from "@/components/settings/Appearance";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { useState } from "react";
@@ -22,7 +25,9 @@ export default function Settings() {
   );
   return (
     <DashboardLayout>
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <h1 className="text-2xl font-bold">
+        <T text="Settings" />
+      </h1>
       <form
         key={`${user?.id}-${user?.displayCurrency}-${user?.timezone}`}
         className="panel max-w-xl space-y-5"
@@ -32,7 +37,7 @@ export default function Settings() {
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             className="field"
             name="name"
@@ -42,30 +47,46 @@ export default function Settings() {
         </label>
         <p className="text-text-secondary">{user?.email}</p>
         <label className="label">
-          Currency
+          <T text="Currency" />
           <select
             className="field"
             name="displayCurrency"
             defaultValue={user?.displayCurrency || "USD"}
           >
-            {Array.from(new Set([user?.displayCurrency || "USD", "USD", "INR", "EUR", "GBP", "JPY", "CAD", "AUD", "SGD"])).map(
-              (c) => (
-                <option key={c}>{c}</option>
-              ),
-            )}
+            {Array.from(
+              new Set([
+                user?.displayCurrency || "USD",
+                "USD",
+                "INR",
+                "EUR",
+                "GBP",
+                "JPY",
+                "CAD",
+                "AUD",
+                "SGD",
+              ]),
+            ).map((c) => (
+              <option key={c}>{c}</option>
+            ))}
           </select>
         </label>
         <p className="text-xs text-text-secondary">
           Currency is fixed once you record financial activity or join a group.
         </p>
         <label className="label">
-          Timezone
+          <T text="Timezone" />
           <select
             className="field"
             name="timezone"
             defaultValue={user?.timezone || "UTC"}
           >
-            {Array.from(new Set([user?.timezone || "UTC", "UTC", ...Intl.supportedValuesOf("timeZone")])).map((t) => (
+            {Array.from(
+              new Set([
+                user?.timezone || "UTC",
+                "UTC",
+                ...Intl.supportedValuesOf("timeZone"),
+              ]),
+            ).map((t) => (
               <option key={t}>{t}</option>
             ))}
           </select>
@@ -73,11 +94,11 @@ export default function Settings() {
         <ErrorMessage error={action.error} />
         {saved && (
           <p role="status" className="text-positive">
-            Preferences saved.
+            <T text="Preferences saved." />
           </p>
         )}
         <button className="btn" disabled={action.isPending}>
-          Save preferences
+          <T text="Save preferences" />
         </button>
       </form>
       <ErrorMessage error={logoutError} />
@@ -87,8 +108,10 @@ export default function Settings() {
           void logout().catch((error) => setLogoutError(error.message))
         }
       >
-        Sign out
+        <T text="Sign out" />
       </button>
+      <LanguageSettings />
+      <DeviceSecurity />
       <Appearance />
       <InstallApp />
     </DashboardLayout>

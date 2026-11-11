@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { Modal, ErrorMessage } from "@/components/ui/Controls";
 import { useGroups } from "@/hooks/useGroups";
@@ -109,7 +110,7 @@ export function SettlementModal({
           </select>
         </label>
         <label className="label">
-          Amount
+          <T text="Amount" />
           <input
             className="field"
             type="number"
@@ -124,7 +125,9 @@ export function SettlementModal({
         <label className="label">
           Paying account
           <select className="field" name="accountId" required>
-            <option value="">Choose account</option>
+            <option value="">
+              <T text="Choose account" />
+            </option>
             {accounts.data
               ?.filter(
                 (a) =>
@@ -146,7 +149,7 @@ export function SettlementModal({
           </select>
         </label>
         <label className="label">
-          Notes
+          <T text="Notes" />
           <input className="field" name="notes" />
         </label>
         <button

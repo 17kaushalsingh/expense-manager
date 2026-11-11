@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import Link from "next/link";
 import { Users, Plus, ChevronRight } from "lucide-react";
@@ -45,7 +46,9 @@ export default function GroupsPage() {
       <header className="flex justify-between items-end gap-3">
         <div>
           <p className="eyebrow mb-1.5">A clearer way to split</p>
-          <h1 className="text-3xl">Shared expenses</h1>
+          <h1 className="text-3xl">
+            <T text="Shared expenses" />
+          </h1>
           <p className="text-xs text-text-secondary mt-1.5">
             The people, the bills, and where you stand.
           </p>

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
@@ -132,7 +133,7 @@ export function SettlementHistory({ group }: { group?: Group }) {
             disabled={offset === 0 || data.isFetching}
             onClick={() => setOffset((n) => Math.max(0, n - 25))}
           >
-            Previous
+            <T text="Previous" />
           </button>
           <span className="text-sm">Page {Math.floor(offset / 25) + 1}</span>
           <button
@@ -140,7 +141,7 @@ export function SettlementHistory({ group }: { group?: Group }) {
             disabled={offset + 25 >= data.data.total || data.isFetching}
             onClick={() => setOffset((n) => n + 25)}
           >
-            Next
+            <T text="Next" />
           </button>
         </nav>
       )}

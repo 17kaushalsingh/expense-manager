@@ -24,7 +24,9 @@ async function request<T>(
   const run = () =>
     fetch(`${base}${endpoint}`, {
       method,
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(
+        endpoint === "/portability/export" ? 120000 : 15000,
+      ),
       headers: {
         "Content-Type": "application/json",
         ...(access ? { Authorization: `Bearer ${access}` } : {}),

@@ -1,3 +1,4 @@
+import portabilityRouter from "./routes/portability.routes";
 import exchangeRouter from "./routes/exchange.routes";
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
@@ -42,12 +43,13 @@ app.use((_req, res, next) => {
   next();
 });
 
-app.use(cors({ origin: config.corsOrigin }));
+app.use(cors({ origin: [...config.corsOrigin.split(",").map(s=>s.trim()),"capacitor://localhost","https://localhost"] }));
 app.use("/api/imports", express.json({ limit: "512kb" }));
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/portability",portabilityRouter);
 app.use("/api/exchange", exchangeRouter);
 app.use("/api/accounts", accountRouter);
 app.use("/api/planning", planningRouter);

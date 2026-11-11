@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResource, useAction } from "@/hooks/useResource";
@@ -143,7 +144,7 @@ export function Receipts({
                     Confirm removal
                   </button>
                   <button type="button" onClick={() => setRemoving(undefined)}>
-                    Cancel
+                    <T text="Cancel" />
                   </button>
                 </>
               ) : (
@@ -152,7 +153,7 @@ export function Receipts({
                   className="text-negative"
                   onClick={() => setRemoving(r.id)}
                 >
-                  Remove
+                  <T text="Remove" />
                 </button>
               ))}
           </div>

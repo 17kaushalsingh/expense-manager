@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { Account } from "@/lib/types";
 import { apiClient } from "@/lib/api/client";
@@ -177,7 +178,9 @@ export function CsvImport({
                   revise();
                 }}
               >
-                <option value="">Choose account</option>
+                <option value="">
+                  <T text="Choose account" />
+                </option>
                 {accounts
                   .filter(
                     (a) =>

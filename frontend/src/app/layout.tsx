@@ -1,3 +1,6 @@
+import { LanguageRoot } from "@/components/i18n/Language";
+import { NativeBridge } from "@/components/device/NativeBridge";
+import { DeviceGate } from "@/components/device/DeviceGate";
 import { ServiceWorker } from "@/components/pwa/InstallApp";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
@@ -38,12 +41,15 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <GoogleOAuthProvider clientId={clientId}>
-          <QueryProvider>
-            {children}
-            <ServiceWorker />
-          </QueryProvider>
-        </GoogleOAuthProvider>
+        <LanguageRoot>
+          <DeviceGate>
+            <GoogleOAuthProvider clientId={clientId}>
+              <QueryProvider>{children}</QueryProvider>
+            </GoogleOAuthProvider>
+          </DeviceGate>
+          <ServiceWorker />
+          <NativeBridge />
+        </LanguageRoot>
       </body>
     </html>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { monthIn } from "@/lib/calendar";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -43,12 +44,12 @@ export default function Budgets() {
           </p>
         </div>
         <button className="btn" onClick={() => setEditing(null)}>
-          Add budget
+          <T text="Add budget" />
         </button>
       </header>
       <div className="flex gap-3 flex-wrap items-end">
         <label className="label">
-          Month
+          <T text="Month" />
           <input
             className="field"
             type="month"
@@ -108,7 +109,7 @@ export default function Budgets() {
               </p>
               <div className="flex gap-2">
                 <button className="btn-secondary" onClick={() => setEditing(b)}>
-                  Edit
+                  <T text="Edit" />
                 </button>
                 <button
                   className="btn-secondary"
@@ -117,7 +118,7 @@ export default function Budgets() {
                     setRemove(b);
                   }}
                 >
-                  Delete
+                  <T text="Delete" />
                 </button>
               </div>
             </article>
@@ -186,7 +187,7 @@ function BudgetForm({
         }}
       >
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             className="field"
             name="categoryId"

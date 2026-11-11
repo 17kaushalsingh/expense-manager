@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import { useSyncExternalStore } from "react";
 const key = "ledgersync-appearance";
 const accents = ["sage", "blue", "rose", "amber", "plum"];
@@ -29,13 +30,17 @@ export function Appearance() {
   return (
     <section className="panel space-y-4">
       <div>
-        <h2 className="section-title">Appearance</h2>
+        <h2 className="section-title">
+          <T text="Appearance" />
+        </h2>
         <p className="text-xs text-text-secondary mt-1">
           Choose a look for this device.
         </p>
       </div>
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium mb-2">Accent color</legend>
+        <legend className="text-sm font-medium mb-2">
+          <T text="Accent color" />
+        </legend>
         <div className="flex flex-wrap gap-2">
           {accents.map((color) => (
             <button

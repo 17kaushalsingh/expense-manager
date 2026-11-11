@@ -1,4 +1,5 @@
 "use client";
+import { T } from "@/components/i18n/Language";
 import Link from "next/link";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -372,7 +373,7 @@ export default function Planner() {
                 )}
                 <div className="flex flex-wrap gap-2">
                   <button className="btn-secondary" onClick={() => setEdit(b)}>
-                    Edit
+                    <T text="Edit" />
                   </button>
                   <button
                     className="btn-secondary"
@@ -388,7 +389,7 @@ export default function Planner() {
                       setRemove(b);
                     }}
                   >
-                    Delete
+                    <T text="Delete" />
                   </button>
                 </div>
               </article>
@@ -469,7 +470,7 @@ function PlanForm({
         }}
       >
         <label className="label">
-          Name
+          <T text="Name" />
           <input
             name="name"
             className="field"
@@ -479,7 +480,7 @@ function PlanForm({
           />
         </label>
         <label className="label">
-          Category
+          <T text="Category" />
           <select
             className="field"
             name="category"
