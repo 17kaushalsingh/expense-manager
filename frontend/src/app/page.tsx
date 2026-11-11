@@ -28,6 +28,7 @@ import { IndividualSplits } from "@/components/split/IndividualSplits";
 import { SplitBuilder } from "@/components/split/SplitBuilder";
 import { SettlementModal } from "@/components/settlements/SettlementModal";
 import { PlanningOverview } from "@/components/planning/PlanningOverview";
+import { BillsOverview } from "@/components/planning/BillsOverview";
 import { DueDrafts } from "@/components/recurring/Recurring";
 import { ErrorMessage } from "@/components/ui/Controls";
 export default function Home() {
@@ -336,6 +337,7 @@ export default function Home() {
         </div>
         <div className="space-y-5">
           <PlanningOverview />
+          <BillsOverview />
           <DueDrafts />
           <Link
             href="/transactions?view=calendar"

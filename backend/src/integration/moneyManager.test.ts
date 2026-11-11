@@ -375,20 +375,160 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       ).toBe(200);
       expect(
         (
-          await clients[0]
-            .from("loan_payments")
-            .insert({
-              user_id: "55555555-5555-4555-8555-555555555555",
-              loan_id: loan,
-              principal: 1,
-              interest: 0,
-              account_id: cash,
-              date_time: payment.dateTime,
-              request_key: crypto.randomUUID(),
-            })
+          await clients[0].from("loan_payments").insert({
+            user_id: "55555555-5555-4555-8555-555555555555",
+            loan_id: loan,
+            principal: 1,
+            interest: 0,
+            account_id: cash,
+            date_time: payment.dateTime,
+            request_key: crypto.randomUUID(),
+          })
         ).error,
       ).not.toBeNull();
       // Immutable cash history remains on a reserved test identity, fully repaid and archived.
+    }, 30000);
+    it("snapshots personal bills without posting, then records, reverses, postpones and skips safely", async () => {
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+      const input = {
+        name: "Bill integration history",
+        type: "EXPENSE",
+        amount: 8,
+        currency: "USD",
+        categoryId: category,
+        accountId: account,
+        frequency: "MONTHLY",
+        startDate: today,
+        endDate: null,
+        timezone: "Asia/Kolkata",
+        status: "ACTIVE",
+        notes: "Snapshot test",
+      };
+      const before = Number((await api(`/accounts/${account}`)).data.balance);
+      const b = await api("/bills", "POST", input);
+      expect(b.status, JSON.stringify(b.data)).toBe(201);
+      const id = b.data.id;
+      const occurrences = (
+        await api("/bills/occurrences?status=DUE&limit=100")
+      ).data.items.filter((o: { billId: string }) => o.billId === id);
+      expect(occurrences).toHaveLength(1);
+      const occurrence = occurrences[0].id;
+      expect(Number((await api(`/accounts/${account}`)).data.balance)).toBe(
+        before,
+      );
+      await Promise.all([
+        api("/bills/refresh", "POST", {}),
+        api("/bills/refresh", "POST", {}),
+      ]);
+      expect(
+        (
+          await api("/bills/occurrences?status=DUE&limit=100")
+        ).data.items.filter((o: { billId: string }) => o.billId === id),
+      ).toHaveLength(1);
+      expect(
+        (await api(`/bills/${id}`, "PUT", { ...input, amount: 9 })).status,
+      ).toBe(200);
+      const unchanged = (
+        await api("/bills/occurrences?status=DUE&limit=100")
+      ).data.items.find((o: { id: string }) => o.id === occurrence);
+      expect(Number(unchanged.payload.amount)).toBe(8);
+      expect(
+        (
+          await api(
+            `/bills/occurrences/${occurrence}/record`,
+            "POST",
+            {
+              accountId: account,
+              amount: 8,
+              dateTime: new Date().toISOString(),
+            },
+            1,
+          )
+        ).status,
+      ).toBe(404);
+      expect(
+        (
+          await api(`/bills/occurrences/${occurrence}/postpone`, "POST", {
+            reviewDate: today,
+          })
+        ).status,
+      ).toBe(200);
+      const post = {
+        accountId: account,
+        amount: 8,
+        dateTime: new Date().toISOString(),
+      };
+      const [a, c] = await Promise.all([
+        api(`/bills/occurrences/${occurrence}/record`, "POST", post),
+        api(`/bills/occurrences/${occurrence}/record`, "POST", post),
+      ]);
+      expect(a.status, JSON.stringify(a.data)).toBe(200);
+      expect(c.data.id).toBe(a.data.id);
+      expect(a.data.sourceType).toBe("PERSONAL_BILL");
+      expect(Number((await api(`/accounts/${account}`)).data.balance)).toBe(
+        before - 8,
+      );
+      expect((await api(`/transactions/${a.data.id}`, "DELETE")).status).toBe(
+        400,
+      );
+      expect(
+        (await api(`/bills/occurrences/${occurrence}/reverse`, "POST", {}))
+          .status,
+      ).toBe(200);
+      expect(
+        (await api(`/bills/occurrences/${occurrence}/reverse`, "POST", {}))
+          .status,
+      ).toBe(200);
+      expect(Number((await api(`/accounts/${account}`)).data.balance)).toBe(
+        before,
+      );
+      expect(
+        (
+          await clients[1]
+            .from("bill_occurrences")
+            .select("*")
+            .eq("id", occurrence)
+        ).data,
+      ).toEqual([]);
+      expect(
+        (
+          await api(`/bills/${id}`, "PUT", {
+            ...input,
+            accountId: null,
+            categoryId: null,
+            status: "ARCHIVED",
+          })
+        ).status,
+      ).toBe(200);
+      const second = await api("/bills", "POST", {
+        ...input,
+        name: "Skipped bill integration",
+        accountId: null,
+        categoryId: null,
+      });
+      expect(second.status).toBe(201);
+      const pending = (
+        await api("/bills/occurrences?status=DUE&limit=100")
+      ).data.items.find((o: { billId: string }) => o.billId === second.data.id);
+      expect(
+        (await api(`/bills/occurrences/${pending.id}/skip`, "POST", {})).status,
+      ).toBe(200);
+      expect(
+        (
+          await api(`/bills/${second.data.id}`, "PUT", {
+            ...input,
+            accountId: null,
+            categoryId: null,
+            status: "ARCHIVED",
+          })
+        ).status,
+      ).toBe(200);
+      // Archived schedule and occurrence provenance remains on the reserved identity.
     }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,

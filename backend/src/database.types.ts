@@ -144,6 +144,73 @@ export type Database = {
           },
         ]
       }
+      bill_occurrences: {
+        Row: {
+          bill_id: string
+          created_at: string
+          due_date: string
+          id: string
+          occurrence_index: number
+          payload: Json
+          review_date: string
+          status: string
+          timezone: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          occurrence_index: number
+          payload: Json
+          review_date: string
+          status?: string
+          timezone: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          occurrence_index?: number
+          payload?: Json
+          review_date?: string
+          status?: string
+          timezone?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_occurrences_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "personal_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_occurrences_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_occurrences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       budget_overrides: {
         Row: {
           amount: number
@@ -1104,6 +1171,88 @@ export type Database = {
           },
         ]
       }
+      personal_bills: {
+        Row: {
+          account_id: string | null
+          amount: number
+          category_id: string | null
+          created_at: string
+          currency: string
+          end_date: string | null
+          frequency: string
+          id: string
+          name: string
+          next_index: number
+          notes: string
+          start_date: string
+          status: string
+          timezone: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          currency: string
+          end_date?: string | null
+          frequency: string
+          id?: string
+          name: string
+          next_index?: number
+          notes?: string
+          start_date: string
+          status?: string
+          timezone: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          name?: string
+          next_index?: number
+          notes?: string
+          start_date?: string
+          status?: string
+          timezone?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_bills_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_bills_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_bills_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_loans: {
         Row: {
           archived: boolean
@@ -2000,6 +2149,10 @@ export type Database = {
         Args: { p_action?: string; p_group_id: string; p_token?: string }
         Returns: Json
       }
+      manage_personal_bill: {
+        Args: { p_id?: string; p_input: Json }
+        Returns: Json
+      }
       manage_personal_loan: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json }
         Returns: Json
@@ -2045,9 +2198,14 @@ export type Database = {
         Args: { p_input: Json; p_loan_id: string }
         Returns: Json
       }
+      refresh_personal_bills: { Args: never; Returns: number }
       restore_split_expense_atomic: { Args: { p_id: string }; Returns: Json }
       reverse_loan_payment: { Args: { p_id: string }; Returns: Json }
       reverse_settlement_atomic: { Args: { p_id: string }; Returns: Json }
+      review_bill_occurrence: {
+        Args: { p_action: string; p_id: string; p_input?: Json }
+        Returns: Json
+      }
       set_group_split_default: {
         Args: { p_group_id: string; p_template_id?: string }
         Returns: Json

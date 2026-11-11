@@ -32,6 +32,7 @@ export const navigation = [
   ["/wealth", "Wealth & assets"],
   ["/events", "Trips & events"],
   ["/loans", "Borrowing & lending"],
+  ["/bills", "Bills & subscriptions"],
   ["/categories", "Categories"],
   ["/settings", "Settings"],
 ];
@@ -50,6 +51,7 @@ export const navIcons: Record<string, LucideIcon> = {
   "/wealth": ChartNoAxesCombined,
   "/events": CalendarDays,
   "/loans": ArrowLeftRight,
+  "/bills": CalendarDays,
   "/categories": Shapes,
   "/settings": Settings,
   "/more": Ellipsis,
