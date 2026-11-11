@@ -364,6 +364,106 @@ export type Database = {
           },
         ]
       }
+      card_installments: {
+        Row: {
+          account_id: string
+          first_due_date: string
+          id: string
+          installment_count: number
+          name: string
+          paid_principal: number
+          transaction_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          first_due_date: string
+          id?: string
+          installment_count: number
+          name: string
+          paid_principal?: number
+          transaction_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          first_due_date?: string
+          id?: string
+          installment_count?: number
+          name?: string
+          paid_principal?: number
+          transaction_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_installments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_installments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_installments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      card_settings: {
+        Row: {
+          account_id: string
+          credit_limit: number
+          due_day: number
+          statement_day: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          credit_limit: number
+          due_day: number
+          statement_day: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          credit_limit?: number
+          due_day?: number
+          statement_day?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "card_settings_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "card_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string

@@ -95,7 +95,8 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       });
       for (const id of transactions)
         expect((await api(`/transactions/${id}`, "DELETE")).status).toBe(204);
-      for (const id of extraCategories) await api(`/categories/${id}`, "DELETE");
+      for (const id of extraCategories)
+        await api(`/categories/${id}`, "DELETE");
       if (category)
         expect((await api(`/categories/${category}`, "DELETE")).status).toBe(
           204,
@@ -710,6 +711,86 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
         beforeCash,
         2,
       );
+    }, 30000);
+    it("keeps card terms private and protects installment principal from purchase edits", async () => {
+      const card = await api("/accounts", "POST", {
+        name: "Card integration fixture",
+        type: "CREDIT_CARD",
+        balance: 0,
+      });
+      expect(card.status).toBe(201);
+      const id = card.data.id;
+      expect(
+        (
+          await api(`/cards/${id}/settings`, "PUT", {
+            creditLimit: 100,
+            statementDay: 31,
+            dueDay: 5,
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await api(
+            `/cards/${id}/settings`,
+            "PUT",
+            { creditLimit: 1, statementDay: 31, dueDay: 5 },
+            1,
+          )
+        ).status,
+      ).toBe(400);
+      const purchase = await api("/transactions", "POST", {
+        accountId: id,
+        type: "EXPENSE",
+        amount: 10.01,
+        dateTime: "2028-02-15T12:00:00Z",
+        notes: "Card test",
+      });
+      expect(purchase.status).toBe(201);
+      const plan = await api(`/cards/${id}/installments`, "POST", {
+        name: "Card plan",
+        transactionId: purchase.data.id,
+        firstDueDate: "2028-02-29",
+        installmentCount: 3,
+        paidPrincipal: 0,
+      });
+      expect(plan.status, JSON.stringify(plan.data)).toBe(201);
+      const statement = await api(`/cards/${id}/statement?month=2028-02`);
+      expect(statement.status, JSON.stringify(statement.data)).toBe(200);
+      expect(statement.data.end).toBe("2028-02-29");
+      expect(statement.data.due).toBe("2028-03-05");
+      expect(statement.data.charges).toBe(10.01);
+      expect(statement.data.closingBalance).toBe(10.01);
+      expect(
+        (
+          await api(`/transactions/${purchase.data.id}`, "PUT", {
+            accountId: id,
+            type: "EXPENSE",
+            amount: 20,
+            dateTime: "2028-02-15T12:00:00Z",
+          })
+        ).status,
+      ).toBe(400);
+      expect(Number((await api(`/accounts/${id}`)).data.balance)).toBe(10.01);
+      const plans = (await api(`/cards/${id}/installments`)).data;
+      expect(
+        plans[0].schedule.map((s: { amount: number }) => s.amount),
+      ).toEqual([3.34, 3.34, 3.33]);
+      expect(
+        (
+          await clients[1]
+            .from("card_settings")
+            .select("*")
+            .eq("account_id", id)
+        ).data,
+      ).toEqual([]);
+      expect(
+        (await api(`/cards/installments/${plan.data.id}`, "DELETE")).status,
+      ).toBe(204);
+      expect(
+        (await api(`/transactions/${purchase.data.id}`, "DELETE")).status,
+      ).toBe(204);
+      expect((await api(`/accounts/${id}`, "DELETE")).status).toBe(204);
     }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,
