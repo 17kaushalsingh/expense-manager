@@ -20,6 +20,7 @@ const filtersSchema = z
     type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
     accountId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
+    label: z.string().trim().min(1).max(40).optional(),
     sourceType: z
       .enum([
         "MANUAL",
@@ -28,6 +29,7 @@ const filtersSchema = z
         "SETTLEMENT",
         "PERSONAL_LOAN",
         "PERSONAL_BILL",
+        "PERSONAL_ENTRY",
       ])
       .optional(),
     q: z.string().trim().max(200).optional(),
@@ -99,6 +101,7 @@ async function transactionQuery(req: AuthRequest) {
   if (f.minAmount !== undefined) q = q.gte("amount", f.minAmount);
   if (f.maxAmount !== undefined) q = q.lte("amount", f.maxAmount);
   if (f.q) q = q.ilike("notes", `%${escapeLike(f.q)}%`);
+  if (f.label) q = q.contains("tags", JSON.stringify([f.label.toLowerCase()]));
   q = q
     .order(["highest", "lowest"].includes(f.sort) ? "amount" : "date_time", {
       ascending: ["oldest", "lowest"].includes(f.sort),
@@ -185,6 +188,119 @@ router.post(
       await rpc(req.db!, "transfer_accounts_atomic", { p_input: req.body }),
     ),
 );
+router.get("/labels", async (req: AuthRequest, res) =>
+  res.json(await rpc(req.db!, "transaction_labels")),
+);
+router.post(
+  "/bulk",
+  validateBody(
+    z
+      .object({
+        ids: z
+          .array(z.uuid())
+          .min(1)
+          .max(100)
+          .refine(
+            (ids) => new Set(ids).size === ids.length,
+            "Choose distinct entries",
+          ),
+        delete: z.boolean().default(false),
+        changes: z
+          .object({
+            categoryId: z.uuid().nullable().optional(),
+            tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+            notes: z.string().max(2000).optional(),
+          })
+          .strict()
+          .default({}),
+      })
+      .strict()
+      .refine(
+        (b) => b.delete || Object.keys(b.changes).length > 0,
+        "Choose a change",
+      ),
+  ),
+  async (req: AuthRequest, res) =>
+    res.json({
+      updated: await rpc(req.db!, "bulk_manual_transactions", {
+        p_ids: req.body.ids,
+        p_input: req.body.changes,
+        p_delete: req.body.delete,
+      }),
+    }),
+);
+const personalEntry = z
+  .object({
+    type: z.enum(["INCOME", "EXPENSE"]),
+    totalAmount: z.number().finite().positive().max(999999999999.99),
+    currency: z.string().regex(/^[A-Z]{3}$/),
+    categoryId: z.uuid().nullable().default(null),
+    dateTime: z.iso.datetime({ offset: true }),
+    notes: z.string().max(2000).default(""),
+    tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
+    requestKey: z.uuid(),
+    allocations: z
+      .array(
+        z
+          .object({
+            accountId: z.uuid(),
+            amount: z.number().finite().positive().max(999999999999.99),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(20),
+  })
+  .strict();
+router.post(
+  "/personal-entries",
+  validateBody(personalEntry),
+  async (req: AuthRequest, res) =>
+    res
+      .status(201)
+      .json(await rpc(req.db!, "mutate_personal_entry", { p_input: req.body })),
+);
+router.get("/personal-entries/:id", async (req: AuthRequest, res) => {
+  const entry = dbResult(
+    await req
+      .db!.from("personal_entries")
+      .select("*")
+      .eq("id", req.params.id as string)
+      .is("deleted_at", null)
+      .single(),
+  );
+  const rows = dbResult(
+    await req
+      .db!.from("transactions")
+      .select("account_id,amount")
+      .eq("source_type", "PERSONAL_ENTRY")
+      .eq("source_id", req.params.id as string)
+      .order("id"),
+  );
+  res.json({
+    ...camelCase<Record<string, unknown>>(entry),
+    allocations: camelCase(rows),
+  });
+});
+router.put(
+  "/personal-entries/:id",
+  validateBody(personalEntry),
+  async (req: AuthRequest, res) =>
+    res.json(
+      await rpc(req.db!, "mutate_personal_entry", {
+        p_input: req.body,
+        p_id: req.params.id,
+      }),
+    ),
+);
+router.delete("/personal-entries/:id", async (req: AuthRequest, res) => {
+  await rpc(req.db!, "mutate_personal_entry", {
+    p_input: {},
+    p_id: req.params.id,
+    p_delete: true,
+  });
+  res.status(204).send();
+});
 router.get("/:id", async (req: AuthRequest, res) =>
   res.json(
     camelCase(

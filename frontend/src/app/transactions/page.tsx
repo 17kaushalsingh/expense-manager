@@ -26,6 +26,10 @@ import { TransactionRow } from "@/components/transactions/TransactionRow";
 import { Receipts } from "@/components/receipts/Receipts";
 import { CsvImport } from "@/components/imports/CsvImport";
 import {
+  PersonalEntryEditor,
+  BulkTransactions,
+} from "@/components/transactions/PersonalEntry";
+import {
   SpendingCalendar,
   CalendarData,
   changeMonth,
@@ -62,6 +66,7 @@ function Transactions() {
     type: "",
     accountId: search.get("accountId") ?? "",
     categoryId: search.get("categoryId") ?? "",
+    label: "",
     sourceType: "",
     fromDate: "",
     toDate: "",
@@ -78,12 +83,27 @@ function Transactions() {
     [exporting, setExporting] = useState(false),
     [exportError, setExportError] = useState<unknown>();
   const [importing, setImporting] = useState(false);
+  const [personal, setPersonal] = useState<string | null | undefined>(),
+    [personalDelete, setPersonalDelete] = useState<string>(),
+    [selecting, setSelecting] = useState(false),
+    [selection, setSelection] = useState<{ scope: string; ids: string[] }>({
+      scope: "",
+      ids: [],
+    }),
+    [bulk, setBulk] = useState(false);
+  const deletePersonal = useAction(
+    () => apiClient.delete(`/transactions/personal-entries/${personalDelete}`),
+    () => setPersonalDelete(undefined),
+  );
   const text = useSearchText(filters.q),
     params = new URLSearchParams();
   for (const [k, v] of Object.entries(filters))
     if (v) params.set(k, k === "q" ? text : v);
   if (month) params.set("month", month);
   if (day) params.set("onDate", day);
+  const scope = params.toString() + ":" + offset,
+    selected = selection.scope === scope ? selection.ids : [];
+  const labels = useResource<string[]>("/transactions/labels");
   const rows = useResource<{ items: Transaction[]; total: number }>(
       `/transactions/page?${params}&limit=50&offset=${offset}`,
     ),
@@ -275,6 +295,45 @@ function Transactions() {
           </button>
         </div>
       </section>
+      <div className="flex gap-3 flex-wrap items-center">
+        <button className="btn-secondary" onClick={() => setPersonal(null)}>
+          Pay across accounts
+        </button>
+        <button
+          className="btn-secondary"
+          aria-pressed={selecting}
+          onClick={() => {
+            setSelecting(!selecting);
+            setSelection({ scope, ids: [] });
+          }}
+        >
+          {selecting ? "Done selecting" : "Select manual entries"}
+        </button>
+        {selecting && (
+          <>
+            <button
+              className="btn-secondary"
+              onClick={() =>
+                setSelection({
+                  scope,
+                  ids: (rows.data?.items ?? [])
+                    .filter((t) => t.sourceType === "MANUAL")
+                    .map((t) => t.id),
+                })
+              }
+            >
+              Select page
+            </button>
+            <button
+              className="btn"
+              disabled={!selected.length}
+              onClick={() => setBulk(true)}
+            >
+              Update {selected.length} selected
+            </button>
+          </>
+        )}
+      </div>
       <ErrorMessage error={rows.error || calendar.error || exportError} />
       {view === "calendar" && (
         <SpendingCalendar
@@ -333,12 +392,30 @@ function Transactions() {
             </header>
             <div className="grouped-list">
               {items.map((t) => (
-                <TransactionRow
-                  key={t.id}
-                  transaction={t}
-                  compact
-                  onClick={() => setDetail(t)}
-                />
+                <div key={t.id} className="flex items-center gap-2">
+                  {selecting && t.sourceType === "MANUAL" && (
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${t.notes || t.type} ${money(Number(t.amount))}`}
+                      checked={selected.includes(t.id)}
+                      onChange={(e) =>
+                        setSelection({
+                          scope,
+                          ids: e.target.checked
+                            ? [...selected, t.id]
+                            : selected.filter((id) => id !== t.id),
+                        })
+                      }
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <TransactionRow
+                      transaction={t}
+                      compact
+                      onClick={() => setDetail(t)}
+                    />
+                  </div>
+                </div>
               ))}
             </div>
           </section>
@@ -415,7 +492,15 @@ function Transactions() {
                         ))
                       : (k === "type"
                           ? ["INCOME", "EXPENSE", "TRANSFER"]
-                          : ["MANUAL", "SPLIT", "TRANSFER", "SETTLEMENT"]
+                          : [
+                              "MANUAL",
+                              "SPLIT",
+                              "TRANSFER",
+                              "SETTLEMENT",
+                              "PERSONAL_LOAN",
+                              "PERSONAL_BILL",
+                              "PERSONAL_ENTRY",
+                            ]
                         ).map((v) => <option key={v}>{v}</option>)}
                 </select>
               </label>
@@ -451,6 +536,22 @@ function Transactions() {
               </label>
             ))}
           </div>
+          <label className="label">
+            Label
+            <select
+              className="field"
+              value={filters.label}
+              onChange={(e) => {
+                setFilters({ ...filters, label: e.target.value });
+                setOffset(0);
+              }}
+            >
+              <option value="">All labels</option>
+              {labels.data?.map((label) => (
+                <option key={label}>{label}</option>
+              ))}
+            </select>
+          </label>
           <button
             className="btn-secondary"
             onClick={() => {
@@ -464,6 +565,43 @@ function Transactions() {
             Show transactions
           </button>
         </Modal>
+      )}
+      {personal !== undefined && (
+        <PersonalEntryEditor
+          entryId={personal ?? undefined}
+          accounts={accounts.data ?? []}
+          categories={categories.data ?? []}
+          onClose={() => setPersonal(undefined)}
+        />
+      )}
+      {personalDelete && (
+        <Confirm
+          message="Delete this entire multi-account entry and reverse all its balances? Remove linked receipts and event expenses first."
+          onClose={() => setPersonalDelete(undefined)}
+          onConfirm={() => deletePersonal.mutate(undefined)}
+          busy={deletePersonal.isPending}
+          error={deletePersonal.error}
+        />
+      )}
+      {bulk && (
+        <BulkTransactions
+          ids={selected}
+          categories={categories.data ?? []}
+          type={
+            new Set(
+              (rows.data?.items ?? [])
+                .filter((t) => selected.includes(t.id))
+                .map((t) => t.type),
+            ).size === 1
+              ? (rows.data?.items ?? []).find((t) => selected.includes(t.id))
+                  ?.type
+              : undefined
+          }
+          onClose={() => {
+            setBulk(false);
+            setSelection({ scope, ids: [] });
+          }}
+        />
       )}
       {editor !== undefined && (
         <TransactionEditor
@@ -508,6 +646,7 @@ function Transactions() {
               Category: detail.category?.name,
               Date: date(detail.dateTime),
               Notes: detail.notes,
+              Labels: detail.tags?.join(", "),
               "Balance change": money(detail.balanceDelta),
             }).map(([k, v]) => (
               <div key={k} className="flex gap-3 justify-between text-sm">
@@ -516,10 +655,37 @@ function Transactions() {
               </div>
             ))}
           </dl>
-          {detail.sourceType === "MANUAL" && (
+          {[
+            "MANUAL",
+            "PERSONAL_ENTRY",
+            "PERSONAL_LOAN",
+            "PERSONAL_BILL",
+          ].includes(detail.sourceType) && (
             <Receipts transactionId={detail.id} canManage />
           )}
-          {detail.sourceType === "MANUAL" ? (
+          {detail.sourceType === "PERSONAL_ENTRY" ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="btn"
+                onClick={() => {
+                  setPersonal(detail.sourceId);
+                  setDetail(undefined);
+                }}
+              >
+                Edit entire payment
+              </button>
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  deletePersonal.reset();
+                  setPersonalDelete(detail.sourceId);
+                  setDetail(undefined);
+                }}
+              >
+                Delete entire payment
+              </button>
+            </div>
+          ) : detail.sourceType === "MANUAL" ? (
             <div className="flex gap-2">
               <button
                 className="btn flex-1"
@@ -543,8 +709,8 @@ function Transactions() {
             </div>
           ) : (
             <p className="text-xs text-text-secondary">
-              This entry belongs to a shared expense, settlement, or transfer.
-              Make changes from its original record.
+              This entry belongs to a shared expense, payment, bill, loan or
+              transfer. Make changes from its original record.
             </p>
           )}
         </Modal>

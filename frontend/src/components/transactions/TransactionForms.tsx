@@ -58,6 +58,14 @@ export function TransactionEditor({
             amount: Number(f.get("amount")),
             dateTime: new Date(String(f.get("dateTime"))).toISOString(),
             notes: String(f.get("notes") || "") || undefined,
+            tags: [
+              ...new Set(
+                String(f.get("tags") || "")
+                  .split(",")
+                  .map((t) => t.trim().toLowerCase())
+                  .filter(Boolean),
+              ),
+            ],
           });
         }}
       >
@@ -154,6 +162,19 @@ export function TransactionEditor({
           />
         </label>
         <ErrorMessage error={action.error} />
+        <label className="label">
+          Labels (comma-separated)
+          <input
+            className="field"
+            name="tags"
+            defaultValue={transaction?.tags?.join(", ") ?? ""}
+            placeholder="groceries, work"
+            maxLength={820}
+          />
+          <span className="text-xs text-text-secondary">
+            Up to 20 labels, 40 characters each.
+          </span>
+        </label>
         <button className="btn" disabled={action.isPending}>
           Save transaction
         </button>

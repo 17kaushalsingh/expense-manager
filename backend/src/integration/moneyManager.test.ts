@@ -11,6 +11,7 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
     let server: Server, base: string, account: string, category: string;
     const clients: SupabaseClient[] = [],
       tokens: string[] = [],
+      extraCategories: string[] = [],
       plans: string[] = [],
       transactions: string[] = [];
     let assetId: string | undefined,
@@ -94,6 +95,7 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       });
       for (const id of transactions)
         expect((await api(`/transactions/${id}`, "DELETE")).status).toBe(204);
+      for (const id of extraCategories) await api(`/categories/${id}`, "DELETE");
       if (category)
         expect((await api(`/categories/${category}`, "DELETE")).status).toBe(
           204,
@@ -529,6 +531,185 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
         ).status,
       ).toBe(200);
       // Archived schedule and occurrence provenance remains on the reserved identity.
+    }, 30000);
+    it("normalizes labels, guards category trees and rolls back mixed-type bulk edits", async () => {
+      const child = await api("/categories", "POST", {
+        name: "Test subcategory",
+        type: "EXPENSE",
+        parentId: category,
+      });
+      expect(child.status, JSON.stringify(child.data)).toBe(201);
+      extraCategories.push(child.data.id);
+      expect(
+        (
+          await api(`/categories/${category}`, "PUT", {
+            name: "Money Manager test",
+            type: "EXPENSE",
+            parentId: child.data.id,
+          })
+        ).status,
+      ).toBe(400);
+      const created = [];
+      for (const type of ["INCOME", "EXPENSE"]) {
+        const t = await api("/transactions", "POST", {
+          type,
+          accountId: account,
+          categoryId: null,
+          amount: 1,
+          dateTime: "2026-11-10T12:00:00Z",
+          tags: [" Travel ", "travel", "WORK"],
+          notes: "Bulk fixture",
+        });
+        expect(t.status).toBe(201);
+        created.push(t.data.id);
+        transactions.push(t.data.id);
+        expect(t.data.tags).toEqual(["travel", "work"]);
+      }
+      expect(
+        (
+          await api(`/transactions/page?accountId=${account}&label=TRAVEL`)
+        ).data.items.filter((t: { id: string }) => created.includes(t.id)),
+      ).toHaveLength(2);
+      expect(
+        (
+          await api("/transactions/bulk", "POST", {
+            ids: created,
+            changes: { categoryId: child.data.id, notes: "Must roll back" },
+          })
+        ).status,
+      ).toBe(400);
+      for (const id of created)
+        expect((await api(`/transactions/${id}`)).data.notes).toBe(
+          "Bulk fixture",
+        );
+      expect(
+        (
+          await api("/transactions/bulk", "POST", {
+            ids: created,
+            changes: { tags: ["shared-label"] },
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await api("/transactions/bulk", "POST", {
+            ids: [created[0], created[0]],
+            delete: true,
+          })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await api("/transactions/bulk", "POST", {
+            ids: [created[0], "66666666-6666-4666-8666-666666666666"],
+            delete: true,
+          })
+        ).status,
+      ).toBe(403);
+      expect((await api(`/categories/${child.data.id}`, "DELETE")).status).toBe(
+        204,
+      );
+    }, 30000);
+    it("posts, replaces and reverses multi-account entries atomically without double-counting analytics", async () => {
+      const cash = (await api("/accounts")).data.find(
+        (a: { isDefault: boolean; type: string }) =>
+          a.isDefault && a.type === "CASH",
+      ).id;
+      const before = Number((await api(`/accounts/${account}`)).data.balance),
+        beforeCash = Number((await api(`/accounts/${cash}`)).data.balance);
+      const input = {
+        type: "EXPENSE",
+        totalAmount: 5.01,
+        currency: "USD",
+        categoryId: category,
+        dateTime: "2026-11-10T12:00:00Z",
+        notes: "Split funding",
+        tags: ["Funding"],
+        requestKey: crypto.randomUUID(),
+        allocations: [
+          { accountId: account, amount: 2.01 },
+          { accountId: cash, amount: 3 },
+        ],
+      };
+      const [a, b] = await Promise.all([
+        api("/transactions/personal-entries", "POST", input),
+        api("/transactions/personal-entries", "POST", input),
+      ]);
+      expect(a.status, JSON.stringify(a.data)).toBe(201);
+      expect(b.data.id).toBe(a.data.id);
+      const id = a.data.id;
+      expect(
+        Number((await api(`/accounts/${account}`)).data.balance),
+      ).toBeCloseTo(before - 2.01, 2);
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        beforeCash - 3,
+        2,
+      );
+      const components = (
+        await clients[0]
+          .from("transactions")
+          .select("id,analytics_amount")
+          .eq("source_type", "PERSONAL_ENTRY")
+          .eq("source_id", id)
+      ).data!;
+      expect(
+        components.reduce((n, t) => n + Number(t.analytics_amount), 0),
+      ).toBeCloseTo(5.01, 2);
+      expect(
+        (
+          await api("/transactions/bulk", "POST", {
+            ids: [components[0].id],
+            delete: true,
+          })
+        ).status,
+      ).toBe(403);
+      expect(
+        (await api(`/transactions/personal-entries/${id}`, "GET", undefined, 1))
+          .status,
+      ).toBe(404);
+      const invalid = await clients[0].rpc("mutate_personal_entry", {
+        p_id: id,
+        p_input: { ...input, tags: ["x".repeat(41)] },
+      });
+      expect(invalid.error).not.toBeNull();
+      expect(
+        Number((await api(`/accounts/${account}`)).data.balance),
+      ).toBeCloseTo(before - 2.01, 2);
+      expect(
+        (
+          await api(`/transactions/personal-entries/${id}`, "PUT", {
+            ...input,
+            totalAmount: 6,
+          })
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await api(`/transactions/personal-entries/${id}`, "PUT", {
+            ...input,
+            allocations: [
+              { accountId: account, amount: 1.01 },
+              { accountId: cash, amount: 4 },
+            ],
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        Number((await api(`/accounts/${account}`)).data.balance),
+      ).toBeCloseTo(before - 1.01, 2);
+      expect(
+        (await api(`/transactions/personal-entries/${id}`, "DELETE")).status,
+      ).toBe(204);
+      expect(
+        (await api(`/transactions/personal-entries/${id}`, "DELETE")).status,
+      ).toBe(204);
+      expect(
+        Number((await api(`/accounts/${account}`)).data.balance),
+      ).toBeCloseTo(before, 2);
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        beforeCash,
+        2,
+      );
     }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,

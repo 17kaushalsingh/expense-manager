@@ -53,6 +53,7 @@ export const updateAccountSchema = createAccountSchema
 export const createCategorySchema = z.object({
   name: nonEmptyString,
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
+  parentId: z.uuid().nullable().optional(),
 });
 
 export const createGroupSchema = z.object({
@@ -74,7 +75,7 @@ export const createTransactionSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE"]),
   amount: money,
   dateTime: z.coerce.date(),
-  tags: z.array(nonEmptyString).optional(),
+  tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
   notes: optionalString,
   attachments: z.array(nonEmptyString).optional(),
 });

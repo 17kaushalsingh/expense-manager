@@ -369,6 +369,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          parent_id: string | null
           type: string
           updated_at: string
           user_id: string | null
@@ -377,6 +378,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          parent_id?: string | null
           type: string
           updated_at?: string
           user_id?: string | null
@@ -385,11 +387,19 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          parent_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_user_id_fkey"
             columns: ["user_id"]
@@ -1253,6 +1263,69 @@ export type Database = {
           },
         ]
       }
+      personal_entries: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          currency: string
+          date_time: string
+          deleted_at: string | null
+          id: string
+          notes: string
+          request_key: string
+          tags: Json
+          total_amount: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          currency: string
+          date_time: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string
+          request_key: string
+          tags?: Json
+          total_amount: number
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          currency?: string
+          date_time?: string
+          deleted_at?: string | null
+          id?: string
+          notes?: string
+          request_key?: string
+          tags?: Json
+          total_amount?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "personal_entries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       personal_loans: {
         Row: {
           archived: boolean
@@ -2081,6 +2154,10 @@ export type Database = {
     Functions: {
       budget_plan_summary: { Args: { p_date?: string }; Returns: Json }
       budget_summary: { Args: { p_month: string }; Returns: Json }
+      bulk_manual_transactions: {
+        Args: { p_delete?: boolean; p_ids: string[]; p_input?: Json }
+        Returns: number
+      }
       copy_budgets: { Args: { p_month: string }; Returns: number }
       create_personal_asset: { Args: { p_input: Json }; Returns: Json }
       create_split_expense_atomic: {
@@ -2175,6 +2252,10 @@ export type Database = {
         Args: { p_action: string; p_id: string; p_input?: Json }
         Returns: Json
       }
+      mutate_personal_entry: {
+        Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
       mutate_split_comment: {
         Args: {
           p_body?: string
@@ -2211,6 +2292,7 @@ export type Database = {
         Returns: Json
       }
       simplify_debts: { Args: { p_group_id?: string }; Returns: Json }
+      transaction_labels: { Args: never; Returns: Json }
       transfer_accounts_atomic: { Args: { p_input: Json }; Returns: Json }
       update_profile: { Args: { p_input: Json }; Returns: Json }
       use_group_invitation: {

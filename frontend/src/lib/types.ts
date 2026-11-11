@@ -14,12 +14,15 @@ export interface Account {
   isDefault: boolean;
 }
 export interface Category {
+  parentId?: string | null;
   id: string;
   name: string;
   type: "INCOME" | "EXPENSE" | "TRANSFER";
   userId: string | null;
 }
 export interface Transaction {
+  tags?: string[] | null;
+  sourceId?: string;
   id: string;
   accountId: string;
   categoryId: string | null;

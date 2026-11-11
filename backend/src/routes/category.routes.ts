@@ -21,7 +21,12 @@ router.post(
         dbResult(
           await req
             .db!.from("categories")
-            .insert({ ...req.body, user_id: req.userId! })
+            .insert({
+              name: req.body.name,
+              type: req.body.type,
+              parent_id: req.body.parentId ?? null,
+              user_id: req.userId!,
+            })
             .select()
             .single(),
         ),
@@ -37,7 +42,13 @@ router.put(
         dbResult(
           await req
             .db!.from("categories")
-            .update(req.body)
+            .update({
+              name: req.body.name,
+              type: req.body.type,
+              ...(req.body.parentId !== undefined
+                ? { parent_id: req.body.parentId }
+                : {}),
+            })
             .eq("id", req.params.id as string)
             .eq("user_id", req.userId!)
             .select()
