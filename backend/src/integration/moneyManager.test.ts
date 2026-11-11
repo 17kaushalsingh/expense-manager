@@ -251,6 +251,145 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
         ).status,
       ).toBe(409);
     }, 30000);
+    it("separates principal and interest, prevents overpayment and reverses retried payments once", async () => {
+      const cash = (await api("/accounts")).data.find(
+        (a: { isDefault: boolean; type: string }) =>
+          a.isDefault && a.type === "CASH",
+      ).id;
+      const before = Number((await api(`/accounts/${cash}`)).data.balance);
+      const input = {
+        name: "Loan integration history",
+        counterparty: "Synthetic fixture",
+        direction: "LENT",
+        principal: 10.01,
+        currency: "USD",
+        startDate: "2026-11-10",
+        firstDueDate: "2026-11-30",
+        frequency: "MONTHLY",
+        installmentCount: 3,
+        accountId: cash,
+        requestKey: crypto.randomUUID(),
+      };
+      const [a, b] = await Promise.all([
+        api("/loans", "POST", input),
+        api("/loans", "POST", input),
+      ]);
+      expect(a.status, JSON.stringify(a.data)).toBe(201);
+      expect(b.data.id).toBe(a.data.id);
+      const loan = a.data.id;
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        before - 10.01,
+        2,
+      );
+      const payment = {
+        principal: 3.34,
+        interest: 1,
+        accountId: cash,
+        dateTime: "2026-11-10T12:00:00Z",
+        requestKey: crypto.randomUUID(),
+      };
+      expect(
+        (await api(`/loans/${loan}/payments`, "POST", payment, 1)).status,
+      ).toBe(404);
+      expect(
+        (
+          await api(`/loans/${loan}/payments`, "POST", {
+            ...payment,
+            principal: 11,
+          })
+        ).status,
+      ).toBe(400);
+      const [p, q] = await Promise.all([
+        api(`/loans/${loan}/payments`, "POST", payment),
+        api(`/loans/${loan}/payments`, "POST", payment),
+      ]);
+      expect(p.status, JSON.stringify(p.data)).toBe(200);
+      expect(q.data.id).toBe(p.data.id);
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        before - 5.67,
+        2,
+      );
+      const summary = (await api("/loans")).data.find(
+        (l: { id: string }) => l.id === loan,
+      );
+      expect(summary.outstanding).toBe(6.67);
+      expect(
+        summary.installments.map((i: { amount: number }) => i.amount),
+      ).toEqual([3.34, 3.34, 3.33]);
+      const tx = (
+        await api(
+          `/transactions/page?accountId=${cash}&sourceType=PERSONAL_LOAN&limit=200`,
+        )
+      ).data.items.filter(
+        (t: { sourceId: string }) => t.sourceId === p.data.id,
+      );
+      expect(tx).toHaveLength(2);
+      expect(
+        tx.reduce(
+          (n: number, t: { analyticsAmount: number }) =>
+            n + Number(t.analyticsAmount),
+          0,
+        ),
+      ).toBe(1);
+      expect((await api(`/transactions/${tx[0].id}`, "DELETE")).status).toBe(
+        400,
+      );
+      expect(
+        (await clients[1].from("personal_loans").select("*").eq("id", loan))
+          .data,
+      ).toEqual([]);
+      const reversals = await Promise.all([
+        api(`/loans/payments/${p.data.id}/reverse`, "POST", {}),
+        api(`/loans/payments/${p.data.id}/reverse`, "POST", {}),
+      ]);
+      expect(reversals.every((r) => r.status === 200)).toBe(true);
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        before - 10.01,
+        2,
+      );
+      expect(
+        (
+          await api(`/loans/${loan}/payments`, "POST", {
+            ...payment,
+            principal: 10.01,
+            interest: 0,
+            requestKey: crypto.randomUUID(),
+          })
+        ).status,
+      ).toBe(200);
+      expect(Number((await api(`/accounts/${cash}`)).data.balance)).toBeCloseTo(
+        before,
+        2,
+      );
+      expect(
+        (
+          await api(`/loans/${loan}`, "PUT", {
+            name: input.name,
+            counterparty: input.counterparty,
+            firstDueDate: input.firstDueDate,
+            frequency: input.frequency,
+            installmentCount: 3,
+            archived: true,
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await clients[0]
+            .from("loan_payments")
+            .insert({
+              user_id: "55555555-5555-4555-8555-555555555555",
+              loan_id: loan,
+              principal: 1,
+              interest: 0,
+              account_id: cash,
+              date_time: payment.dateTime,
+              request_key: crypto.randomUUID(),
+            })
+        ).error,
+      ).not.toBeNull();
+      // Immutable cash history remains on a reserved test identity, fully repaid and archived.
+    }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,
       categoryId: category,

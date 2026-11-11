@@ -4,6 +4,8 @@ import { authenticate, AuthRequest } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
 import { camelCase, dbResult, rpc } from "../db";
 import { HttpError } from "../errors/httpError";
+import { loanWorthRows, loanWorthOn } from "../services/personalFinance";
+import { decimal } from "../utils/money";
 const router = Router();
 router.use(authenticate);
 const amount = z
@@ -127,7 +129,34 @@ router.get("/history", async (req: AuthRequest, res) => {
     .enum(["1W", "1M", "3M", "1Y", "ALL"])
     .safeParse(req.query.range ?? "1M");
   if (!r.success) throw new HttpError(400, "Invalid range");
-  res.json(await rpc(req.db!, "net_worth_history", { p_range: r.data }));
+  const [history, loans] = await Promise.all([
+    rpc<{
+      timezone: string;
+      series: {
+        date: string;
+        accounts: number;
+        assets: number;
+        netWorth: number;
+      }[];
+    }>(req.db!, "net_worth_history", { p_range: r.data }),
+    loanWorthRows(req.db!),
+  ]);
+  res.json({
+    ...history,
+    series: history.series.map((day) => {
+      const loanWorth = loanWorthOn(
+        loans.loans,
+        loans.payments,
+        day.date,
+        history.timezone,
+      );
+      return {
+        ...day,
+        loans: loanWorth.net,
+        netWorth: decimal(day.netWorth).plus(loanWorth.net).toNumber(),
+      };
+    }),
+  });
 });
 const event = z
   .object({

@@ -955,6 +955,70 @@ export type Database = {
           },
         ]
       }
+      loan_payments: {
+        Row: {
+          account_id: string
+          created_at: string
+          date_time: string
+          id: string
+          interest: number
+          loan_id: string
+          notes: string
+          principal: number
+          request_key: string
+          reversed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          date_time: string
+          id?: string
+          interest: number
+          loan_id: string
+          notes?: string
+          principal: number
+          request_key: string
+          reversed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          date_time?: string
+          id?: string
+          interest?: number
+          loan_id?: string
+          notes?: string
+          principal?: number
+          request_key?: string
+          reversed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_payments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "personal_loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       monthly_plans: {
         Row: {
           currency: string
@@ -1033,6 +1097,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "personal_assets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_loans: {
+        Row: {
+          archived: boolean
+          counterparty: string
+          created_at: string
+          currency: string
+          direction: string
+          disbursed: boolean
+          first_due_date: string | null
+          frequency: string
+          id: string
+          installment_count: number
+          name: string
+          notes: string
+          principal: number
+          request_key: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          counterparty: string
+          created_at?: string
+          currency: string
+          direction: string
+          disbursed?: boolean
+          first_due_date?: string | null
+          frequency?: string
+          id?: string
+          installment_count?: number
+          name: string
+          notes?: string
+          principal: number
+          request_key: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          counterparty?: string
+          created_at?: string
+          currency?: string
+          direction?: string
+          disbursed?: boolean
+          first_due_date?: string | null
+          frequency?: string
+          id?: string
+          installment_count?: number
+          name?: string
+          notes?: string
+          principal?: number
+          request_key?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_loans_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1868,6 +2000,10 @@ export type Database = {
         Args: { p_action?: string; p_group_id: string; p_token?: string }
         Returns: Json
       }
+      manage_personal_loan: {
+        Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
       manage_receipt: {
         Args: { p_action: string; p_id?: string; p_input?: Json }
         Returns: Json
@@ -1900,11 +2036,17 @@ export type Database = {
         Returns: Json
       }
       net_worth_history: { Args: { p_range?: string }; Returns: Json }
+      personal_loan_summary: { Args: never; Returns: Json }
       record_event_cost: {
         Args: { p_id: string; p_input: Json }
         Returns: Json
       }
+      record_loan_payment: {
+        Args: { p_input: Json; p_loan_id: string }
+        Returns: Json
+      }
       restore_split_expense_atomic: { Args: { p_id: string }; Returns: Json }
+      reverse_loan_payment: { Args: { p_id: string }; Returns: Json }
       reverse_settlement_atomic: { Args: { p_id: string }; Returns: Json }
       set_group_split_default: {
         Args: { p_group_id: string; p_template_id?: string }

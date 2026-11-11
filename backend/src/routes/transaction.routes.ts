@@ -21,7 +21,7 @@ const filtersSchema = z
     accountId: z.uuid().optional(),
     categoryId: z.uuid().optional(),
     sourceType: z
-      .enum(["MANUAL", "SPLIT", "TRANSFER", "SETTLEMENT"])
+      .enum(["MANUAL", "SPLIT", "TRANSFER", "SETTLEMENT", "PERSONAL_LOAN"])
       .optional(),
     q: z.string().trim().max(200).optional(),
     from: z.iso.datetime().optional(),

@@ -1,4 +1,9 @@
 import { calendarSummary } from "../services/calendar";
+import {
+  localDay,
+  loanWorthRows,
+  loanWorthOn,
+} from "../services/personalFinance";
 import { z } from "zod";
 import { HttpError } from "../errors/httpError";
 import { rpc } from "../db";
@@ -38,26 +43,29 @@ router.get("/net-worth", async (req: AuthRequest, res) => {
       .eq("id", req.userId!)
       .single(),
   );
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: profile!.timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
+  const today = localDay(new Date().toISOString(), profile!.timezone);
   for (const asset of assets) {
     const latest = asset.valuations
       .filter((v) => v.value_date <= today)
       .sort((a, b) => b.value_date.localeCompare(a.value_date))[0];
     if (latest) nonCashAssets = nonCashAssets.plus(latest.value);
   }
+  const loanRows = await loanWorthRows(req.db!);
+  const privateLoans = loanWorthOn(loanRows.loans, loanRows.payments);
   res.json({
     netWorth: decimal(breakdown.assets)
       .plus(breakdown.receivables)
       .minus(breakdown.liabilities)
       .minus(breakdown.payables)
       .plus(nonCashAssets)
+      .plus(privateLoans.net)
       .toNumber(),
-    breakdown: { ...breakdown, nonCashAssets: nonCashAssets.toNumber() },
+    breakdown: {
+      ...breakdown,
+      nonCashAssets: nonCashAssets.toNumber(),
+      privateLending: privateLoans.lent,
+      privateBorrowing: privateLoans.borrowed,
+    },
   });
 });
 router.get("/debt-summary", async (req: AuthRequest, res) => {
