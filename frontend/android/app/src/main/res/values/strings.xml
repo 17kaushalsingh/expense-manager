@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LedgerSync</string>
+    <string name="title_activity_main">LedgerSync</string>
+    <string name="package_name">app.ledgersync.expenses</string>
+    <string name="custom_url_scheme">app.ledgersync.expenses</string>
+<string name="widget_unlock">Open to unlock</string><string name="widget_net">Net worth</string><string name="widget_add">Add expense →</string><string name="widget_description">Private ledger summary and quick entry</string></resources>

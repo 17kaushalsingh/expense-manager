@@ -12,3 +12,18 @@ supabase/.temp/
 supabase/.branches/
 .env.integration.local
 oauth_client_secret.json
+
+# Native generated web assets and local signing/build output
+frontend/out/
+frontend/.next-native/
+frontend/ios/App/App/public/
+frontend/ios/App/App/capacitor.config.json
+frontend/android/app/src/main/assets/public/
+frontend/android/app/src/main/assets/capacitor.config.json
+frontend/android/.gradle/
+frontend/android/**/build/
+frontend/android/local.properties
+*.xcuserstate
+**/xcuserdata/
+*.jks
+*.keystore
