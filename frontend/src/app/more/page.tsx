@@ -2,7 +2,11 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { navigation, navIcons } from "@/components/layout/Sidebar";
+import {
+  navigation,
+  navIcons,
+  mobileNavigation,
+} from "@/components/layout/Sidebar";
 export default function More() {
   return (
     <DashboardLayout>
@@ -12,17 +16,8 @@ export default function More() {
       </header>
       <section className="grouped-list">
         {navigation
-          .filter(([href]) =>
-            [
-              "/accounts",
-              "/shared-expenses",
-              "/settlements",
-              "/deleted-expenses",
-              "/budgets",
-              "/goals",
-              "/categories",
-              "/settings",
-            ].includes(href),
+          .filter(
+            ([href]) => !mobileNavigation.some(([primary]) => primary === href),
           )
           .map(([href, label]) => {
             const Icon = navIcons[href];

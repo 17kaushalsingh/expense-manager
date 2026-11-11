@@ -74,6 +74,20 @@ export default function Goals() {
                   ? "Goal reached!"
                   : `${money(target - saved, g.currency)} to go`}
               </p>
+              <div
+                className="grid grid-cols-4 gap-2"
+                aria-label={`${g.name} milestones`}
+              >
+                {[25, 50, 75, 100].map((percent) => (
+                  <div
+                    key={percent}
+                    className={`text-center rounded-lg p-2 text-xs ${saved >= (target * percent) / 100 ? "bg-positive/10 text-positive" : "bg-surface-secondary text-text-secondary"}`}
+                  >
+                    {saved >= (target * percent) / 100 ? "✓ " : ""}
+                    {percent}%
+                  </div>
+                ))}
+              </div>
               <div className="flex gap-2">
                 <button className="btn-secondary" onClick={() => setEdit(g)}>
                   Edit

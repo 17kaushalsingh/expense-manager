@@ -56,9 +56,10 @@ function Transactions() {
       search.get("view") === "calendar" ? "calendar" : "daily",
     ),
     [chosenMonth, setMonth] = useState<string | undefined>(
-      search.get("accountId") ? "" : undefined,
+      search.get("onDate")?.slice(0, 7) ??
+        (search.get("accountId") ? "" : undefined),
     ),
-    [day, setDay] = useState("");
+    [day, setDay] = useState(search.get("onDate") ?? "");
   const month = chosenMonth ?? monthIn(timezone),
     calendarMonth = month || monthIn(timezone);
   const [filters, setFilters] = useState({

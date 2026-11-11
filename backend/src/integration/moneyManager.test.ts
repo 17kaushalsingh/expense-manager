@@ -792,6 +792,34 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       ).toBe(204);
       expect((await api(`/accounts/${id}`, "DELETE")).status).toBe(204);
     }, 30000);
+    it("exports private reports as real PDF and Excel files using personal analytics", async () => {
+      const path = `/reports?fromDate=2026-11-01&toDate=2026-11-30&accountId=${account}`;
+      const report = await api(path);
+      expect(report.status, JSON.stringify(report.data)).toBe(200);
+      expect(report.data.currency).toBe("USD");
+      expect(report.data.timezone).toBe("Asia/Kolkata");
+      expect(report.data.income).toBe(1);
+      expect(report.data.expense).toBe(16);
+      const outsider = await api(path, "GET", undefined, 1);
+      expect(outsider.data.transactions).toEqual([]);
+      for (const format of ["pdf", "xlsx"]) {
+        const response = await fetch(`${base}${path}&format=${format}`, {
+          headers: { Authorization: `Bearer ${tokens[0]}` },
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        const data = Buffer.from(await response.arrayBuffer());
+        expect(data.subarray(0, format === "pdf" ? 5 : 2).toString()).toBe(
+          format === "pdf" ? "%PDF-" : "PK",
+        );
+        expect(response.headers.get("content-disposition")).toContain(
+          `.${format}`,
+        );
+      }
+      expect(
+        (await api("/reports?fromDate=2026-11-30&toDate=2026-11-01")).status,
+      ).toBe(400);
+    }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,
       categoryId: category,
