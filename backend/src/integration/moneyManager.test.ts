@@ -13,6 +13,9 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       tokens: string[] = [],
       plans: string[] = [],
       transactions: string[] = [];
+    let assetId: string | undefined,
+      eventId: string | undefined,
+      costId: string | undefined;
     let priorPayday = 1,
       monthlyPlan: string | undefined;
     async function api(
@@ -72,6 +75,14 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       priorPayday = (await api("/personal-planning/preferences")).data.payDay;
     }, 30000);
     afterAll(async () => {
+      if (eventId)
+        expect((await api(`/wealth/events/${eventId}`, "DELETE")).status).toBe(
+          204,
+        );
+      if (assetId)
+        expect((await api(`/wealth/assets/${assetId}`, "DELETE")).status).toBe(
+          204,
+        );
       for (const id of plans)
         expect(
           (await api(`/personal-planning/budget-plans/${id}`, "DELETE")).status,
@@ -93,6 +104,153 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       if (server)
         await new Promise<void>((resolve) => server.close(() => resolve()));
     }, 60000);
+    it("keeps valuation histories private and changes net worth without changing cash flow", async () => {
+      const beforeWorth = Number(
+        (await api("/analytics/net-worth")).data.netWorth,
+      );
+      const beforeBalance = (await api(`/accounts/${account}`)).data.balance;
+      const a = await api("/wealth/assets", "POST", {
+        name: "Test vehicle",
+        kind: "VEHICLE",
+        currency: "USD",
+        value: 200,
+        valueDate: "2026-01-01",
+      });
+      expect(a.status, JSON.stringify(a.data)).toBe(201);
+      assetId = a.data.id;
+      expect(
+        Number((await api("/analytics/net-worth")).data.netWorth),
+      ).toBeCloseTo(beforeWorth + 200, 2);
+      expect(
+        (
+          await api(`/wealth/assets/${assetId}/valuations`, "PUT", {
+            value: 250,
+            valueDate: "2026-02-01",
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        Number((await api("/analytics/net-worth")).data.netWorth),
+      ).toBeCloseTo(beforeWorth + 250, 2);
+      expect((await api(`/accounts/${account}`)).data.balance).toBe(
+        beforeBalance,
+      );
+      expect(
+        (await clients[1].from("personal_assets").select("*").eq("id", assetId))
+          .data,
+      ).toEqual([]);
+      expect(
+        (
+          await api(
+            `/wealth/assets/${assetId}/valuations`,
+            "PUT",
+            { value: 10, valueDate: "2026-02-01" },
+            1,
+          )
+        ).status,
+      ).toBe(400);
+      expect(
+        (
+          await api("/wealth/assets", "POST", {
+            name: "Must roll back",
+            kind: "OTHER",
+            currency: "USD",
+            value: 10,
+            valueDate: "2099-01-01",
+          })
+        ).status,
+      ).toBe(400);
+      expect(
+        (await api("/wealth/assets")).data.some(
+          (r: { name: string }) => r.name === "Must roll back",
+        ),
+      ).toBe(false);
+      const history = await api("/wealth/history?range=1W");
+      expect(history.status, JSON.stringify(history.data)).toBe(200);
+      expect(history.data.series).toHaveLength(7);
+      expect(Number(history.data.series.at(-1).assets)).toBeGreaterThanOrEqual(
+        250,
+      );
+    }, 30000);
+    it("posts planned event costs once under concurrent retries and rolls back failures", async () => {
+      const e = await api("/wealth/events", "POST", {
+        name: "Test trip",
+        kind: "TRIP",
+        startDate: "2026-11-10",
+        endDate: "2026-11-15",
+        amount: 100,
+        currency: "USD",
+      });
+      expect(e.status).toBe(201);
+      eventId = e.data.id;
+      const c = await api(`/wealth/events/${eventId}/costs`, "POST", {
+        name: "Test hotel",
+        amount: 20,
+        categoryId: category,
+      });
+      expect(c.status, JSON.stringify(c.data)).toBe(201);
+      costId = c.data.id;
+      const before = Number((await api(`/accounts/${account}`)).data.balance);
+      const input = {
+        accountId: account,
+        amount: 15,
+        dateTime: "2026-11-10T12:00:00Z",
+      };
+      const denied = await api(
+        `/wealth/costs/${costId}/record`,
+        "POST",
+        input,
+        1,
+      );
+      expect(denied.status).toBe(404);
+      expect(
+        (
+          await api(`/wealth/costs/${costId}/record`, "POST", {
+            ...input,
+            accountId: "66666666-6666-4666-8666-666666666666",
+          })
+        ).status,
+      ).toBe(400);
+      const [a, b] = await Promise.all([
+        api(`/wealth/costs/${costId}/record`, "POST", input),
+        api(`/wealth/costs/${costId}/record`, "POST", input),
+      ]);
+      expect(a.status, JSON.stringify(a.data)).toBe(200);
+      expect(b.status).toBe(200);
+      expect(a.data.id).toBe(b.data.id);
+      transactions.push(a.data.id);
+      expect(
+        Number((await api(`/accounts/${account}`)).data.balance),
+      ).toBeCloseTo(before - 15, 2);
+      const summary = (await api("/wealth/events")).data.find(
+        (r: { id: string }) => r.id === eventId,
+      );
+      expect(Number(summary.spent)).toBe(15);
+      expect(Number(summary.planned)).toBe(20);
+      expect(
+        (
+          await clients[1]
+            .from("event_planned_costs")
+            .select("*")
+            .eq("id", costId)
+        ).data,
+      ).toEqual([]);
+      expect(
+        (
+          await clients[0]
+            .from("event_planned_costs")
+            .update({ recorded_transaction_id: null })
+            .eq("id", costId)
+        ).error,
+      ).not.toBeNull();
+      expect(
+        (
+          await api(`/wealth/events/${eventId}/transactions`, "POST", {
+            transactionId: a.data.id,
+          })
+        ).status,
+      ).toBe(409);
+    }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,
       categoryId: category,

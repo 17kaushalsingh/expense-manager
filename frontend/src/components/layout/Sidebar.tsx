@@ -29,6 +29,8 @@ export const navigation = [
   ["/budgets", "Budgets"],
   ["/planner", "Financial plan"],
   ["/goals", "Savings goals"],
+  ["/wealth", "Wealth & assets"],
+  ["/events", "Trips & events"],
   ["/categories", "Categories"],
   ["/settings", "Settings"],
 ];
@@ -44,6 +46,8 @@ export const navIcons: Record<string, LucideIcon> = {
   "/budgets": CalendarDays,
   "/planner": CalendarDays,
   "/goals": Target,
+  "/wealth": ChartNoAxesCombined,
+  "/events": CalendarDays,
   "/categories": Shapes,
   "/settings": Settings,
   "/more": Ellipsis,

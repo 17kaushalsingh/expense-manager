@@ -24,13 +24,40 @@ router.get("/net-worth", async (req: AuthRequest, res) => {
             : "assets";
     breakdown[key] = decimal(breakdown[key]).plus(a.balance).toNumber();
   }
+  let nonCashAssets = decimal(0);
+  const assets =
+    dbResult(
+      await req
+        .db!.from("personal_assets")
+        .select("valuations:asset_valuations(value_date,value)"),
+    ) ?? [];
+  const profile = dbResult(
+    await req
+      .db!.from("users")
+      .select("timezone")
+      .eq("id", req.userId!)
+      .single(),
+  );
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: profile!.timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  for (const asset of assets) {
+    const latest = asset.valuations
+      .filter((v) => v.value_date <= today)
+      .sort((a, b) => b.value_date.localeCompare(a.value_date))[0];
+    if (latest) nonCashAssets = nonCashAssets.plus(latest.value);
+  }
   res.json({
     netWorth: decimal(breakdown.assets)
       .plus(breakdown.receivables)
       .minus(breakdown.liabilities)
       .minus(breakdown.payables)
+      .plus(nonCashAssets)
       .toNumber(),
-    breakdown,
+    breakdown: { ...breakdown, nonCashAssets: nonCashAssets.toNumber() },
   });
 });
 router.get("/debt-summary", async (req: AuthRequest, res) => {

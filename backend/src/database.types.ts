@@ -61,6 +61,51 @@ export type Database = {
           },
         ]
       }
+      asset_valuations: {
+        Row: {
+          asset_id: string
+          id: string
+          notes: string
+          updated_at: string
+          user_id: string
+          value: number
+          value_date: string
+        }
+        Insert: {
+          asset_id: string
+          id?: string
+          notes?: string
+          updated_at?: string
+          user_id: string
+          value: number
+          value_date: string
+        }
+        Update: {
+          asset_id?: string
+          id?: string
+          notes?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+          value_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_valuations_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "personal_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_valuations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -287,6 +332,117 @@ export type Database = {
           },
         ]
       }
+      event_planned_costs: {
+        Row: {
+          amount: number
+          category_id: string | null
+          event_id: string
+          id: string
+          is_completed: boolean
+          name: string
+          recorded_transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          event_id: string
+          id?: string
+          is_completed?: boolean
+          name: string
+          recorded_transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          event_id?: string
+          id?: string
+          is_completed?: boolean
+          name?: string
+          recorded_transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_planned_costs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_planned_costs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "finance_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_planned_costs_recorded_transaction_id_fkey"
+            columns: ["recorded_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_planned_costs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_transactions: {
+        Row: {
+          event_id: string
+          id: string
+          transaction_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          transaction_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          transaction_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_transactions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "finance_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_transactions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_drafts: {
         Row: {
           created_at: string
@@ -421,6 +577,59 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "split_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_events: {
+        Row: {
+          amount: number
+          archived: boolean
+          created_at: string
+          currency: string
+          end_date: string
+          id: string
+          kind: string
+          name: string
+          notes: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          archived?: boolean
+          created_at?: string
+          currency: string
+          end_date: string
+          id?: string
+          kind: string
+          name: string
+          notes?: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          archived?: boolean
+          created_at?: string
+          currency?: string
+          end_date?: string
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -780,6 +989,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "monthly_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      personal_assets: {
+        Row: {
+          archived: boolean
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          name: string
+          notes: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          currency: string
+          id?: string
+          kind: string
+          name: string
+          notes?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          name?: string
+          notes?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_assets_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -1548,6 +1801,7 @@ export type Database = {
       budget_plan_summary: { Args: { p_date?: string }; Returns: Json }
       budget_summary: { Args: { p_month: string }; Returns: Json }
       copy_budgets: { Args: { p_month: string }; Returns: number }
+      create_personal_asset: { Args: { p_input: Json }; Returns: Json }
       create_split_expense_atomic: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json }
         Returns: Json
@@ -1567,6 +1821,7 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
+      event_finance_summary: { Args: never; Returns: Json }
       execute_settlement_atomic: { Args: { p_input: Json }; Returns: Json }
       group_financial_summary: {
         Args: { p_group_id: string; p_month?: string }
@@ -1642,6 +1897,11 @@ export type Database = {
       }
       mutate_transaction_atomic: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
+      net_worth_history: { Args: { p_range?: string }; Returns: Json }
+      record_event_cost: {
+        Args: { p_id: string; p_input: Json }
         Returns: Json
       }
       restore_split_expense_atomic: { Args: { p_id: string }; Returns: Json }

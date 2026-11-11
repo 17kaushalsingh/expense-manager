@@ -6,6 +6,7 @@ import { jsonReplacer } from "./utils/money";
 
 import planningRouter from "./routes/planning.routes";
 import personalPlanningRouter from "./routes/personalPlanning.routes";
+import wealthRouter from "./routes/wealth.routes";
 import collaborationRouter from "./routes/collaboration.routes";
 import accountRouter from "./routes/account.routes";
 import analyticsRouter from "./routes/analytics.routes";
@@ -45,6 +46,7 @@ app.use("/api/users", userRouter);
 app.use("/api/accounts", accountRouter);
 app.use("/api/planning", planningRouter);
 app.use("/api/personal-planning", personalPlanningRouter);
+app.use("/api/wealth", wealthRouter);
 app.use("/api/collaboration", collaborationRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/transactions", transactionRouter);
