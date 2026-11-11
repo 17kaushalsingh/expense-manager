@@ -5,7 +5,7 @@
   --surface-primary: #ffffff;
   --surface-secondary: #eef1ef;
   --border-soft: #e7eae8;
-  --brand-primary: #42745b;
+  --brand-primary: var(--accent-light, #42745b);
   --positive: #427c65;
   --negative: #b95560;
   --text-primary: #222a2c;
@@ -19,7 +19,7 @@
     --surface-primary: #1b2420;
     --surface-secondary: #243029;
     --border-soft: #303c35;
-    --brand-primary: #83b49b;
+    --brand-primary: var(--accent-dark, #83b49b);
     --positive: #8bc7a6;
     --negative: #ec969b;
     --text-primary: #edf2ef;
@@ -33,12 +33,52 @@
   --surface-primary: #1b2420;
   --surface-secondary: #243029;
   --border-soft: #303c35;
-  --brand-primary: #83b49b;
+  --brand-primary: var(--accent-dark, #83b49b);
   --positive: #8bc7a6;
   --negative: #ec969b;
   --text-primary: #edf2ef;
   --text-secondary: #9eaaa3;
   --sage-soft: #263c30;
+}
+:root[data-accent="blue"] {
+  --accent-light: #3d658c;
+  --accent-dark: #a3c8ec;
+  --accent-button: #3d658c;
+}
+:root[data-accent="rose"] {
+  --accent-light: #99555d;
+  --accent-dark: #edb2b9;
+  --accent-button: #99555d;
+}
+:root[data-accent="amber"] {
+  --accent-light: #8b641d;
+  --accent-dark: #e5c17d;
+  --accent-button: #8b641d;
+}
+:root[data-accent="plum"] {
+  --accent-light: #785681;
+  --accent-dark: #d0b0db;
+  --accent-button: #785681;
+}
+.accent-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #42745b;
+}
+.accent-swatch.blue {
+  background: #3d658c;
+}
+.accent-swatch.rose {
+  background: #99555d;
+}
+.accent-swatch.amber {
+  background: #8b641d;
+}
+.accent-swatch.plum {
+  background: #785681;
 }
 @theme inline {
   --color-bg-base: var(--bg-base);
@@ -148,7 +188,7 @@ dialog::backdrop {
   }
   .btn {
     @apply inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed;
-    background: #4f806b;
+    background: var(--accent-button, #4f806b);
     min-height: 42px;
     transition:
       filter 0.15s,

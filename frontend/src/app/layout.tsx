@@ -33,7 +33,7 @@ export default function RootLayout({
         <script
           id="appearance"
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('ledgersync-appearance')||'light';if(['light','dark','system'].includes(t))document.documentElement.dataset.theme=t}catch{document.documentElement.dataset.theme='light'}`,
+            __html: `try{var t=localStorage.getItem('ledgersync-appearance')||'light';if(['light','dark','system'].includes(t))document.documentElement.dataset.theme=t;var a=localStorage.getItem('ledgersync-accent')||'sage';if(['sage','blue','rose','amber','plum'].includes(a))document.documentElement.dataset.accent=a}catch{document.documentElement.dataset.theme='light'}`,
           }}
         />
       </head>
