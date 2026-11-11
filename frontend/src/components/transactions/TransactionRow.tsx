@@ -76,7 +76,15 @@ export function TransactionRow({
       <span
         className={`text-[13px] tabular-nums font-semibold shrink-0 ${t.type === "INCOME" ? "text-positive" : t.type === "EXPENSE" ? "text-negative" : "text-text-secondary"}`}
       >
-        {t.type === "INCOME" ? "+" : t.type === "EXPENSE" ? "−" : ""}
+        {t.type === "INCOME"
+          ? "+"
+          : t.type === "EXPENSE"
+            ? "−"
+            : Number(t.balanceDelta) > 0
+              ? "+"
+              : Number(t.balanceDelta) < 0
+                ? "−"
+                : ""}
         {money(t.amount, t.account?.currency)}
       </span>
       {onClick && <ChevronRight size={13} className="text-text-secondary/50" />}

@@ -67,7 +67,7 @@ export function Confirm({
   error?: unknown;
 }) {
   return (
-    <Modal title="Confirm deletion" onClose={onClose}>
+    <Modal title="Confirm deletion" onClose={onClose} busy={busy}>
       <p>{message}</p>
       <ErrorMessage error={error} />
       <button className="btn bg-negative" disabled={busy} onClick={onConfirm}>

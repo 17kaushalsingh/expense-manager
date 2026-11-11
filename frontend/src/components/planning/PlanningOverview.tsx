@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useResource } from "@/hooks/useResource";
 import { useFormat } from "@/lib/format";
-import { monthIn } from "@/lib/calendar";
+import { monthIn, dayIn } from "@/lib/calendar";
 import { ErrorMessage } from "@/components/ui/Controls";
 export function PlanningOverview() {
   const { money, timezone } = useFormat();
@@ -17,19 +17,50 @@ export function PlanningOverview() {
   >(`/planning/budgets?month=${monthIn(timezone)}`);
   const alerts =
     rows.data?.filter((b) => Number(b.spent) >= Number(b.amount) * 0.8) ?? [];
+  const plans = useResource<
+    {
+      id: string;
+      name: string;
+      effectiveAmount: number;
+      spent: number;
+      currency: string;
+      archived: boolean;
+      alertsEnabled: boolean;
+      periodStart: string | null;
+    }[]
+  >(
+    `/personal-planning/budget-plans?date=${dayIn(new Date().toISOString(), timezone)}`,
+  );
+  const planAlerts =
+    plans.data?.filter(
+      (p) =>
+        !p.archived &&
+        p.alertsEnabled &&
+        p.periodStart &&
+        Number(p.spent) >= Number(p.effectiveAmount) * 0.8,
+    ) ?? [];
   return (
     <section className="panel space-y-3">
       <div className="flex justify-between gap-3">
         <h2 className="font-semibold text-lg">Your financial plan</h2>
-        <Link className="text-brand-primary" href="/budgets">
-          Budgets
+        <Link className="text-brand-primary" href="/planner">
+          Review plan
         </Link>
       </div>
-      <ErrorMessage error={rows.error} />
-      {rows.isLoading ? (
+      <ErrorMessage error={rows.error || plans.error} />
+      {rows.isLoading || plans.isLoading ? (
         <p>Checking this month’s budgets…</p>
-      ) : alerts.length ? (
-        alerts.map((b) => (
+      ) : alerts.length || planAlerts.length ? (
+        [
+          ...alerts,
+          ...planAlerts.map((p) => ({
+            id: p.id,
+            categoryName: p.name,
+            spent: p.spent,
+            amount: p.effectiveAmount,
+            currency: p.currency,
+          })),
+        ].map((b) => (
           <p
             key={b.id}
             className={
@@ -44,9 +75,9 @@ export function PlanningOverview() {
         ))
       ) : (
         <p className="text-text-secondary">
-          {rows.data?.length
+          {rows.data?.length || plans.data?.length
             ? "All budgets are below 80% of their limits."
-            : "Set monthly limits to see spending alerts here."}
+            : "Set spending limits to see budget alerts here."}
         </p>
       )}
       <Link href="/goals" className="text-brand-primary text-sm">

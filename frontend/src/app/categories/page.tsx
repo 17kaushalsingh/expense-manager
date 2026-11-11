@@ -100,6 +100,7 @@ function CategoryEditor({
     <Modal
       title={category ? "Edit category" : "New category"}
       onClose={onClose}
+      busy={action.isPending}
     >
       <form
         className="space-y-4"

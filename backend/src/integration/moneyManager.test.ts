@@ -12,6 +12,8 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
     const clients: SupabaseClient[] = [],
       tokens: string[] = [],
       extraCategories: string[] = [],
+      extraPlans: string[] = [],
+      extraBudgets: string[] = [],
       plans: string[] = [],
       transactions: string[] = [];
     let assetId: string | undefined,
@@ -84,12 +86,14 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
         expect((await api(`/wealth/assets/${assetId}`, "DELETE")).status).toBe(
           204,
         );
-      for (const id of plans)
+      for (const id of [...plans, ...extraPlans])
         expect(
           (await api(`/personal-planning/budget-plans/${id}`, "DELETE")).status,
         ).toBe(204);
       if (monthlyPlan)
         await api(`/personal-planning/monthly-plan/${monthlyPlan}`, "DELETE");
+      for (const id of extraBudgets)
+        await api(`/planning/budgets/${id}`, "DELETE");
       await api("/personal-planning/preferences", "PUT", {
         payDay: priorPayday,
       });
@@ -461,6 +465,13 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
           })
         ).status,
       ).toBe(200);
+      expect(
+        (
+          await api(`/bills/occurrences/${occurrence}/postpone`, "POST", {
+            reviewDate: "1900-01-01",
+          })
+        ).status,
+      ).toBe(400);
       const post = {
         accountId: account,
         amount: 8,
@@ -819,6 +830,65 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
       expect(
         (await api("/reports?fromDate=2026-11-30&toDate=2026-11-01")).status,
       ).toBe(400);
+    }, 30000);
+    it("includes subcategory expenses in parent budgets and keeps report category identities distinct", async () => {
+      const c = await api("/categories", "POST", {
+        name: "Parent budget child",
+        type: "EXPENSE",
+        parentId: category,
+      });
+      expect(c.status).toBe(201);
+      extraCategories.push(c.data.id);
+      const t = await api("/transactions", "POST", {
+        type: "EXPENSE",
+        accountId: account,
+        categoryId: c.data.id,
+        amount: 2.01,
+        dateTime: "2040-02-15T12:00:00Z",
+      });
+      expect(t.status).toBe(201);
+      transactions.push(t.data.id);
+      const old = await api("/planning/budgets", "POST", {
+        month: "2040-02-01",
+        categoryId: category,
+        amount: 10,
+        currency: "USD",
+      });
+      expect(old.status).toBe(201);
+      extraBudgets.push(old.data.id);
+      const plan = await api("/personal-planning/budget-plans", "POST", {
+        name: "Parent rollup",
+        categoryId: category,
+        amount: 10,
+        currency: "USD",
+        frequency: "MONTHLY",
+        startDate: "2040-02-01",
+      });
+      expect(plan.status).toBe(201);
+      extraPlans.push(plan.data.id);
+      expect(
+        Number(
+          (await api("/planning/budgets?month=2040-02")).data.find(
+            (b: { id: string }) => b.id === old.data.id,
+          ).spent,
+        ),
+      ).toBe(2.01);
+      expect(
+        Number(
+          (
+            await api("/personal-planning/budget-plans?date=2040-02-15")
+          ).data.find((b: { id: string }) => b.id === plan.data.id).spent,
+        ),
+      ).toBe(2.01);
+      const report = await api(
+        `/reports?fromDate=2040-02-01&toDate=2040-02-29&accountId=${account}`,
+      );
+      expect(report.status).toBe(200);
+      expect(report.data.categories).toContainEqual({
+        id: c.data.id,
+        name: "Money Manager test / Parent budget child",
+        amount: 2.01,
+      });
     }, 30000);
     const body = (frequency = "MONTHLY") => ({
       name: `Plan ${frequency}`,

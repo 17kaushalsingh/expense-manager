@@ -41,7 +41,18 @@ async function request<T>(
   }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: res.statusText }));
-    throw new ApiError(error.error || "Request failed", res.status);
+    const issues = Array.isArray(error.issues)
+      ? error.issues
+          .map(
+            (issue: { path?: string; message?: string }) =>
+              `${issue.path ? `${issue.path}: ` : ""}${issue.message || "Invalid value"}`,
+          )
+          .join("; ")
+      : "";
+    throw new ApiError(
+      `${error.error || "Request failed"}${issues ? `: ${issues}` : ""}`,
+      res.status,
+    );
   }
   return res.status === 204
     ? (null as T)

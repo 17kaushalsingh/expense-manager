@@ -23,7 +23,11 @@ export function AddAccountModal({
   );
   if (!isOpen) return null;
   return (
-    <Modal title={account ? "Edit account" : "New account"} onClose={onClose}>
+    <Modal
+      title={account ? "Edit account" : "New account"}
+      onClose={onClose}
+      busy={action.isPending}
+    >
       <form
         className="space-y-4"
         onSubmit={(e) => {

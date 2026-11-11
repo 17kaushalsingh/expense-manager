@@ -69,16 +69,19 @@ export default function Bills() {
         ),
       () => setDecision(undefined),
     );
-  const today = dayIn(new Date().toISOString(), timezone),
-    tomorrow = new Date(`${today}T12:00:00Z`);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const today = dayIn(new Date().toISOString(), timezone);
   const upcoming =
-    bills.data?.filter(
-      (b) =>
+    bills.data?.filter((b) => {
+      const localTomorrow = new Date(
+        `${dayIn(new Date().toISOString(), b.timezone)}T12:00:00Z`,
+      );
+      localTomorrow.setUTCDate(localTomorrow.getUTCDate() + 1);
+      return (
         b.status === "ACTIVE" &&
         b.nextDueDate &&
-        b.nextDueDate <= tomorrow.toISOString().slice(0, 10),
-    ) ?? [];
+        b.nextDueDate <= localTomorrow.toISOString().slice(0, 10)
+      );
+    }) ?? [];
   return (
     <DashboardLayout>
       <header className="flex flex-wrap justify-between gap-4">
@@ -657,6 +660,7 @@ function RecordBill({
   );
 }
 function Postpone({ row, onClose }: { row: Occurrence; onClose: () => void }) {
+  const today = dayIn(new Date().toISOString(), row.timezone);
   const action = useAction(
     (reviewDate: string) =>
       apiClient.post(`/bills/occurrences/${row.id}/postpone`, { reviewDate }),
@@ -681,7 +685,8 @@ function Postpone({ row, onClose }: { row: Occurrence; onClose: () => void }) {
             className="field"
             name="date"
             type="date"
-            defaultValue={row.reviewDate}
+            defaultValue={row.reviewDate < today ? today : row.reviewDate}
+            min={today}
             required
           />
         </label>

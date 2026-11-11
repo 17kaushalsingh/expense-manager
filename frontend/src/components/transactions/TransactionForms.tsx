@@ -35,6 +35,7 @@ export function TransactionEditor({
     <Modal
       title={transaction ? "Edit transaction" : "Add transaction"}
       onClose={onClose}
+      busy={action.isPending}
     >
       {calculator && (
         <AmountCalculator
@@ -201,7 +202,11 @@ export function Transfer({
     onClose,
   );
   return (
-    <Modal title="Transfer between accounts" onClose={onClose}>
+    <Modal
+      title="Transfer between accounts"
+      onClose={onClose}
+      busy={action.isPending}
+    >
       <form
         className="space-y-4"
         onSubmit={(e) => {
