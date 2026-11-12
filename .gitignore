@@ -27,3 +27,6 @@ frontend/android/local.properties
 **/xcuserdata/
 *.jks
 *.keystore
+frontend/.native-build-*/
+frontend/ios/App/CapacitorSDK/Frameworks/
+frontend/ios/App/CapacitorSDK/.prepare-*/

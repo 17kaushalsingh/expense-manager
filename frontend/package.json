@@ -8,9 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "native:build": "node scripts/build-native.mjs",
-    "native:sync": "npm run native:build && cap sync",
+    "native:sync": "npm run native:build && cap sync && node scripts/configure-ios-widget.mjs",
     "native:ios": "cap open ios",
-    "native:android": "cap open android"
+    "native:android": "cap open android",
+    "native:icons": "node scripts/native-icons.mjs",
+    "native:sdk": "node scripts/prepare-ios-sdk.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",

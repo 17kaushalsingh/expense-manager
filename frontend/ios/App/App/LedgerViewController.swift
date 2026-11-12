@@ -1,4 +1,7 @@
 import Capacitor
 public final class LedgerViewController: CAPBridgeViewController {
-    override public func capacitorDidLoad() { bridge?.registerPluginInstance(LedgerWidgetPlugin()) }
+    override public func capacitorDidLoad() {
+        bridge?.registerPluginInstance(LedgerWidgetPlugin())
+        bridge?.registerPluginInstance(LedgerFilesPlugin())
+    }
 }
