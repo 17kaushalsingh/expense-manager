@@ -66,9 +66,10 @@ router.get("/export", async (req: AuthRequest, res) => {
   }
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.flushHeaders();
-  const output = JSON.stringify({ ...snapshot, attachments });
+  // Chunk encoded bytes, preserving astral Unicode characters at chunk boundaries.
+  const output = Buffer.from(JSON.stringify({ ...snapshot, attachments }), "utf8");
   for (let offset = 0; offset < output.length; offset += 32768) {
-    if (!res.write(output.slice(offset, offset + 32768)))
+    if (!res.write(output.subarray(offset, offset + 32768)))
       await new Promise<void>((resolve) => res.once("drain", resolve));
   }
   res.end();
