@@ -1,11 +1,21 @@
 "use client";
+import { resolveReferences, acknowledge } from "@/lib/device/syncState";
+import { DeviceReports } from "./DeviceReports";
+import { DeviceShared } from "./DeviceShared";
+import {
+  prepareReceipt,
+  attachReceipt,
+  removeReceipt,
+  syncReceipt,
+} from "@/lib/device/receipts";
+import { DeviceFinance } from "./DeviceFinance";
 import { T } from "@/components/i18n/Language";
 import Link from "next/link";
 import { useState, useSyncExternalStore, useEffect } from "react";
 import {
   workspace,
   subscribe,
-  changeWorkspace,
+  changeWorkspace as changeStoredWorkspace,
   Workspace,
 } from "@/lib/device/vault";
 import { queueCommand, ledgerSummary } from "@/lib/device/ledger";
@@ -13,7 +23,7 @@ import { LanguageSettings, useLocale } from "@/components/i18n/Language";
 import { DeviceSecurity } from "./DeviceSecurity";
 import { ErrorMessage } from "@/components/ui/Controls";
 import { apiClient } from "@/lib/api/client";
-import { base64, checksum, unbase64 } from "@/lib/device/crypto";
+import { unbase64 } from "@/lib/device/crypto";
 const ordinary = (rows: Record<string, unknown>[] | undefined) =>
   (rows ?? []).filter(
     (a) =>
@@ -26,6 +36,7 @@ export function DeviceWorkspace() {
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState("");
+  const [multi, setMulti] = useState(false);
   const [online, setOnline] = useState(true),
     [edit, setEdit] = useState<Record<string, unknown>>();
   useEffect(() => {
@@ -53,6 +64,8 @@ export function DeviceWorkspace() {
         <DeviceSecurity />
       </main>
     );
+  const changeWorkspace = (mutate: (copy: Workspace) => void) =>
+    changeStoredWorkspace(mutate, w.id);
   const current = w,
     money = (n: unknown) =>
       new Intl.NumberFormat(locale, {
@@ -99,40 +112,26 @@ export function DeviceWorkspace() {
       const mapping =
         (active as Workspace & { resolvedIds?: Record<string, string> })
           .resolvedIds ?? {};
-      const replace = (v: unknown): unknown =>
-        typeof v === "string"
-          ? (mapping[v] ?? v)
-          : Array.isArray(v)
-            ? v.map(replace)
-            : v && typeof v === "object"
-              ? Object.fromEntries(
-                  Object.entries(v).map(([k, x]) => [k, replace(x)]),
-                )
-              : v;
       try {
+        if (cmd.kind.startsWith("RECEIPT_")) {
+          await syncReceipt(active, cmd, mapping);
+          await changeWorkspace((copy) => {
+            copy.commands = copy.commands.filter((c) => c.id !== cmd.id);
+          });
+          continue;
+        }
         const result = await apiClient.post<{
           id?: string;
           updatedAt?: string;
+          rowVersion?: string;
         }>("/portability/commands", {
           id: cmd.id,
+          ownerId: current.ownerId,
           kind: cmd.kind,
-          payload: replace(cmd.payload),
+          payload: resolveReferences(cmd.payload, mapping),
           expectedUpdatedAt: cmd.expectedUpdatedAt,
         });
-        await changeWorkspace((copy) => {
-          const map = ((
-            copy as Workspace & { resolvedIds?: Record<string, string> }
-          ).resolvedIds ??= {});
-          if (result?.id) map[cmd.id] = result.id;
-          copy.commands = copy.commands.filter((c) => c.id !== cmd.id);
-          for (const c of copy.commands)
-            if (
-              (c.payload.id === cmd.id ||
-                (cmd.payload.id && c.payload.id === cmd.payload.id)) &&
-              result?.updatedAt
-            )
-              c.expectedUpdatedAt = result.updatedAt;
-        });
+        await changeWorkspace((copy) => acknowledge(copy, cmd, result));
       } catch (e) {
         await changeWorkspace((copy) => {
           const c = copy.commands.find((c) => c.id === cmd.id);
@@ -163,9 +162,18 @@ export function DeviceWorkspace() {
     "Activity",
     "Accounts",
     "Categories",
-    ...(w.mode === "LOCAL"
-      ? ["Plans", "Assets", "Reminders"]
-      : ["Snapshot", "Pending"]),
+    "Reports",
+    "Plans",
+    "Assets",
+    "Valuations",
+    "Goals",
+    "Loans",
+    "Bills",
+    "Events",
+    "Event costs",
+    "Cards",
+    "Reminders",
+    ...(w.mode === "CLOUD" ? ["Shared", "Snapshot", "Pending"] : []),
     "Security",
   ];
   return (
@@ -186,7 +194,7 @@ export function DeviceWorkspace() {
         )}
       </header>
       <p className="text-sm text-text-secondary">
-        {online ? "Online" : "Offline"} · {w.profile.displayCurrency} ·{" "}
+        <T text={online ? "Online" : "Offline"} /> · {w.profile.displayCurrency} ·{" "}
         {w.profile.timezone}
         {w.mode === "CLOUD"
           ? ` · ${w.commands.length} pending operations. Device totals include unsynced personal changes; shared drafts affect no balances.`
@@ -199,7 +207,7 @@ export function DeviceWorkspace() {
           ["Expenses", summary.expense],
         ].map(([label, value]) => (
           <div key={label} className="panel !p-3">
-            <p className="text-xs text-text-secondary">{label}</p>
+            <p className="text-xs text-text-secondary"><T text={String(label)} /></p>
             <p className="text-lg font-semibold tabular-nums break-all">
               {money(value)}
             </p>
@@ -216,7 +224,7 @@ export function DeviceWorkspace() {
               setEdit(undefined);
             }}
           >
-            {t}
+            <T text={t} />
           </button>
         ))}
       </nav>
@@ -236,33 +244,41 @@ export function DeviceWorkspace() {
               const f = Object.fromEntries(new FormData(e.currentTarget));
               void run(() =>
                 command(
-                  edit
-                    ? "TX_UPDATE"
-                    : f.kind === "TRANSFER"
-                      ? "TRANSFER"
-                      : f.kind === "CONVERSION"
-                        ? "CONVERSION_CREATE"
-                        : "TX_CREATE",
+                  edit?.source_type === "CONVERSION"
+                    ? "CONVERSION_UPDATE"
+                    : edit
+                      ? "TX_UPDATE"
+                      : f.kind === "TRANSFER"
+                        ? "TRANSFER"
+                        : f.kind === "CONVERSION"
+                          ? "CONVERSION_CREATE"
+                          : "TX_CREATE",
                   {
                     accountId: f.accountId,
                     sourceAccountId: f.accountId,
                     targetAccountId: f.targetAccountId,
                     type: f.type,
                     amount: Number(f.amount),
-                    originalAmount: Number(f.amount),
+                    originalAmount: String(f.amount),
                     originalCurrency: f.originalCurrency,
-                    exchangeRate: Number(f.exchangeRate),
+                    exchangeRate: String(f.exchangeRate),
                     rateDate: f.rateDate,
                     rateSource: "MANUAL",
                     categoryId: f.categoryId || null,
-                    dateTime: new Date(String(f.dateTime) + "Z").toISOString(),
+                    dateTime:
+                      edit?.date_time &&
+                      String(f.dateTime) === String(edit.date_time).slice(0, 16)
+                        ? String(edit.date_time)
+                        : new Date(String(f.dateTime) + "Z").toISOString(),
                     notes: f.notes,
                     tags: String(f.tags ?? "")
                       .split(",")
                       .map((t) => t.trim().toLowerCase())
                       .filter(Boolean),
                   },
-                  edit?.id as string | undefined,
+                  (edit?.source_type === "CONVERSION"
+                    ? edit.source_id
+                    : edit?.id) as string | undefined,
                 ),
               );
             }}
@@ -271,7 +287,14 @@ export function DeviceWorkspace() {
             <div className="grid sm:grid-cols-2 gap-4">
               <label className="label">
                 <T text="Entry" />
-                <select className="field" name="kind" disabled={!!edit}>
+                <select
+                  className="field"
+                  name="kind"
+                  disabled={!!edit}
+                  defaultValue={
+                    edit?.source_type === "CONVERSION" ? "CONVERSION" : "MANUAL"
+                  }
+                >
                   <option value="MANUAL">
                     <T text="Income / expense" />
                   </option>
@@ -334,7 +357,9 @@ export function DeviceWorkspace() {
                   step="any"
                   className="field"
                   required
-                  defaultValue={String(edit?.amount ?? "")}
+                  defaultValue={String(
+                    edit?.original_amount ?? edit?.amount ?? "",
+                  )}
                 />
               </label>
               <label className="label">
@@ -389,7 +414,14 @@ export function DeviceWorkspace() {
               <div className="grid sm:grid-cols-3 gap-3 mt-3">
                 <label className="label">
                   <T text="Original currency" />
-                  <select className="field" name="originalCurrency">
+                  <select
+                    className="field"
+                    name="originalCurrency"
+                    defaultValue={String(
+                      edit?.original_currency ??
+                        (w.profile.displayCurrency === "EUR" ? "USD" : "EUR"),
+                    )}
+                  >
                     {Intl.supportedValuesOf("currency")
                       .filter((c) => c !== w.profile.displayCurrency)
                       .map((c) => (
@@ -413,7 +445,9 @@ export function DeviceWorkspace() {
                     name="rateDate"
                     type="date"
                     max={new Date().toISOString().slice(0, 10)}
-                    defaultValue={new Date().toISOString().slice(0, 10)}
+                    defaultValue={String(
+                      edit?.rate_date ?? new Date().toISOString().slice(0, 10),
+                    )}
                   />
                 </label>
               </div>
@@ -442,6 +476,80 @@ export function DeviceWorkspace() {
               )}
             </div>
           </form>
+          <button className="btn-secondary" onClick={() => setMulti(!multi)}><T text="Split an entry across accounts" /></button>
+          {multi && (
+            <form
+              className="panel space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const f = new FormData(e.currentTarget);
+                void run(async () => {
+                  await command("PERSONAL_ENTRY_CREATE", {
+                    type: f.get("type"),
+                    totalAmount: Number(f.get("totalAmount")),
+                    currency: w.profile.displayCurrency,
+                    dateTime: new Date().toISOString(),
+                    notes: f.get("notes"),
+                    allocations: ordinary(w.tables.accounts).flatMap((a) =>
+                      Number(f.get(`allocation:${a.id}`)) > 0
+                        ? [
+                            {
+                              accountId: a.id,
+                              amount: Number(f.get(`allocation:${a.id}`)),
+                            },
+                          ]
+                        : [],
+                    ),
+                  });
+                  setMulti(false);
+                });
+              }}
+            >
+              <h2 className="text-xl"><T text="One expense or income, multiple accounts" /></h2>
+              <label className="label">
+                <T text="Type" />
+                <select className="field" name="type">
+                  <option>EXPENSE</option>
+                  <option>INCOME</option>
+                </select>
+              </label>
+              <label className="label">
+                <T text="Total" />
+                <input
+                  className="field"
+                  name="totalAmount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                />
+              </label>
+              {ordinary(w.tables.accounts).map((a) => (
+                <label className="label" key={String(a.id)}>
+                  {String(a.name)}
+                  <input
+                    className="field"
+                    name={`allocation:${a.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue="0"
+                  />
+                </label>
+              ))}
+              <label className="label">
+                <T text="Notes" />
+                <input className="field" name="notes" maxLength={2000} />
+              </label>
+              <p className="text-xs">
+                Allocations must exactly equal the total. The total is counted
+                once in analytics.
+              </p>
+              <button className="btn" disabled={busy}>
+                <T text="Save on device" />
+              </button>
+            </form>
+          )}
           <div className="panel divide-y divide-border-soft">
             {!w.tables.transactions?.length && (
               <p>
@@ -503,6 +611,62 @@ export function DeviceWorkspace() {
                       </button>
                     </div>
                   )}
+                  {t.source_type === "CONVERSION" && (
+                    <div className="flex gap-3 text-sm">
+                      <button
+                        className="subtle-link"
+                        onClick={() => {
+                          const source = w.tables.currency_conversions?.find(
+                            (c) => c.id === t.source_id,
+                          );
+                          setEdit({
+                            ...t,
+                            ...source,
+                            id: t.id,
+                            source_id: t.source_id,
+                          });
+                        }}
+                      ><T text="Review conversion" /></button>
+                      <button
+                        className="text-negative"
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              "Delete this conversion and reverse its account effect?",
+                            )
+                          )
+                            void run(() =>
+                              command(
+                                "CONVERSION_DELETE",
+                                {},
+                                String(t.source_id),
+                              ),
+                            );
+                        }}
+                      ><T text="Delete conversion" /></button>
+                    </div>
+                  )}
+                  {t.source_type === "PERSONAL_ENTRY" && (
+                    <button
+                      className="text-negative text-sm"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          confirm(
+                            "Delete every component of this multi-account entry?",
+                          )
+                        )
+                          void run(() =>
+                            command(
+                              "PERSONAL_ENTRY_DELETE",
+                              {},
+                              String(t.source_id),
+                            ),
+                          );
+                      }}
+                    ><T text="Delete multi-account entry" /></button>
+                  )}
                   <label className="text-xs subtle-link cursor-pointer">
                     <T text="Attach receipt" />
                     <input
@@ -514,42 +678,12 @@ export function DeviceWorkspace() {
                         const file = e.target.files?.[0];
                         if (file)
                           void run(async () => {
-                            if (file.size > 5 * 1024 * 1024 || !file.size)
-                              throw Error(
-                                "Receipts must be between 1 byte and 5 MiB",
-                              );
-                            if (
-                              ![
-                                "image/jpeg",
-                                "image/png",
-                                "image/webp",
-                                "application/pdf",
-                              ].includes(file.type)
-                            )
-                              throw Error("Use JPEG, PNG, WebP or PDF");
-                            const bytes = new Uint8Array(
-                                await file.arrayBuffer(),
-                              ),
-                              id = crypto.randomUUID(),
-                              hash = await checksum(bytes);
-                            await changeWorkspace((copy) => {
-                              copy.attachments.push({
-                                id,
-                                name: file.name,
-                                mime: file.type,
-                                bytes: base64(bytes),
-                                sha256: hash,
-                              });
-                              (copy.tables.receipt_attachments ??= []).push({
-                                id,
-                                transaction_id: t.id,
-                                file_name: file.name,
-                                mime_type: file.type,
-                                status: "LOCAL",
-                              });
-                            });
+                            const attachment = await prepareReceipt(file);
+                            await changeWorkspace((copy) =>
+                              attachReceipt(copy, String(t.id), attachment),
+                            );
                             setNotice(
-                              "Receipt stored on this device. Cloud receipt upload requires the online receipt editor.",
+                              "Receipt stored securely on this device. Cloud uploads are included in Pending sync.",
                             );
                           });
                       }}
@@ -590,11 +724,34 @@ export function DeviceWorkspace() {
                         {String(r.file_name)}
                       </button>
                     ))}
+                  {w.tables.receipt_attachments
+                    ?.filter((r) => r.transaction_id === t.id)
+                    .map((r) => (
+                      <button
+                        key={`remove:${r.id}`}
+                        className="text-negative text-xs ml-3"
+                        disabled={busy}
+                        onClick={() => {
+                          if (
+                            confirm(
+                              "Remove this receipt? This also queues removal of its cloud file when applicable.",
+                            )
+                          )
+                            void run(() =>
+                              changeWorkspace((copy) =>
+                                removeReceipt(copy, String(r.id)),
+                              ),
+                            );
+                        }}
+                      ><T text="Remove" />{String(r.file_name)}
+                      </button>
+                    ))}
                 </article>
               ))}
           </div>
         </>
       )}
+      {tab === "Reports" && <DeviceReports w={w} />}
       {tab === "Accounts" && (
         <>
           <form
@@ -800,14 +957,20 @@ export function DeviceWorkspace() {
                     });
                   });
               }}
-            >
-              Discard unsynced changes & refresh
-            </button>
+            ><T text="Discard unsynced changes & refresh" /></button>
           )}
           {w.commands.map((c) => (
             <article className="border-t border-border-soft pt-3" key={c.id}>
               <p>
                 {c.kind.replaceAll("_", " ")} · {c.status}
+              </p>
+              <p className="text-sm">
+                {String(
+                  (c.payload.input as Record<string, unknown>)?.description ??
+                    (c.payload.input as Record<string, unknown>)?.notes ??
+                    (c.payload.input as Record<string, unknown>)?.name ??
+                    "",
+                )}
               </p>
               <p className="text-sm text-negative">{c.error}</p>
               {c.status === "CONFLICT" && (
@@ -835,6 +998,7 @@ export function DeviceWorkspace() {
           )}
         </section>
       )}
+      {tab === "Shared" && <DeviceShared w={w} busy={busy} run={run} />}
       {tab === "Snapshot" && (
         <section className="panel space-y-3">
           <h2 className="text-xl">
@@ -871,8 +1035,19 @@ export function DeviceWorkspace() {
           ))}
         </section>
       )}
-      {["Plans", "Assets", "Reminders"].includes(tab) && (
-        <LocalRecords w={w} tab={tab} busy={busy} run={run} money={money} />
+      {[
+        "Plans",
+        "Assets",
+        "Valuations",
+        "Goals",
+        "Loans",
+        "Bills",
+        "Events",
+        "Event costs",
+        "Cards",
+        "Reminders",
+      ].includes(tab) && (
+        <DeviceFinance key={tab} w={w} tab={tab} busy={busy} run={run} />
       )}
       {tab === "Security" && (
         <>
@@ -881,121 +1056,5 @@ export function DeviceWorkspace() {
         </>
       )}
     </main>
-  );
-}
-function LocalRecords({
-  w,
-  tab,
-  busy,
-  run,
-  money,
-}: {
-  w: Workspace;
-  tab: string;
-  busy: boolean;
-  run: (fn: () => Promise<void>) => Promise<void>;
-  money: (n: unknown) => string;
-}) {
-  const table =
-    tab === "Assets"
-      ? "personal_assets"
-      : tab === "Reminders"
-        ? "reminders"
-        : "budgets";
-  return (
-    <section className="panel space-y-4">
-      <h2 className="text-xl">{tab}</h2>
-      <form
-        className="grid sm:grid-cols-2 gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const f = Object.fromEntries(new FormData(e.currentTarget));
-          void run(async () => {
-            if (
-              tab !== "Reminders" &&
-              (!Number.isFinite(Number(f.amount)) || Number(f.amount) < 0)
-            )
-              throw Error("Enter a valid amount");
-            await changeWorkspace((copy) => {
-              (copy.tables[table] ??= []).push({
-                id: crypto.randomUUID(),
-                name: f.name,
-                title: f.name,
-                amount: Number(f.amount ?? 0),
-                value: Number(f.amount ?? 0),
-                due_date: f.date,
-                month: String(f.date).slice(0, 7),
-                created_at: new Date().toISOString(),
-              });
-            });
-          });
-        }}
-      >
-        <label className="label">
-          <T text="Name" />
-          <input className="field" name="name" maxLength={120} required />
-        </label>
-        {tab !== "Reminders" && (
-          <label className="label">
-            {tab === "Assets" ? "Current value" : "Monthly allowance"}
-            <input
-              className="field"
-              type="number"
-              min="0"
-              step="0.01"
-              name="amount"
-              required
-            />
-          </label>
-        )}
-        <label className="label">
-          {tab === "Plans" ? "Month" : "Date"}
-          <input
-            className="field"
-            name="date"
-            type={tab === "Plans" ? "month" : "date"}
-            required
-            defaultValue={new Date()
-              .toISOString()
-              .slice(0, tab === "Plans" ? 7 : 10)}
-          />
-        </label>
-        <button className="btn self-end" disabled={busy}>
-          <T text="Save on device" />
-        </button>
-      </form>
-      {w.tables[table]?.map((r) => (
-        <article
-          key={String(r.id)}
-          className="border-t border-border-soft pt-3 flex flex-wrap justify-between gap-3"
-        >
-          <div>
-            <p>{String(r.name ?? r.title)}</p>
-            <p className="text-sm">
-              {tab !== "Reminders" && money(r.amount)} ·{" "}
-              {String(r.due_date ?? r.month)}
-              {tab === "Plans" &&
-                ` · used ${money((w.tables.transactions ?? []).filter((t) => t.type === "EXPENSE" && String(t.date_time).startsWith(String(r.month))).reduce((n, t) => n + Number(t.analytics_amount), 0))}`}
-            </p>
-          </div>
-          <button
-            className="text-negative text-sm"
-            disabled={busy}
-            onClick={() => {
-              if (confirm("Remove this device record?"))
-                void run(() =>
-                  changeWorkspace((copy) => {
-                    copy.tables[table] = copy.tables[table].filter(
-                      (x) => x.id !== r.id,
-                    );
-                  }),
-                );
-            }}
-          >
-            <T text="Remove" />
-          </button>
-        </article>
-      ))}
-    </section>
   );
 }

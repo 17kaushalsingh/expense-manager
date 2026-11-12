@@ -11,8 +11,8 @@ self.addEventListener("message",event=>{
   for(const match of html.matchAll(/(?:src|href)=["']([^"']+)["']/g)){const url=new URL(match[1],self.location.origin);if(url.origin===self.location.origin&&url.pathname.startsWith("/_next/static/"))assets.add(url.pathname);}
   // Store the document only after every dependency is cached, so an incomplete shell never replaces a working one.
   await cache.addAll([...assets]);await cache.put("/device",response);
-  event.source?.postMessage({type:"DEVICE_READY"});
- })().catch(()=>{event.source?.postMessage({type:"DEVICE_CACHE_FAILED"});}));
+  event.source?.postMessage({type:"DEVICE_READY",requestId:event.data.requestId});
+ })().catch(()=>{event.source?.postMessage({type:"DEVICE_CACHE_FAILED",requestId:event.data.requestId});}));
 });
 self.addEventListener("fetch",event=>{
  const url=new URL(event.request.url);

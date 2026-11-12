@@ -1,3 +1,4 @@
+import { workspace } from "@/lib/device/vault";
 import { supabase } from "@/lib/supabase";
 const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 export class ApiError extends Error {
@@ -16,9 +17,22 @@ async function request<T>(
   responseType: "json" | "blob" = "json",
 ): Promise<T> {
   let access = token;
-  if (!access && !endpoint.startsWith("/auth/")) {
+  if (
+    !endpoint.startsWith("/auth/") &&
+    (!access || workspace()?.mode === "CLOUD")
+  ) {
     const { data, error } = await supabase().auth.getSession();
     if (error) throw error;
+    const device = workspace();
+    if (
+      device?.mode === "CLOUD" &&
+      data.session &&
+      data.session.user.id !== device.ownerId
+    )
+      throw new ApiError(
+        "This login belongs to another device workspace. Switch accounts before syncing.",
+        403,
+      );
     access = data.session?.access_token ?? token;
   }
   const run = () =>
@@ -37,6 +51,12 @@ async function request<T>(
   if (res.status === 401 && access) {
     const { data, error } = await supabase().auth.refreshSession();
     if (!error && data.session) {
+      const device = workspace();
+      if (device?.mode === "CLOUD" && data.session.user.id !== device.ownerId)
+        throw new ApiError(
+          "Device workspace and refreshed session differ",
+          403,
+        );
       access = data.session.access_token;
       res = await run();
     }

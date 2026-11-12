@@ -13,7 +13,7 @@ const subscribe = (callback: () => void) => {
 };
 function snapshot(): Locale {
   const value = localStorage.getItem(key) ?? "en";
-  return value in locales ? (value as Locale) : "en";
+  return Object.hasOwn(locales,value) ? (value as Locale) : "en";
 }
 export function useLocale() {
   return useSyncExternalStore(subscribe, snapshot, () => "en" as Locale);

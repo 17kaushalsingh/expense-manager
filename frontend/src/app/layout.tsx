@@ -19,17 +19,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#4f806b" };
 
-import { GoogleOAuthProvider } from "@react-oauth/google";
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const clientId =
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    "placeholder-client-id.apps.googleusercontent.com";
-
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -43,9 +37,7 @@ export default function RootLayout({
       <body className="antialiased">
         <LanguageRoot>
           <DeviceGate>
-            <GoogleOAuthProvider clientId={clientId}>
-              <QueryProvider>{children}</QueryProvider>
-            </GoogleOAuthProvider>
+            <QueryProvider>{children}</QueryProvider>
           </DeviceGate>
           <ServiceWorker />
           <NativeBridge />

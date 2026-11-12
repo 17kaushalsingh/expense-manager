@@ -4,7 +4,7 @@ import { authDestination, pendingInvitation } from "@/lib/invitations";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import { supabase } from "@/lib/supabase";
 import { ErrorMessage } from "@/components/ui/Controls";
 export function AuthForm({ register = false }: { register?: boolean }) {
@@ -93,31 +93,35 @@ export function AuthForm({ register = false }: { register?: boolean }) {
           </Link>
         )}
         {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
-          <GoogleLogin
-            onSuccess={async (response) => {
-              setBusy(true);
-              setError("");
-              try {
-                if (!response.credential)
-                  throw new Error("Missing Google credential");
-                const { error } = await supabase().auth.signInWithIdToken({
-                  provider: "google",
-                  token: response.credential,
-                });
-                if (error) throw error;
-                router.push(authDestination());
-              } catch (error) {
-                setError(
-                  error instanceof Error
-                    ? error.message
-                    : "Google sign-in failed",
-                );
-              } finally {
-                setBusy(false);
-              }
-            }}
-            onError={() => setError("Google sign-in failed")}
-          />
+          <GoogleOAuthProvider
+            clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+          >
+            <GoogleLogin
+              onSuccess={async (response) => {
+                setBusy(true);
+                setError("");
+                try {
+                  if (!response.credential)
+                    throw new Error("Missing Google credential");
+                  const { error } = await supabase().auth.signInWithIdToken({
+                    provider: "google",
+                    token: response.credential,
+                  });
+                  if (error) throw error;
+                  router.push(authDestination());
+                } catch (error) {
+                  setError(
+                    error instanceof Error
+                      ? error.message
+                      : "Google sign-in failed",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onError={() => setError("Google sign-in failed")}
+            />
+          </GoogleOAuthProvider>
         )}
         <Link
           className="text-brand-primary"

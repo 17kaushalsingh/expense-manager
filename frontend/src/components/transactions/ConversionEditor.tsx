@@ -1,7 +1,8 @@
 "use client";
 import { T } from "@/components/i18n/Language";
 import { useState } from "react";
-import Decimal from "decimal.js";
+import DecimalBase from "decimal.js";
+const Decimal = DecimalBase.clone({ precision: 60 });
 import { useResource, useAction } from "@/hooks/useResource";
 import { apiClient } from "@/lib/api/client";
 import { useAccounts } from "@/hooks/useDashboard";
@@ -11,8 +12,8 @@ import { ErrorMessage } from "@/components/ui/Controls";
 interface Conversion {
   id: string;
   originalCurrency: string;
-  originalAmount: number;
-  exchangeRate: number;
+  originalAmount: string;
+  exchangeRate: string;
   rateDate: string;
   rateSource: string;
   requestKey: string;
@@ -91,9 +92,12 @@ function Form({
         {
           ...value,
           categoryId: value.categoryId || null,
-          originalAmount: Number(value.originalAmount),
-          exchangeRate: Number(value.exchangeRate),
-          dateTime: new Date(value.dateTime).toISOString(),
+          originalAmount: value.originalAmount,
+          exchangeRate: value.exchangeRate,
+          dateTime:
+            value.dateTime === existing?.transaction.dateTime.slice(0, 16)
+              ? existing.transaction.dateTime
+              : new Date(value.dateTime + "Z").toISOString(),
           requestKey: key,
         },
       ),

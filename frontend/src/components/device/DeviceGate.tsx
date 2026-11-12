@@ -7,6 +7,7 @@ import {
   initializeVault,
   unlock,
   lock,
+  eraseDevice,
 } from "@/lib/device/vault";
 import { DeviceWorkspace } from "./DeviceWorkspace";
 export function DeviceGate({ children }: { children: React.ReactNode }) {
@@ -16,7 +17,8 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
     ),
     [passcode, setPasscode] = useState(""),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [erase, setErase] = useState("");
   useEffect(() => {
     let live = true;
     void initializeVault()
@@ -92,9 +94,7 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
     return (
       <main className="p-8">
         <p role="alert">{error}</p>
-        <button className="btn" onClick={() => location.reload()}>
-          Retry
-        </button>
+        <button className="btn" onClick={() => location.reload()}><T text="Retry" /></button>
       </main>
     );
   if (state === "LOCKED" && !data)
@@ -144,8 +144,46 @@ export function DeviceGate({ children }: { children: React.ReactNode }) {
             </p>
           )}
           <button className="btn" disabled={busy}>
-            {busy ? "Unlocking…" : "Unlock"}
+            <T text={busy ? "Unlocking…" : "Unlock"} />
           </button>
+          <details className="text-xs">
+            <summary><T text="Forgot this device passcode?" /></summary>
+            <p className="my-3">
+              There is no passcode recovery. Erasing removes this device’s
+              encrypted records and unsynced changes. Cloud records stay
+              unchanged. Restore an encrypted backup if you have one.
+            </p>
+            <label className="label">
+              Type ERASE DEVICE
+              <input
+                className="field"
+                value={erase}
+                onChange={(e) => setErase(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <button
+              type="button"
+              className="btn-secondary mt-3 text-negative"
+              disabled={busy || erase !== "ERASE DEVICE"}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await eraseDevice(erase);
+                  setState("OPEN");
+                  location.reload();
+                } catch (e) {
+                  setError(
+                    e instanceof Error
+                      ? e.message
+                      : "Unable to erase device data",
+                  );
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            ><T text="Erase this device workspace" /></button>
+          </details>
         </form>
       </main>
     );

@@ -10,18 +10,30 @@ import {
   subscribe,
   blankWorkspace,
   createVault,
-  changeWorkspace,
+  changeWorkspace as changeStoredWorkspace,
   changePasscode,
   lock,
   exportBackup,
   previewBackup,
   restoreBackup,
+  eraseDevice,
+  authKeyPrefix,
 } from "@/lib/device/vault";
 import { ErrorMessage } from "@/components/ui/Controls";
+import { prepareOfflineShell } from "@/lib/device/prepareOffline";
+import { saveEncryptedBackup } from "@/lib/device/saveBackup";
 export function DeviceSecurity() {
   const router = useRouter();
   const data = useSyncExternalStore(subscribe, workspace, () => null),
     user = useAuthStore((s) => s.user);
+  const changeWorkspace = (mutate: (copy: Workspace) => void) => changeStoredWorkspace(mutate, data?.id);
+  const [localName, setLocalName] = useState(user?.name ?? "My ledger"),
+    [localCurrency, setLocalCurrency] = useState(
+      user?.displayCurrency ?? "USD",
+    ),
+    [localTimezone, setLocalTimezone] = useState(
+      user?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+    );
   const [passcode, setPasscode] = useState(""),
     [confirm, setConfirm] = useState(""),
     [backupPassword, setBackupPassword] = useState(""),
@@ -29,7 +41,8 @@ export function DeviceSecurity() {
     [error, setError] = useState<unknown>(),
     [notice, setNotice] = useState(""),
     [preview, setPreview] = useState<Workspace>(),
-    [file, setFile] = useState<File>();
+    [file, setFile] = useState<File>(),
+    [erase, setErase] = useState("");
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError(undefined);
@@ -44,11 +57,13 @@ export function DeviceSecurity() {
   }
   async function enable(local: boolean) {
     if (passcode !== confirm) throw Error("Passcodes do not match");
-    let w = blankWorkspace(
-      user?.name ?? "My ledger",
-      user?.displayCurrency ?? "USD",
-      user?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-    );
+    await prepareOfflineShell();
+    let w = blankWorkspace(localName, localCurrency, localTimezone);
+    const savedLocale = localStorage.getItem("ledgersync-locale");
+    w.locale =
+      savedLocale && ["en", "hi", "es", "ar"].includes(savedLocale)
+        ? savedLocale
+        : "en";
     if (!local) {
       if (!user) throw Error("Sign in before protecting a cloud workspace");
       w = {
@@ -73,20 +88,21 @@ export function DeviceSecurity() {
       w.attachments = snap.attachments;
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i)!;
-        if (k.startsWith("sb-") && k.includes("auth-token"))
+        if (k.startsWith(authKeyPrefix()))
           w.sessions[k] = localStorage.getItem(k)!;
       }
     }
-    await createVault(passcode, w);
+    await createVault(passcode, w, () => {
+      if (!local && useAuthStore.getState().user?.id !== w.ownerId)
+        throw Error("Signed-in account changed while preparing the workspace");
+    });
     for (const k of Object.keys(w.sessions)) localStorage.removeItem(k);
     if (local) {
       window.dispatchEvent(new Event("ledgersync-auth-reset"));
       for (const k of Object.keys(localStorage))
-        if (k.startsWith("sb-") && k.includes("auth-token"))
-          localStorage.removeItem(k);
+        if (k.startsWith(authKeyPrefix())) localStorage.removeItem(k);
     }
     localStorage.setItem("ledgersync-vault-configured", w.id);
-    navigator.serviceWorker?.controller?.postMessage({ type: "ENABLE_DEVICE" });
     setPasscode("");
     setConfirm("");
     router.push("/device");
@@ -104,6 +120,52 @@ export function DeviceSecurity() {
       </p>
       {!data ? (
         <>
+          <label className="label">
+            <T text="Name" />
+            <input
+              className="field"
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              required
+              maxLength={120}
+            />
+          </label>
+          <label className="label">
+            <T text="Currency" />
+            <select
+              className="field"
+              value={localCurrency}
+              onChange={(e) => setLocalCurrency(e.target.value)}
+            >
+              {Intl.supportedValuesOf("currency").map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+          <label className="label">
+            <T text="Timezone" />
+            <select
+              className="field"
+              value={localTimezone}
+              onChange={(e) => setLocalTimezone(e.target.value)}
+            >
+              {Array.from(
+                new Set([
+                  localTimezone,
+                  "UTC",
+                  ...Intl.supportedValuesOf("timeZone"),
+                ]),
+              ).map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+          {user && (
+            <p className="text-xs">
+              These fields configure a new private ledger. Protecting your cloud
+              account keeps its saved profile.
+            </p>
+          )}
           <label className="label">
             <T text="New device passcode" />
             <input
@@ -167,6 +229,10 @@ export function DeviceSecurity() {
             by default)
           </label>
           <div className="flex gap-3">
+            <button className="btn-secondary" disabled={busy} onClick={() => run(async () => {
+              await prepareOfflineShell();
+              setNotice("Offline assets are ready on this device.");
+            })}><T text="Prepare offline assets" /></button>
             <button className="btn-secondary" onClick={lock}>
               <T text="Lock now" />
             </button>
@@ -174,6 +240,95 @@ export function DeviceSecurity() {
               <T text="Open device workspace" />
             </a>
           </div>
+          {data.mode === "LOCAL" && (
+            <form
+              className="space-y-3"
+              key={
+                data.profile.id +
+                data.profile.displayCurrency +
+                data.profile.timezone
+              }
+              onSubmit={(e) => {
+                e.preventDefault();
+                const p = Object.fromEntries(new FormData(e.currentTarget));
+                void run(() =>
+                  changeWorkspace((copy) => {
+                    const currency = String(p.currency);
+                    if (
+                      currency !== copy.profile.displayCurrency &&
+                      (copy.tables.transactions?.length ||
+                        copy.tables.personal_loans?.length ||
+                        copy.tables.asset_valuations?.length ||
+                        copy.tables.budget_plans?.length ||
+                        [
+                          "personal_bills",
+                          "monthly_plans",
+                          "finance_events",
+                          "savings_goals",
+                          "currency_conversions",
+                          "personal_entries",
+                        ].some((t) => (copy.tables[t]?.length ?? 0) > 0) ||
+                        (copy.tables.accounts ?? []).some(
+                          (a) => Number(a.balance) !== 0,
+                        ))
+                    )
+                      throw Error("Currency is fixed after financial activity");
+                    if (!String(p.name).trim()) throw Error("Enter a name");
+                    copy.profile.name = String(p.name).trim();
+                    copy.profile.timezone = String(p.timezone);
+                    copy.profile.displayCurrency = currency;
+                    for (const a of copy.tables.accounts ?? [])
+                      a.currency = currency;
+                  }),
+                );
+              }}
+            >
+              <h3 className="font-semibold"><T text="Private ledger preferences" /></h3>
+              <label className="label">
+                <T text="Name" />
+                <input
+                  className="field"
+                  name="name"
+                  required
+                  maxLength={120}
+                  defaultValue={data.profile.name}
+                />
+              </label>
+              <label className="label">
+                <T text="Currency" />
+                <select
+                  className="field"
+                  name="currency"
+                  defaultValue={data.profile.displayCurrency}
+                >
+                  {Intl.supportedValuesOf("currency").map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="label">
+                <T text="Timezone" />
+                <select
+                  className="field"
+                  name="timezone"
+                  defaultValue={data.profile.timezone}
+                >
+                  {Array.from(
+                    new Set([
+                      data.profile.timezone,
+                      "UTC",
+                      ...Intl.supportedValuesOf("timeZone"),
+                    ]),
+                  ).map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </label>
+              <button className="btn-secondary" disabled={busy}>
+                <T text="Save preferences" />
+              </button>
+            </form>
+          )}
           <label className="label">
             <T text="New device passcode" />
             <input
@@ -224,6 +379,8 @@ export function DeviceSecurity() {
                   if (snapshot.ownerId !== data.ownerId)
                     throw Error("Account identity mismatch");
                   await changeWorkspace((w) => {
+                    if (w.id !== data.id || w.ownerId !== snapshot.ownerId)
+                      throw Error("Workspace changed while refreshing");
                     w.tables = snapshot.tables;
                     w.attachments = snapshot.attachments;
                   });
@@ -259,16 +416,7 @@ export function DeviceSecurity() {
             disabled={busy || backupPassword.length < 8}
             onClick={() =>
               run(async () => {
-                const blob = new Blob(
-                    [JSON.stringify(await exportBackup(backupPassword))],
-                    { type: "application/json" },
-                  ),
-                  url = URL.createObjectURL(blob),
-                  a = document.createElement("a");
-                a.href = url;
-                a.download = `ledgersync-${new Date().toISOString().slice(0, 10)}.ledgerbackup`;
-                a.click();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                await saveEncryptedBackup(await exportBackup(backupPassword));
                 setNotice(
                   "Encrypted backup prepared. Keep its passphrase separately.",
                 );
@@ -304,6 +452,34 @@ export function DeviceSecurity() {
           >
             <T text="Validate & preview restore" />
           </button>
+          <details className="text-sm">
+            <summary><T text="Switch account or remove this device workspace" /></summary>
+            <p className="text-xs my-3">
+              Export a backup first. Erasing removes this device’s encrypted
+              records, files, sessions and pending operations. Your cloud
+              history stays unchanged. You can then sign into another account or
+              create a new private ledger.
+            </p>
+            <label className="label">
+              Type ERASE DEVICE
+              <input
+                className="field"
+                value={erase}
+                onChange={(e) => setErase(e.target.value)}
+                autoComplete="off"
+              />
+            </label>
+            <button
+              className="btn-secondary text-negative mt-3"
+              disabled={busy || erase !== "ERASE DEVICE"}
+              onClick={() =>
+                void run(async () => {
+                  await eraseDevice(erase);
+                  router.replace("/login");
+                })
+              }
+            ><T text="Erase this device workspace" /></button>
+          </details>
           {preview && (
             <div className="rounded-xl border border-border-soft p-4 space-y-3">
               <p>
