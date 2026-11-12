@@ -22,4 +22,8 @@ Requested after production release `f35d519` on 2026-11-11. Work takes place on 
 
 ## Current environment limits
 
-The machine has Java 26 and Apple command-line tools, but not a full Xcode installation or an Android SDK/ADB on PATH. iOS build/device verification requires Xcode and signing configuration. Native source, packaging and deterministic bridge/data tests can proceed independently. No paid provider, app-store purchase or real money movement is authorized.
+Xcode 27.2 is installed at `/Applications/Xcode.app`; its license is now accepted. The app and WidgetKit extension compile for both simulator architectures with signing disabled. No simulator runtime or physical-device session is available. Android SDK/ADB are absent; the Gradle wrapper download also timed out. Native runtime, store distribution and signing checks remain outstanding. No paid provider, app-store purchase or real money movement was initiated.
+
+## Implementation status — 12 November 2026
+
+Currency source snapshots, encrypted storage/passcode, versioned device archives, offline personal accounting, queued shared splits/settlements, four language catalogs/RTL, and native widget packages are implemented. Advanced device forms cover budgets, goals, assets/valuations, loans/payments/reversals, reviewed bills, events, card settings and reminders. See [DEVICE_WORKSPACES.md](DEVICE_WORKSPACES.md) for scope, setup and explicit limits. Language coverage includes navigation and common form controls; detailed English help/errors remain an open localization task. Native runtime acceptance remains open despite successful iOS compilation. Cloud history replacement is intentionally outside device restore.

@@ -6,7 +6,7 @@ For GitHub-connected Vercel frontend/API hosting, environment variables, Auth re
 
 Password recovery, private receipt attachments, itemized shared expenses, and reviewed CSV imports are described in [the everyday tools guide](docs/RECEIPTS_AND_IMPORTS.md).
 
-Flexible budgets/payday planning, private loans, assets/net-worth history, trips/events, personal bills, card statements, labels, multi-account payments and PDF/Excel reports are described in [Personal finance](docs/PERSONAL_FINANCE.md). The [Money Manager comparison](docs/MONEY_MANAGER_PARITY.md) maps Gunawan Santoso's advertised capabilities one-to-one and explicitly tracks remaining parity gaps. These additions have no premium paywall; full native/offline/multicurrency parity is not yet implemented.
+Flexible budgets/payday planning, private loans, assets/net-worth history, trips/events, personal bills, card statements, labels, multi-account payments and PDF/Excel reports are described in [Personal finance](docs/PERSONAL_FINANCE.md). The [Money Manager comparison](docs/MONEY_MANAGER_PARITY.md) maps Gunawan Santoso's advertised capabilities one-to-one and explicitly tracks remaining parity gaps. These additions have no premium paywall. [Device workspaces](docs/DEVICE_WORKSPACES.md) add encrypted offline personal finances, pending collaboration, foreign-amount entries, device backups and native packages; the comparison documents remaining differences.
 
 ## Hosted project
 
@@ -124,9 +124,9 @@ Collaboration routes are `/api/collaboration/groups/:id/activity?offset=0`, `/sp
 
 ## Installable app
 
-The frontend includes a web-app manifest, app icons, standalone display mode, and installation guidance in Settings. Supporting browsers can install LedgerSync from HTTPS or localhost; iOS uses Safari → Share → Add to Home Screen. This is an installable responsive web app, not an App Store/Play Store native package.
+The frontend includes a web-app manifest, app icons, standalone display mode, and installation guidance in Settings. Supporting browsers can install LedgerSync from HTTPS or localhost; iOS uses Safari → Share → Add to Home Screen. Native iOS/Android projects with bundled web assets and private home-screen widgets are also included; see [native setup](docs/DEVICE_WORKSPACES.md#native-builds). They have not been published to either app store.
 
-The service worker registers only in production. It caches one self-contained public offline page and never caches financial pages, API responses, credentials, or authenticated data. An internet connection is required for financial reads and writes; offline changes are not queued. Run the frontend production build/start to exercise service-worker registration. Automated tests cover its caching/privacy rules; actual device installation and a live offline-browser walkthrough remain separate device checks.
+The production service worker caches only the public offline fallback and, after explicit preparation, the `/device` shell and its static code. Financial records and sessions are kept in a separate encrypted IndexedDB vault. Settings can create a private ledger or protect a signed-in cloud workspace. Offline personal writes are durable; cloud commands require explicit review/sync and current authorization. Preparation waits for the worker acknowledgement and can be retried in Security. Use `/device` offline. Browser cold-start offline and native runtime walkthroughs remain acceptance checks; automated tests do not replace them.
 
 ## Checks
 

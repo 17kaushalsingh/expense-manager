@@ -2,7 +2,7 @@
 
 Reference: **Gunawan Santoso / Micro App Digital**, not Realbyte. Audited 2026-11-11 using the [iOS listing](https://apps.apple.com/id/app/money-manager-daily-expenses/id6753577383) and [Android listing](https://play.google.com/store/apps/details?id=com.microappdigital.moneymanager). Listings differ by release. Android describes Premium as removing ads and limits; neither source publishes a complete tier entitlement table. We implement capabilities without adding a paywall. Exact unpublished premium limits are **unverified**.
 
-This is a functional comparison, not a claim of identical internals, design, privacy promises, or native platform support. LedgerSync remains a Supabase-authenticated, hosted application. No paid provider or external money movement is authorized by this document.
+This is a functional comparison, not a claim of identical internals, design, privacy promises, or native platform support. Cloud collaboration uses hosted Supabase; a separate encrypted private ledger can operate without an account. No paid provider or external money movement is authorized by this document.
 
 | ID | Capability | Current coverage / remaining work |
 |---|---|---|
@@ -15,7 +15,7 @@ This is a functional comparison, not a claim of identical internals, design, pri
 | MM07 | Personal recurrence | Different: hourly hosted review occurrences, explicit recording; no unattended ledger posting |
 | MM08 | Search and filters | Implemented including label filters |
 | MM09 | Bulk edits | Partial: atomic manual category/labels/notes replacement and deletion; amounts remain individual edits |
-| MM10 | Exchange rates | Missing; single accounting currency enforced |
+| MM10 | Exchange rates | Implemented for personal foreign income/expenses: reference/manual rate snapshots, ISO rounding and exact reversals; no foreign-currency wallets or historical revaluation |
 | MM11 | Flexible budget periods | Implemented: daily, weekly, biweekly, monthly, quarterly, yearly, custom |
 | MM12 | Payday boundaries | Implemented in monthly planning; calendar views retain calendar months |
 | MM13 | Budget pace | Implemented with period elapsed and pace allowance |
@@ -38,12 +38,12 @@ This is a functional comparison, not a claim of identical internals, design, pri
 | MM30 | Monthly/yearly summaries | Date/range reports implemented |
 | MM31 | Health/wealth indicators | Partial: actual savings rate/net worth; proprietary health/wealth scoring not reproduced |
 | MM32 | PDF/Excel reports | Implemented: generated PDF summaries and four-sheet XLSX with literal text cells |
-| MM33 | Native widgets/quick actions | PWA shortcuts only; native work missing |
-| MM34 | Passcode lock | Missing; authenticated sessions exist |
+| MM33 | Native widgets/quick actions | iOS WidgetKit and Android home-screen sources, private snapshot bridge and device deep links implemented; iOS simulator build passed, device/runtime checks and store signing remain |
+| MM34 | Passcode lock | Encrypted device vault, passcode changes, idle/background lock and retry delay implemented; opt in from Settings |
 | MM35 | Dark mode/theme | Implemented: light/dark/system plus five accent palettes |
-| MM36 | Languages | English only |
-| MM37 | Backup/restore | CSV import/export; full private-data backup missing |
-| MM38 | Offline/no account | Different architecture; offline financial writes missing |
+| MM36 | Languages | English/Hindi/Spanish/Arabic catalogs, locale formatting and RTL implemented; detailed help/errors still partly English |
+| MM37 | Backup/restore | Full encrypted device archive with receipts/outbox, preview and atomic restore; authenticated cloud snapshot export; live cloud/shared history is not overwritten |
+| MM38 | Offline/no account | Private device ledger and offline personal forms, reports, receipts and durable cloud queue implemented; initial cloud login, live membership/invites and administrative collaboration need connectivity |
 | MM39 | Premium ad/limit removal | No ads or premium paywall in LedgerSync |
 
 The capabilities above are concise paraphrases of store descriptions, not an exhaustive inspection of paid app binaries. Newer Android release notes also mention gold-denominated debt and a split calculator; shared splitting exists here, gold pricing does not. Do not conflate the developer's separate “AI Budget” app with this reference.
@@ -59,4 +59,4 @@ The capabilities above are concise paraphrases of store descriptions, not an exh
 7. PDF/Excel reports, heatmaps and goal milestones.
 8. Consistency guards, validation messages, auth availability handling, accent palettes and verification.
 
-See [PERSONAL_FINANCE.md](PERSONAL_FINANCE.md) for interfaces, accounting rules and limits, and [VERIFICATION.md](../VERIFICATION.md) for evidence. This release **does not achieve full Money Manager parity**. MM10, MM33, MM34, MM36, MM37 and MM38 remain open, alongside the partial/different behavior above. Native store distribution/widgets need mobile clients and device checks; optional local-only storage, offline synchronization and currency conversion require additional accounting/data architecture. These are engineering gaps, not claims that paid-provider approval alone will complete them. Google consent and real email delivery remain unverified provider flows.
+See [PERSONAL_FINANCE.md](PERSONAL_FINANCE.md) for interfaces, accounting rules and limits, and [VERIFICATION.md](../VERIFICATION.md) for evidence. This release **does not achieve full Money Manager parity**. The device/currency release closes the previously missing architecture for MM10, MM34, MM37 and MM38 within the explicit scopes above. MM33 still needs physical-device/runtime verification and distribution; MM36 needs remaining help/error translations. Live cloud replacement, offline administrative collaboration, FX wallets and the other partial/different behaviors remain outside the implemented scope. See [device workspace documentation](DEVICE_WORKSPACES.md). Google consent and real email delivery remain unverified provider flows.
