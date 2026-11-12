@@ -1,6 +1,6 @@
 # Device, currency and portability release
 
-Requested after production release `f35d519` on 2026-11-11. Work takes place on `codex/offline-mobile-parity`; production remains at the verified release until a subsequent merge/deployment.
+Requested after production release `f35d519` on 2026-11-11. Implementation was delivered on `codex/offline-mobile-parity`, then merged to `main` and deployed on 12 November 2026. See VERIFICATION.md for the production artifact commits and live checks.
 
 ## Architecture
 

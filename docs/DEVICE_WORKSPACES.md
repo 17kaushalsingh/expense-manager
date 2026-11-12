@@ -1,6 +1,6 @@
 # Device workspaces, currency and native apps
 
-This release lives on `codex/offline-mobile-parity`. Production remains at the previous merged release, `f35d519`, until this branch is merged and deployed. Additive database migrations are already applied to the existing hosted Supabase project. No Docker, paid provider or external payment execution is involved.
+This release was merged to `main` and deployed on 12 November 2026. The web application and Express API are live on their existing Vercel production domains; native packages have not been published to app stores. Additive database migrations are applied to the existing hosted Supabase project. No Docker, paid provider or external payment execution is involved.
 
 ## Start using a device ledger
 
