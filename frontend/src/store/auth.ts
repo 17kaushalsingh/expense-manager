@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Profile } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
+import { lock } from "@/lib/device/vault";
 interface AuthState {
   token: string | null;
   user: Profile | null;
@@ -31,6 +32,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       await supabase().auth.signOut();
     } finally {
       set({ token: null, user: null });
+      lock();
     }
   },
 }));
