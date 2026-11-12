@@ -14,6 +14,27 @@ router.get("/export", async (req: AuthRequest, res) => {
     ownerId: string;
     tables: Record<string, Record<string, unknown>[]>;
   };
+  for (const table of ["card_settings", "finance_preferences"]) {
+    for (const row of snapshot.tables[table] ?? [])
+      row.id = row[table === "card_settings" ? "account_id" : "user_id"];
+  }
+  const identities: Record<string, unknown>[] = [];
+  for (const g of snapshot.tables.groups ?? []) {
+    const people =
+      dbResult(
+        await req.db!.rpc("group_member_profiles", {
+          p_group_id: String(g.id),
+        }),
+      ) ?? [];
+    for (const person of people)
+      identities.push({
+        id: `${g.id}:${person.id}`,
+        group_id: g.id,
+        user_id: person.id,
+        name: person.name,
+      });
+  }
+  snapshot.tables.member_identities = identities;
   const attachments = [];
   let bytes = Buffer.byteLength(JSON.stringify(snapshot));
   for (const r of snapshot.tables.receipt_attachments ?? []) {
@@ -52,12 +73,48 @@ router.get("/export", async (req: AuthRequest, res) => {
   }
   res.end();
 });
+router.get("/entry-reference", async (req: AuthRequest, res) => {
+  const p = z
+    .object({
+      sourceType: z.enum([
+        "CONVERSION",
+        "PERSONAL_ENTRY",
+        "PERSONAL_LOAN",
+        "PERSONAL_BILL",
+      ]),
+      sourceId: z.uuid(),
+      accountId: z.uuid(),
+      type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]),
+      amount: z.coerce.number().finite().positive(),
+    })
+    .safeParse(req.query);
+  if (!p.success) throw new HttpError(400, "Invalid source reference");
+  const f = p.data;
+  const rows = dbResult(
+    await req
+      .db!.from("transactions")
+      .select("id")
+      .eq("source_type", f.sourceType)
+      .eq("source_id", f.sourceId)
+      .eq("account_id", f.accountId)
+      .eq("type", f.type)
+      .eq("amount", f.amount)
+      .limit(2),
+  );
+  if (!rows || rows.length !== 1)
+    throw new HttpError(
+      409,
+      "Source entry is not uniquely available. Refresh the device snapshot.",
+    );
+  res.json(rows[0]);
+});
 router.post(
   "/commands",
   validateBody(
     z
       .object({
         id: z.uuid(),
+        ownerId: z.uuid(),
         kind: z.enum([
           "TX_CREATE",
           "TX_UPDATE",
@@ -79,13 +136,28 @@ router.post(
           "CATEGORY_CREATE",
           "CATEGORY_UPDATE",
           "CATEGORY_DELETE",
+          "RESOURCE_SAVE",
+          "RESOURCE_DELETE",
+          "LOAN_CREATE",
+          "LOAN_ARCHIVE",
+          "LOAN_PAY",
+          "LOAN_REVERSE",
+          "BILL_CREATE",
+          "BILL_UPDATE",
+          "BILL_REFRESH",
+          "BILL_RECORD",
+          "BILL_SKIP",
+          "BILL_REVERSE",
+          "BILL_POSTPONE",
         ]),
         payload: z.record(z.string(), z.unknown()),
         expectedUpdatedAt: z.iso.datetime({ offset: true }).optional(),
       })
       .strict(),
   ),
-  async (req: AuthRequest, res) =>
+  async (req: AuthRequest, res) => {
+    if (req.body.ownerId !== req.userId)
+      throw new HttpError(403, "Device workspace and signed-in account differ");
     res.json(
       await rpc(req.db!, "execute_device_command", {
         p_id: req.body.id,
@@ -93,6 +165,7 @@ router.post(
         p_payload: req.body.payload,
         p_expected_updated_at: req.body.expectedUpdatedAt ?? null,
       }),
-    ),
+    );
+  },
 );
 export default router;

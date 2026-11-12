@@ -1,4 +1,5 @@
-import Decimal from "decimal.js";
+import DecimalBase from "decimal.js";
+const Decimal = DecimalBase.clone({ precision: 60 });
 import { HttpError } from "../errors/httpError";
 export const currencies = Intl.supportedValuesOf("currency").map((code) => ({
   code,
@@ -75,12 +76,21 @@ export async function exchangeQuote(
       response.status === 404 || response.status === 422 ? 422 : 503,
       "No reference rate available for this pair/date. Enter a reviewed manual rate.",
     );
-  const row = (await response.json()) as {
-    base: string;
-    quote: string;
-    date: string;
-    rate: number;
-  };
+  let row: { base: string; quote: string; date: string; rate: number };
+  try {
+    row = await response.json();
+  } catch {
+    throw new HttpError(503, "Invalid reference rate response");
+  }
+  if (
+    !row ||
+    typeof row.base !== "string" ||
+    typeof row.quote !== "string" ||
+    typeof row.date !== "string" ||
+    typeof row.rate !== "number" ||
+    !Number.isFinite(row.rate)
+  )
+    throw new HttpError(503, "Invalid reference rate response");
   const rate = new Decimal(String(row.rate));
   if (
     row.base?.toUpperCase() !== from ||

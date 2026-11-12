@@ -273,7 +273,7 @@ router.get("/personal-entries/:id", async (req: AuthRequest, res) => {
   const rows = dbResult(
     await req
       .db!.from("transactions")
-      .select("account_id,amount")
+      .select("id,account_id,amount")
       .eq("source_type", "PERSONAL_ENTRY")
       .eq("source_id", req.params.id as string)
       .order("id"),

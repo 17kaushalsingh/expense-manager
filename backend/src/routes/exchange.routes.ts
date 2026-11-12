@@ -1,3 +1,4 @@
+import Decimal from "decimal.js";
 import { HttpError } from "../errors/httpError";
 import { Router } from "express";
 import { z } from "zod";
@@ -16,14 +17,29 @@ router.get("/quote", async (req, res) => {
   const q = parsed.data;
   res.json(await exchangeQuote(q.from, q.to, q.date));
 });
+const exactPositive = (digits: number) =>
+  z
+    .union([
+      z.number().finite(),
+      z
+        .string()
+        .regex(/^\d+(?:\.\d+)?$/)
+        .max(48),
+    ])
+    .transform((v) => new Decimal(v))
+    .refine(
+      (n) => n.gt(0) && n.lt(1e12) && n.decimalPlaces() <= digits,
+      "Invalid amount or decimal precision",
+    )
+    .transform((n) => n.toFixed());
 const input = z
   .object({
     accountId: z.uuid(),
     categoryId: z.uuid().nullable().default(null),
     type: z.enum(["INCOME", "EXPENSE"]),
     originalCurrency: z.string().regex(/^[A-Z]{3}$/),
-    originalAmount: z.coerce.number().finite().positive().max(999999999999),
-    exchangeRate: z.coerce.number().finite().positive().max(999999999999),
+    originalAmount: exactPositive(4),
+    exchangeRate: exactPositive(16),
     rateDate: z.iso.date(),
     rateSource: z.enum(["MANUAL", "REFERENCE_SELECTED"]),
     dateTime: z.iso.datetime({ offset: true }),
@@ -38,7 +54,9 @@ router.get("/entries/:id", async (req: AuthRequest, res) =>
       dbResult(
         await req
           .db!.from("currency_conversions")
-          .select("*,transaction:transactions(*)")
+          .select(
+            "id,user_id,transaction_id,original_currency,original_amount::text,base_currency,base_amount::text,exchange_rate::text,rate_date,rate_source,request_key,deleted_at,created_at,updated_at,transaction:transactions(*)",
+          )
           .eq("id", req.params.id as string)
           .is("deleted_at", null)
           .single(),

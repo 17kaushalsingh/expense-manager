@@ -294,7 +294,8 @@ describe.skipIf(!live)(
           ],
         },
       });
-      expect(overflow.error?.code).toBe("22003");
+      // Precision is wider for FX; the explicit account-range constraint still rolls back the entire import.
+      expect(overflow.error?.code).toBe("23514");
       expect((await api(`/accounts/${account}`)).data.balance).toBeCloseTo(
         before + 7,
         2,

@@ -31,6 +31,7 @@ router.post(
   validateBody(
     z
       .object({
+        requestKey: z.uuid().optional(),
         transactionId: z.uuid().optional(),
         splitId: z.uuid().optional(),
         fileName: z
@@ -54,14 +55,12 @@ router.post(
       .refine((v) => Number(!!v.transactionId) + Number(!!v.splitId) === 1),
   ),
   async (req: AuthRequest, res) => {
-    res
-      .status(201)
-      .json(
-        await rpc(req.db!, "manage_receipt", {
-          p_action: "CREATE",
-          p_input: req.body,
-        }),
-      );
+    res.status(201).json(
+      await rpc(req.db!, "manage_receipt", {
+        p_action: "CREATE",
+        p_input: req.body,
+      }),
+    );
   },
 );
 router.post("/:id/complete", async (req: AuthRequest, res) => {

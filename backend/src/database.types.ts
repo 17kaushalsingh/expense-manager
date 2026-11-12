@@ -1632,6 +1632,7 @@ export type Database = {
           id: string
           mime_type: string
           object_path: string
+          request_key: string | null
           split_id: string | null
           status: string
           transaction_id: string | null
@@ -1644,6 +1645,7 @@ export type Database = {
           id?: string
           mime_type: string
           object_path: string
+          request_key?: string | null
           split_id?: string | null
           status?: string
           transaction_id?: string | null
@@ -1656,6 +1658,7 @@ export type Database = {
           id?: string
           mime_type?: string
           object_path?: string
+          request_key?: string | null
           split_id?: string | null
           status?: string
           transaction_id?: string | null

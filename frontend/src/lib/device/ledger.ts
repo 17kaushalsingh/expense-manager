@@ -1,4 +1,5 @@
-import Decimal from "decimal.js";
+import DecimalBase from "decimal.js";
+const Decimal = DecimalBase.clone({ precision: 60 });
 import { Workspace, PendingCommand } from "./vault";
 type Row = Record<string, unknown>;
 function amount(value: unknown, digits = 2) {
@@ -29,7 +30,7 @@ function entry(
   w: Workspace,
   c: PendingCommand,
   a: Row,
-  n: Decimal,
+  n: DecimalBase,
   type: string,
   source = "MANUAL",
   suffix = "",
@@ -132,7 +133,95 @@ export function applyCommand(w: Workspace, c: PendingCommand) {
       "-to",
       c.id,
     );
-  } else if (c.kind === "CONVERSION_CREATE") {
+  } else if (
+    c.kind === "PERSONAL_ENTRY_CREATE" ||
+    c.kind === "PERSONAL_ENTRY_UPDATE"
+  ) {
+    const parties = input.allocations as {
+      accountId: string;
+      amount: number;
+    }[];
+    const total = amount(input.totalAmount);
+    if (
+      !Array.isArray(parties) ||
+      parties.length < 1 ||
+      parties.length > 20 ||
+      new Set(parties.map((p) => p.accountId)).size !== parties.length
+    )
+      throw Error("Choose 1–20 distinct accounts");
+    if (
+      !parties
+        .reduce((n, p) => n.plus(amount(p.amount)), new Decimal(0))
+        .eq(total) ||
+      input.currency !== w.profile.displayCurrency
+    )
+      throw Error(
+        "Account allocations must exactly equal the total in your accounting currency",
+      );
+    const sourceId = c.kind === "PERSONAL_ENTRY_UPDATE" ? String(id) : c.id;
+    if (c.kind === "PERSONAL_ENTRY_UPDATE") {
+      if (!w.tables.personal_entries?.some((e) => e.id === id && !e.deleted_at))
+        throw Error("Entry source is unavailable");
+      for (const t of [...w.tables.transactions].filter(
+        (t) => t.source_type === "PERSONAL_ENTRY" && t.source_id === id,
+      )) {
+        if (
+          w.tables.receipt_attachments?.some((r) => r.transaction_id === t.id)
+        )
+          throw Error("Remove receipts first");
+        reverse(w, t.id);
+      }
+    }
+    for (let i = 0; i < parties.length; i++)
+      entry(
+        w,
+        c,
+        account(w, parties[i].accountId),
+        amount(parties[i].amount),
+        String(input.type),
+        "PERSONAL_ENTRY",
+        `-${i}`,
+        sourceId,
+      );
+    const saved = {
+      id: sourceId,
+      type: input.type,
+      total_amount: total.toNumber(),
+      currency: input.currency,
+      date_time: input.dateTime,
+      notes: input.notes,
+      updated_at: now,
+      deleted_at: null,
+    };
+    const old = w.tables.personal_entries?.find((e) => e.id === id);
+    if (old) Object.assign(old, saved);
+    else (w.tables.personal_entries ??= []).push(saved);
+  } else if (c.kind === "PERSONAL_ENTRY_DELETE") {
+    const old = w.tables.personal_entries?.find((e) => e.id === id);
+    if (!old || old.deleted_at) throw Error("Entry source is unavailable");
+    for (const t of [...w.tables.transactions].filter(
+      (t) => t.source_type === "PERSONAL_ENTRY" && t.source_id === id,
+    )) {
+      if (w.tables.receipt_attachments?.some((r) => r.transaction_id === t.id))
+        throw Error("Remove receipts first");
+      reverse(w, t.id);
+    }
+    old.deleted_at = now;
+  } else if (c.kind === "CONVERSION_DELETE") {
+    const source = w.tables.currency_conversions?.find(
+      (x) => x.id === id && !x.deleted_at,
+    );
+    if (!source) throw Error("Conversion is unavailable");
+    if (
+      w.tables.receipt_attachments?.some(
+        (r) => r.transaction_id === source.transaction_id,
+      )
+    )
+      throw Error("Remove receipts first");
+    reverse(w, source.transaction_id);
+    source.deleted_at = now;
+    source.transaction_id = null;
+  } else if (c.kind === "CONVERSION_CREATE" || c.kind === "CONVERSION_UPDATE") {
     const original = String(input.originalCurrency),
       base = w.profile.displayCurrency;
     if (
@@ -161,6 +250,19 @@ export function applyCommand(w: Workspace, c: PendingCommand) {
       input.rateDate > now.slice(0, 10)
     )
       throw Error("Invalid rate date");
+    const prior =
+      c.kind === "CONVERSION_UPDATE"
+        ? w.tables.currency_conversions?.find(
+            (x) => x.id === id && !x.deleted_at,
+          )
+        : undefined;
+    if (c.kind === "CONVERSION_UPDATE" && !prior)
+      throw Error("Conversion is unavailable");
+    let originalId: unknown;
+    if (prior) {
+      originalId = prior.transaction_id;
+      reverse(w, originalId);
+    }
     const row = entry(
       w,
       c,
@@ -171,7 +273,8 @@ export function applyCommand(w: Workspace, c: PendingCommand) {
       "",
       c.id,
     );
-    (w.tables.currency_conversions ??= []).push({
+    if (originalId) row.id = String(originalId);
+    const conversion = {
       id: c.id,
       transaction_id: row.id,
       original_currency: original,
@@ -181,7 +284,12 @@ export function applyCommand(w: Workspace, c: PendingCommand) {
       exchange_rate: rate.toNumber(),
       rate_date: input.rateDate,
       rate_source: input.rateSource,
-    });
+      updated_at: now,
+      deleted_at: null,
+    };
+    if (prior) Object.assign(prior, { ...conversion, id: prior.id });
+    else (w.tables.currency_conversions ??= []).push(conversion);
+    row.source_id = String(prior?.id ?? c.id);
   } else if (c.kind === "ACCOUNT_CREATE") {
     if (
       !String(input.name ?? "").trim() ||
@@ -290,9 +398,13 @@ export function queueCommand(
       ? "accounts"
       : kind.startsWith("CATEGORY_")
         ? "categories"
-        : kind.startsWith("SPLIT_")
-          ? "split_expenses"
-          : undefined;
+        : kind.startsWith("PERSONAL_ENTRY_")
+          ? "personal_entries"
+          : kind.startsWith("CONVERSION_")
+            ? "currency_conversions"
+            : kind.startsWith("SPLIT_")
+              ? "split_expenses"
+              : undefined;
   const prior =
     table && id ? w.tables[table]?.find((r) => r.id === id) : undefined;
   const command: PendingCommand = {
@@ -312,9 +424,32 @@ export function ledgerSummary(w: Workspace) {
     income = new Decimal(0),
     expense = new Decimal(0);
   for (const a of w.tables.accounts ?? []) {
-    if (["ACCOUNTS_RECEIVABLE", "ACCOUNTS_PAYABLE"].includes(String(a.type)))
-      continue;
-    net = net.plus(new Decimal(String(a.balance)).mul(liability(a) ? -1 : 1));
+    net = net.plus(
+      new Decimal(String(a.balance)).mul(
+        ["CREDIT_CARD", "LOAN", "ACCOUNTS_PAYABLE"].includes(String(a.type))
+          ? -1
+          : 1,
+      ),
+    );
+  }
+  for (const asset of w.tables.personal_assets ?? []) {
+    if (asset.account_id) continue;
+    const latest = (w.tables.asset_valuations ?? [])
+      .filter((v) => v.asset_id === asset.id)
+      .sort((a, b) =>
+        String(b.value_date).localeCompare(String(a.value_date)),
+      )[0];
+    if (latest) net = net.plus(String(latest.value));
+  }
+  for (const loan of w.tables.personal_loans ?? []) {
+    const repaid = (w.tables.loan_payments ?? [])
+      .filter((p) => p.loan_id === loan.id && !p.reversed_at)
+      .reduce((n, p) => n.plus(String(p.principal)), new Decimal(0));
+    net = net.plus(
+      new Decimal(String(loan.principal))
+        .minus(repaid)
+        .mul(loan.direction === "LENT" ? 1 : -1),
+    );
   }
   for (const t of w.tables.transactions ?? []) {
     if (t.type === "INCOME") income = income.plus(String(t.analytics_amount));
