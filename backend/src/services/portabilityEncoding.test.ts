@@ -8,7 +8,7 @@ vi.mock("../db", async (original) => ({
   ...(await original<typeof import("../db")>()),
   getSupabaseClient: () => ({
     auth: { getUser: async () => ({ data: { user: { id: "synthetic-owner" } }, error: null }) },
-    rpc: async () => ({ data: fixture.snapshot, error: null }),
+    rpc: async (name: string) => ({ data: name === "verify_current_session" ? { session_id: "fixture-session", user_id: "synthetic-owner" } : fixture.snapshot, error: null }),
   }),
 }));
 import portability from "../routes/portability.routes";

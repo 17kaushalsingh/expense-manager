@@ -53,7 +53,7 @@ Status: **Implemented** = the mapped workflow exists; **Partial** = related beha
 | SW41 | Split by adjustment | Four ordinary split modes | Missing | Persist adjustment intent and independently normalize it into exact shares. |
 | SW42 | Collaborative editing by any involved member | Creator/group-owner permissions | Different | Splitwise has no special group admins. Any expansion must preserve private account choices and audit permissions. |
 | SW43 | Group invitations / joining | Expiring links with owner approval | Different | Existing secure approval flow differs from Splitwise's admission model; configurable admission policy is needed. |
-| SW44 | Sign out on all devices / security history | Supabase global sign-out, recovery revocation | Partial | Explicit device/session controls and user-visible security history. |
+| SW44 | Sign out on all devices / security history | Device naming, selected/other/all-session revocation, own activity | Implemented | Verified JWT/session context, direct Data API/RPC enforcement and Storage-origin checks; cached/downloaded files cannot be recalled. First-use/naming/revocation activity is recorded from this release; provider history is not backfilled. |
 | SW45 | Merge duplicate accounts / identities | No merge workflow | Missing | Verified ownership, atomic identity and debt reconciliation, duplicate/guest handling. |
 | SW46 | Account deactivation/deletion | Financial-account deletion only | Missing | Auth-account lifecycle, retention/export choices and shared-history-safe anonymization. |
 | SW47 | Abuse/block/report workflows | No blocking/reporting controls | Missing | Blocked invitations/contact, reporting/triage and financial-history preservation. |

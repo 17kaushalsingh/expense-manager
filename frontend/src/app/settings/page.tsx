@@ -3,6 +3,7 @@ import { T } from "@/components/i18n/Language";
 import { LanguageSettings } from "@/components/i18n/Language";
 import { DeviceSecurity } from "@/components/device/DeviceSecurity";
 import { Appearance } from "@/components/settings/Appearance";
+import { AccountSecurity } from "@/components/settings/AccountSecurity";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -111,6 +112,7 @@ export default function Settings() {
         <T text="Sign out" />
       </button>
       <LanguageSettings />
+      <AccountSecurity />
       <DeviceSecurity />
       <Appearance />
       <InstallApp />

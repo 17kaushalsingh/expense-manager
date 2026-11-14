@@ -1,11 +1,17 @@
 import { beforeEach, it, expect, vi } from "vitest";
-const getUser = vi.hoisted(() => vi.fn());
+const rpc = vi.hoisted(() => vi.fn());
 vi.mock("../db", async (original) => ({
   ...(await original<object>()),
-  getSupabaseClient: () => ({ auth: { getUser } }),
+  getSupabaseClient: () => ({ rpc }),
 }));
 import { authenticate } from "./auth";
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  rpc.mockResolvedValue({
+    data: { session_id: "session-id", user_id: "verified-id" },
+    error: null,
+  });
+});
 function response() {
   return {
     status: vi.fn().mockReturnThis(),
@@ -14,7 +20,7 @@ function response() {
   };
 }
 it("keeps expired tokens unauthorized and never forwards an unverified identity", async () => {
-  getUser.mockResolvedValue({ data: { user: null }, error: { status: 401 } });
+  rpc.mockResolvedValue({ data: null, error: { code: "PGRST301" } });
   const res = response(),
     next = vi.fn();
   await authenticate(
@@ -26,7 +32,10 @@ it("keeps expired tokens unauthorized and never forwards an unverified identity"
   expect(next).not.toHaveBeenCalled();
 });
 it("reports a provider outage without treating the user's session as invalid", async () => {
-  getUser.mockResolvedValue({ data: { user: null }, error: { status: 503 } });
+  rpc.mockResolvedValue({
+    data: null,
+    error: { code: "", message: "Network unavailable" },
+  });
   const res = response(),
     next = vi.fn();
   await authenticate(
@@ -39,10 +48,6 @@ it("reports a provider outage without treating the user's session as invalid", a
   expect(next).not.toHaveBeenCalled();
 });
 it("forwards only a validated identity and request-scoped client", async () => {
-  getUser.mockResolvedValue({
-    data: { user: { id: "verified-id" } },
-    error: null,
-  });
   const req = {
       headers: { authorization: "Bearer fixture" },
       userId: undefined,
@@ -52,4 +57,28 @@ it("forwards only a validated identity and request-scoped client", async () => {
   await authenticate(req as never, res as never, next);
   expect(req.userId).toBe("verified-id");
   expect(next).toHaveBeenCalledOnce();
+});
+it("rejects a revoked session even while its access token is otherwise valid", async () => {
+  rpc.mockResolvedValue({ data: null, error: { code: "PT401" } });
+  const res = response(),
+    next = vi.fn();
+  await authenticate(
+    { headers: { authorization: "Bearer revoked" } } as never,
+    res as never,
+    next,
+  );
+  expect(res.status).toHaveBeenCalledWith(401);
+  expect(next).not.toHaveBeenCalled();
+});
+it("fails closed if session verification is unavailable", async () => {
+  rpc.mockResolvedValue({ data: null, error: { code: "XX000" } });
+  const res = response(),
+    next = vi.fn();
+  await authenticate(
+    { headers: { authorization: "Bearer valid" } } as never,
+    res as never,
+    next,
+  );
+  expect(res.status).toHaveBeenCalledWith(503);
+  expect(next).not.toHaveBeenCalled();
 });

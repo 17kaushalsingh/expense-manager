@@ -10,7 +10,7 @@ interface AuthState {
   setAuth: (token: string | null, user: Profile | null) => void;
   setReady: (error?: string) => void;
   setProfile: (user: Profile) => void;
-  logout: () => Promise<void>;
+  logout: (scope?: "local" | "global") => Promise<void>;
 }
 export const useAuthStore = create<AuthState>()((set) => ({
   token: null,
@@ -25,11 +25,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
     })),
   setReady: (error) => set({ ready: true, error: error ?? null }),
   setProfile: (user) => set((state) => ({ user: { ...state.user, ...user } })),
-  logout: async () => {
+  logout: async (scope = "local") => {
     if (typeof window !== "undefined")
       window.dispatchEvent(new Event("ledgersync-signout"));
     try {
-      await supabase().auth.signOut();
+      await supabase().auth.signOut({ scope });
     } finally {
       set({ token: null, user: null });
       lock();

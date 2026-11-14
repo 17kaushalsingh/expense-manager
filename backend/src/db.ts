@@ -46,19 +46,24 @@ export function dbResult<T>(result: {
 }): T {
   if (result.error) {
     const { code, message } = result.error;
-    const status = message.startsWith("Too many invitation requests")
-      ? 429
-      : code === "42501"
-        ? 403
-        : ["P0002", "PGRST116"].includes(code ?? "")
+    const status =
+      code === "PT401"
+        ? 401
+        : code === "PT404"
           ? 404
-          : ["23505", "23503"].includes(code ?? "")
-            ? 409
-            : code === "P0001" ||
-                code?.startsWith("22") ||
-                code?.startsWith("23")
-              ? 400
-              : 500;
+          : message.startsWith("Too many invitation requests")
+            ? 429
+            : code === "42501"
+              ? 403
+              : ["P0002", "PGRST116"].includes(code ?? "")
+                ? 404
+                : ["23505", "23503"].includes(code ?? "")
+                  ? 409
+                  : code === "P0001" ||
+                      code?.startsWith("22") ||
+                      code?.startsWith("23")
+                    ? 400
+                    : 500;
     const friendly =
       code === "23505"
         ? message.includes("budgets")

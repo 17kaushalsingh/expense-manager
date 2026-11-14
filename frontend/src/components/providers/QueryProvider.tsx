@@ -1,5 +1,5 @@
 "use client";
-import { workspace } from "@/lib/device/vault";
+import { workspace, lock } from "@/lib/device/vault";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Session } from "@supabase/supabase-js";
@@ -89,7 +89,13 @@ export default function QueryProvider({
       const client = supabase();
       const {
         data: { subscription },
-      } = client.auth.onAuthStateChange((_event, session) => apply(session));
+      } = client.auth.onAuthStateChange((event, session) => {
+        if (event === "SIGNED_OUT") {
+          window.dispatchEvent(new Event("ledgersync-signout"));
+          lock();
+        }
+        apply(session);
+      });
       void client.auth
         .getSession()
         .then(({ data, error }) => {

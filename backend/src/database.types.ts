@@ -2385,6 +2385,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      account_security_activity: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       budget_plan_summary: { Args: { p_date?: string }; Returns: Json }
       budget_summary: { Args: { p_month: string }; Returns: Json }
       bulk_manual_transactions: {
@@ -2412,6 +2416,7 @@ export type Database = {
         Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
+      enforce_app_session: { Args: never; Returns: undefined }
       event_finance_summary: { Args: never; Returns: Json }
       execute_device_command: {
         Args: {
@@ -2440,6 +2445,7 @@ export type Database = {
         Args: { p_input: Json; p_preview?: boolean }
         Returns: Json
       }
+      list_account_sessions: { Args: never; Returns: Json }
       list_expense_drafts: { Args: { p_group_id?: string }; Returns: Json }
       list_split_templates: { Args: { p_group_id: string }; Returns: Json }
       local_date_bounds: {
@@ -2455,6 +2461,10 @@ export type Database = {
       }
       manage_account: {
         Args: { p_delete?: boolean; p_id?: string; p_input: Json }
+        Returns: Json
+      }
+      manage_account_session: {
+        Args: { p_action: string; p_id?: string; p_name?: string }
         Returns: Json
       }
       manage_expense_schedule: {
@@ -2546,6 +2556,7 @@ export type Database = {
         Args: { p_request?: boolean; p_token: string }
         Returns: Json
       }
+      verify_current_session: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never

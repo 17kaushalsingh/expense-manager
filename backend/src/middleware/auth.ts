@@ -4,6 +4,7 @@ import { getSupabaseClient } from "../db";
 export interface AuthRequest extends Request {
   userId?: string;
   db?: DatabaseClient;
+  sessionId?: string;
 }
 export async function authenticate(
   req: AuthRequest,
@@ -17,25 +18,36 @@ export async function authenticate(
   }
   try {
     const client = getSupabaseClient(token);
-    const { data, error } = await client.auth.getUser(token);
-    if (
-      error &&
-      (!error.status || error.status >= 500 || error.status === 429)
-    ) {
-      res.setHeader("Retry-After", "30");
+    // Supabase Data API verifies JWT signature/expiry before executing this RPC.
+    // Identity comes from auth.uid(), never from a locally decoded/unverified token.
+    const session = await client.rpc("verify_current_session");
+    if (session.error || !session.data) {
+      if (
+        ["PT401", "PGRST301", "PGRST302", "PGRST303", "42501"].includes(
+          session.error?.code ?? "",
+        )
+      ) {
+        res.status(401).json({ error: "Session revoked or expired" });
+      } else {
+        res.setHeader("Retry-After", "30");
+        res
+          .status(503)
+          .json({
+            error:
+              "Session verification is temporarily unavailable. Please retry.",
+          });
+      }
+      return;
+    }
+    const identity = session.data as { session_id?: string; user_id?: string };
+    if (!identity.user_id || !identity.session_id) {
       res
         .status(503)
-        .json({
-          error:
-            "Authentication service is temporarily unavailable. Please retry.",
-        });
+        .json({ error: "Session verification returned an invalid identity" });
       return;
     }
-    if (error || !data.user) {
-      res.status(401).json({ error: "Invalid or expired session" });
-      return;
-    }
-    req.userId = data.user.id;
+    req.userId = identity.user_id;
+    req.sessionId = identity.session_id;
     req.db = client;
     next();
   } catch (error) {
