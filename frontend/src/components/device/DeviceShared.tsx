@@ -1,9 +1,10 @@
 "use client";
-import { allocation } from "@/lib/device/splits";
+import { allocation, groupBalances } from "@/lib/device/splits";
 import { useState } from "react";
-import DecimalBase from "decimal.js";
-const Decimal = DecimalBase.clone({ precision: 60 });
-import { Workspace, changeWorkspace as changeStoredWorkspace } from "@/lib/device/vault";
+import {
+  Workspace,
+  changeWorkspace as changeStoredWorkspace,
+} from "@/lib/device/vault";
 import { queueCommand } from "@/lib/device/ledger";
 import { T, useLocale } from "@/components/i18n/Language";
 type Row = Record<string, unknown>;
@@ -16,7 +17,8 @@ export function DeviceShared({
   busy: boolean;
   run: (fn: () => Promise<void>) => Promise<void>;
 }) {
-  const changeWorkspace = (mutate: (copy: Workspace) => void) => changeStoredWorkspace(mutate, w.id);
+  const changeWorkspace = (mutate: (copy: Workspace) => void) =>
+    changeStoredWorkspace(mutate, w.id);
   const locale = useLocale(),
     [groupId, setGroup] = useState(String(w.tables.groups?.[0]?.id ?? "")),
     [editing, setEditing] = useState<Row>(),
@@ -36,36 +38,10 @@ export function DeviceShared({
       style: "currency",
       currency: String(group?.currency ?? w.profile.displayCurrency),
     }).format(Number(n));
-  const balance: Record<string, DecimalBase> = {};
-  for (const m of members) balance[String(m.user_id)] = new Decimal(0);
+  const balance = groupBalances(w, groupId);
   const splits = (w.tables.split_expenses ?? []).filter(
-      (s) => s.group_id === groupId && !s.deleted_at,
-    ),
-    ids = new Set(splits.map((s) => s.id));
-  for (const p of w.tables.split_payers ?? [])
-    if (ids.has(p.split_id) && balance[String(p.user_id)])
-      balance[String(p.user_id)] = balance[String(p.user_id)].plus(
-        String(p.amount_paid),
-      );
-  for (const p of w.tables.split_participants ?? [])
-    if (ids.has(p.split_id) && balance[String(p.user_id)])
-      balance[String(p.user_id)] = balance[String(p.user_id)].minus(
-        String(p.amount_owed),
-      );
-  for (const s of w.tables.settlements ?? [])
-    if (
-      s.group_id === groupId &&
-      !w.tables.settlement_reversals?.some((r) => r.settlement_id === s.id)
-    ) {
-      if (balance[String(s.payer_id)])
-        balance[String(s.payer_id)] = balance[String(s.payer_id)].plus(
-          String(s.amount),
-        );
-      if (balance[String(s.payee_id)])
-        balance[String(s.payee_id)] = balance[String(s.payee_id)].minus(
-          String(s.amount),
-        );
-    }
+    (s) => s.group_id === groupId && !s.deleted_at,
+  );
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget),
@@ -112,7 +88,9 @@ export function DeviceShared({
   }
   return (
     <section className="space-y-4">
-      <label className="label"><T text="Group" /><select
+      <label className="label">
+        <T text="Group" />
+        <select
           className="field"
           value={groupId}
           onChange={(e) => {
@@ -136,7 +114,9 @@ export function DeviceShared({
       {group && (
         <>
           <div className="panel space-y-2">
-            <h2 className="text-xl"><T text="Saved group balances" /></h2>
+            <h2 className="text-xl">
+              <T text="Saved group balances" />
+            </h2>
             <p className="text-xs text-text-secondary">
               Includes recorded settlements from the cloud snapshot. Pending
               shared changes do not affect these balances.
@@ -156,9 +136,13 @@ export function DeviceShared({
             onSubmit={(e) => void run(() => save(e))}
           >
             <h2 className="text-xl">
-              <T text={editing
-                ? "Edit shared expense offline"
-                : "Draft a shared expense"} />
+              <T
+                text={
+                  editing
+                    ? "Edit shared expense offline"
+                    : "Draft a shared expense"
+                }
+              />
             </h2>
             <p className="text-sm">
               Current membership, allocations, currency and settlement-history
@@ -187,13 +171,17 @@ export function DeviceShared({
                 defaultValue={String(editing?.total_amount ?? "")}
               />
             </label>
-            <label className="label"><T text="Split mode" /><select
+            <label className="label">
+              <T text="Split mode" />
+              <select
                 className="field"
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
               >
                 {["EQUAL", "EXACT", "PERCENTAGE", "SHARES"].map((m) => (
-                  <option key={m} value={m}><T text={m[0] + m.slice(1).toLowerCase()} /></option>
+                  <option key={m} value={m}>
+                    <T text={m[0] + m.slice(1).toLowerCase()} />
+                  </option>
                 ))}
               </select>
             </label>
@@ -214,7 +202,7 @@ export function DeviceShared({
                         !editing ||
                         w.tables.split_participants?.some(
                           (p) =>
-                            p.split_id === editing.id &&
+                            p.split_expense_id === editing.id &&
                             p.user_id === m.user_id,
                         )
                       }
@@ -222,7 +210,13 @@ export function DeviceShared({
                     {name(m.user_id)}
                   </label>
                   <label className="label text-xs">
-                    <T text={mode === "EQUAL" ? "Equal weight" : mode[0] + mode.slice(1).toLowerCase()} />
+                    <T
+                      text={
+                        mode === "EQUAL"
+                          ? "Equal weight"
+                          : mode[0] + mode.slice(1).toLowerCase()
+                      }
+                    />
                     <input
                       className="field"
                       type="number"
@@ -233,13 +227,15 @@ export function DeviceShared({
                       defaultValue={Number(
                         w.tables.split_participants?.find(
                           (p) =>
-                            p.split_id === editing?.id &&
+                            p.split_expense_id === editing?.id &&
                             p.user_id === m.user_id,
                         )?.share_value ?? 1,
                       )}
                     />
                   </label>
-                  <label className="label text-xs"><T text="Amount paid" /><input
+                  <label className="label text-xs">
+                    <T text="Amount paid" />
+                    <input
                       className="field"
                       name={`paid:${m.user_id}`}
                       type="number"
@@ -248,7 +244,7 @@ export function DeviceShared({
                       defaultValue={Number(
                         w.tables.split_payers?.find(
                           (p) =>
-                            p.split_id === editing?.id &&
+                            p.split_expense_id === editing?.id &&
                             p.user_id === m.user_id,
                         )?.amount_paid ?? 0,
                       )}
@@ -257,8 +253,12 @@ export function DeviceShared({
                 </div>
               ))}
             </fieldset>
-            <label className="label"><T text="Your payer account" /><select className="field" name="accountId">
-                <option value=""><T text="Default cash account" /></option>
+            <label className="label">
+              <T text="Your payer account" />
+              <select className="field" name="accountId">
+                <option value="">
+                  <T text="Default cash account" />
+                </option>
                 {w.tables.accounts
                   ?.filter(
                     (a) =>
@@ -276,7 +276,9 @@ export function DeviceShared({
             <button
               className="btn"
               disabled={busy || group.currency !== w.profile.displayCurrency}
-            ><T text="Save for review & sync" /></button>
+            >
+              <T text="Save for review & sync" />
+            </button>
             {editing && (
               <button
                 className="btn-secondary ml-3"

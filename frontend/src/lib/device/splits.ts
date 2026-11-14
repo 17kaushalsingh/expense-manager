@@ -1,5 +1,42 @@
 import DecimalBase from "decimal.js";
+import type { Workspace } from "./vault";
 const Decimal = DecimalBase.clone({ precision: 60 });
+/** Raw encrypted snapshot columns intentionally retain their database names. */
+export function groupBalances(w: Pick<Workspace, "tables">, groupId: string) {
+  const balances: Record<string, DecimalBase> = Object.create(null);
+  for (const m of w.tables.group_members ?? [])
+    if (m.group_id === groupId) balances[String(m.user_id)] = new Decimal(0);
+  const ids = new Set(
+    (w.tables.split_expenses ?? [])
+      .filter((s) => s.group_id === groupId && !s.deleted_at)
+      .map((s) => s.id),
+  );
+  for (const p of w.tables.split_payers ?? [])
+    if (ids.has(p.split_expense_id) && balances[String(p.user_id)])
+      balances[String(p.user_id)] = balances[String(p.user_id)].plus(
+        String(p.amount_paid),
+      );
+  for (const p of w.tables.split_participants ?? [])
+    if (ids.has(p.split_expense_id) && balances[String(p.user_id)])
+      balances[String(p.user_id)] = balances[String(p.user_id)].minus(
+        String(p.amount_owed),
+      );
+  const reversed = new Set(
+    (w.tables.settlement_reversals ?? []).map((r) => r.settlement_id),
+  );
+  for (const s of w.tables.settlements ?? []) {
+    if (s.group_id !== groupId || reversed.has(s.id)) continue;
+    if (balances[String(s.payer_id)])
+      balances[String(s.payer_id)] = balances[String(s.payer_id)].plus(
+        String(s.amount),
+      );
+    if (balances[String(s.payee_id)])
+      balances[String(s.payee_id)] = balances[String(s.payee_id)].minus(
+        String(s.amount),
+      );
+  }
+  return balances;
+}
 export function allocation(
   total: number,
   mode: string,

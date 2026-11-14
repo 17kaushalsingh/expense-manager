@@ -29,3 +29,7 @@ Owner-approved invitations and explicit posting of recurring drafts remain delib
 - Four versioned migrations are applied. Security advisors retain only 43 intentional authenticated SECURITY DEFINER entrypoints and existing disabled leaked-password protection; the new anonymous-definer warning was eliminated by narrowing the pre-request hook.
 
 This branch is not merged or deployed. Hosted additive security migrations are applied; do not replay them. Unrelated vendor edits and OAuth credentials remain excluded.
+
+## Offline sharing acceptance repair
+
+Source inspection against the authoritative snapshot schema found that the device Shared screen used `split_id` instead of `split_expense_id` for payer/participant rows. This incorrectly displayed saved balances and preselected edit allocations. The screen now uses canonical database fields and a shared Decimal balance calculation. Three new regression cases cover saved shares, partial/reversed settlements, unrelated-group isolation and zero balances. Ten offline-sharing tests pass. Unposted shared operations remain excluded. Full cold-start/device GUI acceptance remains open.
