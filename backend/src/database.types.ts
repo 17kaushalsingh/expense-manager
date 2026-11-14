@@ -2548,6 +2548,10 @@ export type Database = {
         Args: { p_group_id: string; p_template_id?: string }
         Returns: Json
       }
+      share_recorded_purchase: {
+        Args: { p_input: Json; p_transaction_id: string }
+        Returns: Json
+      }
       simplify_debts: { Args: { p_group_id?: string }; Returns: Json }
       transaction_labels: { Args: never; Returns: Json }
       transfer_accounts_atomic: { Args: { p_input: Json }; Returns: Json }

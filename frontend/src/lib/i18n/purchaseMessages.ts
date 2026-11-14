@@ -1,0 +1,76 @@
+export const purchaseMessages: [string, string, string, string][] = [
+  [
+    "Share a recorded purchase",
+    "दर्ज खरीद साझा करें",
+    "Compartir una compra registrada",
+    "مشاركة عملية شراء مسجّلة",
+  ],
+  [
+    "Convert purchase to shared expense",
+    "खरीद को साझा खर्च बनाएँ",
+    "Convertir compra en gasto compartido",
+    "تحويل الشراء إلى مصروف مشترك",
+  ],
+  ["Shared purchase", "साझा खरीद", "Compra compartida", "شراء مشترك"],
+  ["Paying account", "भुगतान खाता", "Cuenta de pago", "حساب الدفع"],
+  [
+    "Choose people without a group",
+    "समूह के बिना लोग चुनें",
+    "Elegir personas sin un grupo",
+    "اختيار أشخاص دون مجموعة",
+  ],
+  [
+    "Only groups in the purchase currency can be selected. Event-linked purchases and installment plans must be unlinked first.",
+    "केवल खरीद की मुद्रा वाले समूह चुने जा सकते हैं। पहले खरीद से जुड़े आयोजन और किस्त योजनाओं के लिंक हटाएँ।",
+    "Solo puedes elegir grupos en la moneda de la compra. Primero desvincula los eventos y planes de cuotas asociados.",
+    "يمكن اختيار المجموعات التي تستخدم عملة الشراء فقط. افصل روابط الفعاليات وخطط الأقساط أولًا.",
+  ],
+  [
+    "Checking attached receipts…",
+    "संलग्न रसीदें जाँची जा रही हैं…",
+    "Comprobando recibos adjuntos…",
+    "جارٍ التحقق من الإيصالات المرفقة…",
+  ],
+  [
+    "I approve moving the attached receipts to the shared expense, where the selected people can access them.",
+    "मैं संलग्न रसीदों को साझा खर्च में स्थानांतरित करने की अनुमति देता/देती हूँ, जहाँ चुने हुए लोग उन्हें देख सकेंगे।",
+    "Autorizo trasladar los recibos adjuntos al gasto compartido, donde las personas seleccionadas podrán verlos.",
+    "أوافق على نقل الإيصالات المرفقة إلى المصروف المشترك، حيث سيتمكن الأشخاص المختارون من الوصول إليها.",
+  ],
+  [
+    "Refresh this purchase before sharing it.",
+    "साझा करने से पहले इस खरीद को रीफ़्रेश करें।",
+    "Actualiza esta compra antes de compartirla.",
+    "حدّث عملية الشراء قبل مشاركتها.",
+  ],
+  [
+    "Review allocation",
+    "बँटवारे की समीक्षा करें",
+    "Revisar reparto",
+    "مراجعة التوزيع",
+  ],
+  [
+    "Purchase shared. Its cash payment was not duplicated.",
+    "खरीद साझा की गई। उसका नकद भुगतान दोबारा दर्ज नहीं हुआ।",
+    "Compra compartida. El pago no se ha duplicado.",
+    "تمت مشاركة الشراء دون تكرار دفعتها النقدية.",
+  ],
+  [
+    "Share this purchase",
+    "यह खरीद साझा करें",
+    "Compartir esta compra",
+    "مشاركة هذا الشراء",
+  ],
+  [
+    "Choose at least one other participant. The total, payer and account are already recorded.",
+    "कम से कम एक अन्य प्रतिभागी चुनें। कुल राशि, भुगतानकर्ता और खाता पहले से दर्ज हैं।",
+    "Elige al menos a otra persona. El total, el pagador y la cuenta ya están registrados.",
+    "اختر مشاركًا آخر على الأقل. الإجمالي والدافع والحساب مسجّلة مسبقًا.",
+  ],
+  [
+    "The existing cash payment, date and paying account stay fixed. Your personal spending becomes your allocated share. The original manual entry is replaced atomically.",
+    "मौजूदा नकद भुगतान, तारीख और भुगतान खाता तय रहेंगे। आपका निजी खर्च आपके हिस्से के बराबर होगा। मूल मैन्युअल प्रविष्टि एक ही सुरक्षित कार्रवाई में बदली जाएगी।",
+    "El pago, la fecha y la cuenta se conservan. Tu gasto personal pasa a ser tu parte del reparto. La entrada manual original se sustituye en una sola operación.",
+    "تبقى الدفعة النقدية والتاريخ وحساب الدفع كما هي. يصبح إنفاقك الشخصي حصتك الموزعة. يُستبدل القيد اليدوي الأصلي في عملية واحدة متكاملة.",
+  ],
+];

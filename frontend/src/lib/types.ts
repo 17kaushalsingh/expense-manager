@@ -21,6 +21,7 @@ export interface Category {
   userId: string | null;
 }
 export interface Transaction {
+  updatedAt?: string;
   tags?: string[] | null;
   sourceId?: string;
   id: string;

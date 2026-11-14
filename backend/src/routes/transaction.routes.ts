@@ -8,6 +8,45 @@ import { createTransactionSchema, transferSchema } from "../validation/schemas";
 import { camelCase, dbResult, rpc } from "../db";
 const router = Router();
 router.use(authenticate);
+router.post(
+  "/:id/share",
+  validateBody(
+    z
+      .object({
+        requestKey: z.uuid(),
+        expectedUpdatedAt: z.iso.datetime({ offset: true }),
+        groupId: z.uuid().nullable().default(null),
+        categoryId: z.uuid().nullable().default(null),
+        description: z.string().trim().min(1).max(200),
+        splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
+        participants: z
+          .array(
+            z
+              .object({
+                userId: z.uuid(),
+                shareValue: z.number().finite().nonnegative().optional(),
+              })
+              .strict(),
+          )
+          .min(1)
+          .max(100),
+        shareReceipts: z.boolean().default(false),
+      })
+      .strict(),
+  ),
+  async (req: AuthRequest, res) => {
+    const id = z.uuid().safeParse(req.params.id);
+    if (!id.success) throw new HttpError(400, "Invalid purchase identifier");
+    res
+      .status(201)
+      .json(
+        await rpc(req.db!, "share_recorded_purchase", {
+          p_transaction_id: id.data,
+          p_input: req.body,
+        }),
+      );
+  },
+);
 const filtersSchema = z
   .object({
     month: z

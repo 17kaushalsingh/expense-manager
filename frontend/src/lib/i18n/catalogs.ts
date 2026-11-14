@@ -1,5 +1,6 @@
 import { deviceMessages } from "./deviceMessages";
 import { securityMessages } from "./securityMessages";
+import { purchaseMessages } from "./purchaseMessages";
 /** Interface copy only. Never translate names, notes, receipt text or other user content. */
 export const locales = {
   en: "English",
@@ -378,7 +379,7 @@ const rows: [string, string, string, string][] = [
   ["Online", "ऑनलाइन", "Con conexión", "متصل"],
   ["Offline", "ऑफलाइन", "Sin conexión", "غير متصل"],
 ];
-for (const row of [...deviceMessages, ...securityMessages])
+for (const row of [...deviceMessages, ...securityMessages, ...purchaseMessages])
   if (!rows.some(([key]) => key === row[0])) rows.push(row);
 export const catalogs: Record<Exclude<Locale, "en">, Record<string, string>> = {
   hi: {},

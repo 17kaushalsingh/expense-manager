@@ -31,6 +31,8 @@ interface Props {
   onSaveDraft?: (body: SplitInput) => Promise<unknown>;
   title?: string;
   submitLabel?: string;
+  /** An already-paid purchase keeps its amount, payer and original account. */
+  fundedPurchase?: { accountId: string; amount: number };
 }
 export function SplitBuilder(props: Props) {
   return props.isOpen ? <DefaultEditor {...props} /> : null;
@@ -96,6 +98,7 @@ function Editor({
   onSaveDraft,
   title,
   submitLabel,
+  fundedPurchase,
 }: Props) {
   const seed = split ?? initial;
   const [templateName, setTemplateName] = useState(initialName);
@@ -139,7 +142,7 @@ function Editor({
       ),
     ),
     [account, setAccount] = useState(
-      split?.payers.find((p) => p.userId === user.id)?.accountId ?? "",
+      seed?.payers.find((p) => p.userId === user.id)?.accountId ?? "",
     ),
     [category, setCategory] = useState(seed?.categoryId ?? "");
   const [itemized, setItemized] = useState(!!seed?.itemization);
@@ -169,26 +172,35 @@ function Editor({
       itemError = error;
     }
   }
-  const total = Number(itemized ? (itemPreview?.total ?? 0) : amount),
+  const total =
+      fundedPurchase?.amount ??
+      Number(itemized ? (itemPreview?.total ?? 0) : amount),
     shares = itemized
       ? total
       : participants.reduce(
           (n, p) => n + Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")),
           0,
         );
-  const payers = (
-    multi
-      ? people
-          .map((p) => ({
-            userId: p.id,
-            amountPaid: Number(paidValues[p.id] || 0),
-          }))
-          .filter((p) => p.amountPaid > 0)
-      : [{ userId: paidBy, amountPaid: missingTotal ? undefined : total }]
-  ).map((p) => ({
-    ...p,
-    ...(p.userId === user.id && account ? { accountId: account } : {}),
-  }));
+  const payers = fundedPurchase
+    ? [
+        {
+          userId: user.id,
+          amountPaid: fundedPurchase.amount,
+          accountId: fundedPurchase.accountId,
+        },
+      ]
+    : (multi
+        ? people
+            .map((p) => ({
+              userId: p.id,
+              amountPaid: Number(paidValues[p.id] || 0),
+            }))
+            .filter((p) => p.amountPaid > 0)
+        : [{ userId: paidBy, amountPaid: missingTotal ? undefined : total }]
+      ).map((p) => ({
+        ...p,
+        ...(p.userId === user.id && account ? { accountId: account } : {}),
+      }));
   const payerSum = payers.reduce((n, p) => n + (p.amountPaid ?? 0), 0);
   const [removeUnavailable, setRemoveUnavailable] = useState(false);
   const missingParty =
@@ -197,6 +209,7 @@ function Editor({
       (p) => !people.some((person) => person.id === p.userId),
     );
   const valid =
+    (!fundedPurchase || participants.some((p) => p.id !== user.id)) &&
     (!missingParty || removeUnavailable) &&
     (missingTotal ||
       (total > 0 &&
@@ -271,6 +284,11 @@ function Editor({
           if (valid) action.mutate();
         }}
       >
+        {fundedPurchase && (
+          <p className="text-sm text-text-secondary">
+            <T text="Choose at least one other participant. The total, payer and account are already recorded." />
+          </p>
+        )}
         {templateMode && (
           <label className="label">
             Template name
@@ -300,8 +318,11 @@ function Editor({
             step="0.01"
             min="0.01"
             required={!templateMode}
-            readOnly={itemized}
-            value={itemized ? (itemPreview?.total ?? "") : amount}
+            readOnly={itemized || !!fundedPurchase}
+            value={
+              fundedPurchase?.amount ??
+              (itemized ? (itemPreview?.total ?? "") : amount)
+            }
             onChange={(e) => setAmount(e.target.value)}
           />
         </label>
@@ -331,6 +352,7 @@ function Editor({
           <input
             type="checkbox"
             checked={multi}
+            disabled={!!fundedPurchase}
             onChange={(e) => setMulti(e.target.checked)}
           />
           Multiple payers
@@ -363,6 +385,7 @@ function Editor({
             <select
               className="field"
               value={paidBy}
+              disabled={!!fundedPurchase}
               onChange={(e) => setPaidBy(e.target.value)}
             >
               {people.map((p) => (
@@ -379,6 +402,7 @@ function Editor({
             <select
               className="field"
               value={account}
+              disabled={!!fundedPurchase}
               onChange={(e) => setAccount(e.target.value)}
             >
               <option value="">Default cash account</option>
@@ -397,9 +421,11 @@ function Editor({
             </select>
           </label>
         )}
-        <p className="text-xs text-text-secondary">
-          Other members’ payments use their default cash account.
-        </p>
+        {!fundedPurchase && (
+          <p className="text-xs text-text-secondary">
+            Other members’ payments use their default cash account.
+          </p>
+        )}
         {!templateMode && !onSave && (
           <label className="flex gap-2 text-sm">
             <input

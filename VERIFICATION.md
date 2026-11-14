@@ -1,3 +1,11 @@
+# Recorded purchase sharing — 14 November 2026
+
+- Owned manual purchases now have a two-stage transaction-detail review using the existing split editor. Cash/card amount, date and account stay fixed. Explicit consent is required before moving private receipts into shared access. New flow copy is translated in all four supported locales.
+- Ten real hosted purchase-sharing cases pass: equal/exact/percentage/shares, concurrent idempotent conversion, cash and personal analytics, invalid allocation rollback, ownership/membership/stale input, receipt consent/isolation, CSV deduplication, delete/recovery identity, credit-card balances and near-limit temporary ordering. Real exported group snapshots also match the server's debt balances.
+- Final serial full run: **248 passed, one existing Cron test skipped across 39 files**, completed in 151.07 seconds. Backend TypeScript build and frontend lint/production build pass. An earlier run exposed a test-only incorrect CSV column name; it was corrected and its leftover synthetic fixture reversed/removed before the targeted and final full runs.
+- Two versioned purchase migrations are applied. Security advisors show 44 intentional authenticated actor-checked SECURITY DEFINER entrypoints and existing disabled leaked-password protection; no new RLS/search-path finding. All 19 unrelated vendor changes match the preservation snapshot byte-for-byte. Credentials remain excluded.
+- Browser purchase walkthrough and offline purchase-conversion queue remain open. Source is on `codex/account-sharing-completion`, not merged or deployed. See docs/PARITY_COMPLETION_PLAN.md for the full objective.
+
 # Account session milestone — 14 November 2026
 
 - Implemented session listing/naming, selected/other/all-device revocation, and paginated user-owned first-use/naming/revocation activity. Local sign-out now affects only this device; explicit all-device revocation is separate. Involuntary SDK sign-out locks encrypted device data.

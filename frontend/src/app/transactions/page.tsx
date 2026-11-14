@@ -1,6 +1,7 @@
 "use client";
 import { T } from "@/components/i18n/Language";
 import { ConversionEditor } from "@/components/transactions/ConversionEditor";
+import { PurchaseToSplit } from "@/components/transactions/PurchaseToSplit";
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -52,6 +53,8 @@ function useSearchText(value: string) {
   return text;
 }
 function Transactions() {
+  const [sharingPurchase, setSharingPurchase] = useState<Transaction>(),
+    [sharingNotice, setSharingNotice] = useState(false);
   const search = useSearchParams(),
     { money, date, timezone } = useFormat();
   const [view, setView] = useState(
@@ -673,6 +676,18 @@ function Transactions() {
           error={deletion.error}
         />
       )}{" "}
+      {sharingNotice && (
+        <p role="status" className="text-positive">
+          <T text="Purchase shared. Its cash payment was not duplicated." />
+        </p>
+      )}
+      {sharingPurchase && (
+        <PurchaseToSplit
+          purchase={sharingPurchase}
+          onClose={() => setSharingPurchase(undefined)}
+          onShared={() => setSharingNotice(true)}
+        />
+      )}
       {detail && (
         <Modal title="Transaction details" onClose={() => setDetail(undefined)}>
           <p
@@ -727,7 +742,19 @@ function Transactions() {
               </button>
             </div>
           ) : detail.sourceType === "MANUAL" ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {detail.type === "EXPENSE" && (
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setSharingPurchase(detail);
+                    setDetail(undefined);
+                    setSharingNotice(false);
+                  }}
+                >
+                  <T text="Share this purchase" />
+                </button>
+              )}
               <button
                 className="btn flex-1"
                 onClick={() => {

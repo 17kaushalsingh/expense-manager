@@ -6,7 +6,7 @@ Full objective remains active. This checklist preserves the requested scope; a p
 |---|---|---|
 | Device acceptance | Android compilation, real iOS/widgets, passcode/archives, cold-start offline/reconnection, signing/store release | iOS app compiles; official simulator runtime is being provisioned. Android SDK, GUI/real-device and distribution checks remain. |
 | Account controls | Device/session management, lifecycle/deletion/anonymization, duplicate identity merging, blocking/reporting | Session list/naming, selected/other/all-device revocation, own activity and immediate database JWT-session checks implemented. Remaining controls are open. |
-| Sharing | Shared refunds, adjustments, purchase-to-split, simplification toggle | Open; existing settlement reversal and four ordinary split modes remain available. |
+| Sharing | Shared refunds, adjustments, purchase-to-split, simplification toggle | Recorded manual purchases can be converted atomically into reviewed shared expenses. Refunds, adjustments and the simplification toggle remain open. |
 | Current feature completion | Complete translations, advanced offline workflows, multi-currency wallets/groups/settlements | Existing device workspace and personal FX entries remain scoped foundations; all listed extensions remain open. |
 | Friends | Persistent friends, bilateral history/settings, guests and secure claiming | Open. |
 | Receipts | OCR extraction, confidence/reconciliation, explicit review before posting | Private files/manual itemization exist; OCR remains open. |
@@ -33,3 +33,11 @@ This branch is not merged or deployed. Hosted additive security migrations are a
 ## Offline sharing acceptance repair
 
 Source inspection against the authoritative snapshot schema found that the device Shared screen used `split_id` instead of `split_expense_id` for payer/participant rows. This incorrectly displayed saved balances and preselected edit allocations. The screen now uses canonical database fields and a shared Decimal balance calculation. Three new regression cases cover saved shares, partial/reversed settlements, unrelated-group isolation and zero balances. Ten offline-sharing tests pass. Unposted shared operations remain excluded. Full cold-start/device GUI acceptance remains open.
+
+## Recorded purchase sharing
+
+- Transaction details offer a review flow for converting an owned manual expense into a group or ad-hoc split. All four allocation modes are available. The original total, date, payer and payment account remain fixed; at least one other participant is required. Receipt access changes require an explicit checkbox before review. New copy is translated in Hindi, Spanish and Arabic.
+- The actor-checked accounting RPC reverses/replaces the original entry in one transaction, preserving the final cash/card balance and attributing personal spending only once. It records private source provenance and an idempotency hash; concurrent retries return one expense, changed retry payloads conflict, and stale purchases are rejected. Existing split authorization, currency, membership and settlement-history restrictions apply.
+- Original personal notes/labels stay on the caller's private generated entries. CSV import references move to the surviving funding entry so reimport detection remains intact. Event/installment links must be removed before conversion. A conversion retry cannot resurrect a deleted shared expense; authorized expense recovery preserves its identity.
+- Hosted integration covers all four modes, concurrent posting, invalid-total rollback, outsider/membership/stale-input rejection, explicit category clearing, receipt consent/access, CSV duplicate detection, deletion/recovery, credit-card attribution and temporary account-limit boundaries. The same hosted snapshot is checked against saved offline group balances. Fixture data is synthetic and cleaned through authorized accounting operations.
+- This flow currently requires connectivity. Offline purchase conversion and a full browser walkthrough remain acceptance work. Source remains on the current branch; no new web/API deployment is claimed.
