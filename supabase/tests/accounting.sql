@@ -6,9 +6,19 @@ insert into auth.users(id,email,raw_user_meta_data) values
  ('22222222-2222-4222-8222-222222222222','ledger-b@example.invalid','{"name":"Bob"}'),
  ('33333333-3333-4333-8333-333333333333','ledger-c@example.invalid','{"name":"Cara"}'),
  ('44444444-4444-4444-8444-444444444444','ledger-d@example.invalid','{"name":"Outsider"}');
+-- SQL-only sessions exercise the same active-session policy as REST. These
+-- rows and claim constructors exist only inside this rollback transaction.
+insert into auth.sessions(id,user_id,not_after)
+select md5('sql-rollback-'||id::text)::uuid,id,now()+interval '1 hour'
+from auth.users where id in ('11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222','33333333-3333-4333-8333-333333333333','44444444-4444-4444-8444-444444444444');
+create function pg_temp.test_actor(actor uuid) returns void language plpgsql set search_path='' as $$
+begin
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'role','authenticated','session_id',md5('sql-rollback-'||actor::text)::uuid)::text,true);
+end $$;
 create function pg_temp.assert(ok boolean,message text) returns void language plpgsql as $$ begin if ok is not true then raise exception 'Assertion failed: %',message; end if; end $$;
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}',true);
+select pg_temp.test_actor('11111111-1111-4111-8111-111111111111');
 do $$
 declare a jsonb; b jsonb; g jsonb; s jsonb; v jsonb; n numeric;
 begin
@@ -76,7 +86,7 @@ begin
  perform public.create_split_expense_atomic('{}',(s->>'id')::uuid,true);
  end loop;
 end $$;
-select set_config('request.jwt.claims','{"sub":"44444444-4444-4444-8444-444444444444","role":"authenticated"}',true);
+select pg_temp.test_actor('44444444-4444-4444-8444-444444444444');
 select pg_temp.assert((select count(*)=0 from public.accounts),'private accounts hidden');
 select pg_temp.assert((select count(*)=0 from public.groups),'outsider groups hidden');
 select pg_temp.assert((select count(*)=0 from public.split_expenses),'outsider splits hidden');
@@ -87,7 +97,7 @@ do $$ begin
  begin update public.accounts set balance=1000;raise exception 'Expected direct balance write failure';
  exception when insufficient_privilege then null; end;
 end $$;
-select set_config('request.jwt.claims','{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}',true);
+select pg_temp.test_actor('22222222-2222-4222-8222-222222222222');
 do $$ declare a jsonb; v jsonb; begin
  perform pg_temp.assert((select count(*)=1 from public.groups),'member can read group');
  perform pg_temp.assert((select count(*)=1 from public.users),'member cannot read other profiles');
@@ -104,7 +114,7 @@ do $$ declare a jsonb; v jsonb; begin
  begin perform public.execute_settlement_atomic(v);raise exception 'Expected overpayment failure';
  exception when raise_exception then if sqlerrm='Expected overpayment failure' then raise;end if;end;
 end $$;
-select set_config('request.jwt.claims','{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}',true);
+select pg_temp.test_actor('11111111-1111-4111-8111-111111111111');
 do $$ begin
  begin perform public.create_split_expense_atomic('{}',current_setting('test.split')::uuid,true);raise exception 'Expected settlement history guard';
  exception when raise_exception then if sqlerrm='Expected settlement history guard' then raise;end if;end;
@@ -115,13 +125,13 @@ do $$ declare v jsonb; begin
  v=public.create_split_expense_atomic('{"description":"Ad hoc lunch","totalAmount":12,"splitType":"EQUAL","payers":[{"userId":"11111111-1111-4111-8111-111111111111","amountPaid":12}],"participants":[{"userId":"11111111-1111-4111-8111-111111111111"},{"userId":"22222222-2222-4222-8222-222222222222"},{"userId":"33333333-3333-4333-8333-333333333333"}]}');
  perform set_config('test.adhoc',v->>'id',true);
 end $$;
-select set_config('request.jwt.claims','{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}',true);
+select pg_temp.test_actor('22222222-2222-4222-8222-222222222222');
 do $$ declare a uuid; begin
  perform pg_temp.assert(jsonb_array_length(public.simplify_debts()->'simplifiedTransactions')=1,'ad hoc exposes own bilateral edges only');
  select id into a from public.accounts where user_id=auth.uid() and type='CASH' and not is_default limit 1;
  perform public.execute_settlement_atomic(jsonb_build_object('payeeId','11111111-1111-4111-8111-111111111111','accountId',a,'amount',2));
  perform pg_temp.assert((public.simplify_debts()->'groupBalances'->>auth.uid()::text)::numeric=-2,'ad hoc debtor view updates');
 end $$;
-select set_config('request.jwt.claims','{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}',true);
+select pg_temp.test_actor('11111111-1111-4111-8111-111111111111');
 select pg_temp.assert((public.simplify_debts()->'groupBalances'->>'22222222-2222-4222-8222-222222222222')::numeric=-2,'ad hoc creditor agrees');
 rollback;

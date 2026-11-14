@@ -51,6 +51,7 @@ export interface Group {
   members: Member[];
 }
 export interface Split {
+  adjustments?: { userId: string; shareValue: number }[] | null;
   itemization?: import("./itemization").Itemization | null;
   id: string;
   groupId: string | null;
@@ -58,7 +59,7 @@ export interface Split {
   description: string;
   currency: string;
   totalAmount: number;
-  splitType: "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES";
+  splitType: "EQUAL" | "EXACT" | "PERCENTAGE" | "SHARES" | "ADJUSTMENT";
   date: string;
   categoryId?: string;
   payers: { userId: string; amountPaid: number; accountId?: string }[];

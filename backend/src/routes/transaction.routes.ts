@@ -18,13 +18,19 @@ router.post(
         groupId: z.uuid().nullable().default(null),
         categoryId: z.uuid().nullable().default(null),
         description: z.string().trim().min(1).max(200),
-        splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
+        splitType: z.enum([
+          "EQUAL",
+          "EXACT",
+          "PERCENTAGE",
+          "SHARES",
+          "ADJUSTMENT",
+        ]),
         participants: z
           .array(
             z
               .object({
                 userId: z.uuid(),
-                shareValue: z.number().finite().nonnegative().optional(),
+                shareValue: z.number().finite().optional(),
               })
               .strict(),
           )
@@ -37,14 +43,12 @@ router.post(
   async (req: AuthRequest, res) => {
     const id = z.uuid().safeParse(req.params.id);
     if (!id.success) throw new HttpError(400, "Invalid purchase identifier");
-    res
-      .status(201)
-      .json(
-        await rpc(req.db!, "share_recorded_purchase", {
-          p_transaction_id: id.data,
-          p_input: req.body,
-        }),
-      );
+    res.status(201).json(
+      await rpc(req.db!, "share_recorded_purchase", {
+        p_transaction_id: id.data,
+        p_input: req.body,
+      }),
+    );
   },
 );
 const filtersSchema = z

@@ -25,7 +25,9 @@ export const sharedFilters = z
     q: z.string().trim().max(200).optional(),
     groupId: z.uuid().optional(),
     context: z.enum(["all", "group", "individual"]).default("all"),
-    splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]).optional(),
+    splitType: z
+      .enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"])
+      .optional(),
     currency: z
       .string()
       .regex(/^[A-Z]{3}$/)

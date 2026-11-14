@@ -1,5 +1,6 @@
 import DecimalBase from "decimal.js";
 import type { Workspace } from "./vault";
+import { calculateAdjustments } from "../adjustments";
 const Decimal = DecimalBase.clone({ precision: 60 });
 /** Raw encrypted snapshot columns intentionally retain their database names. */
 export function groupBalances(w: Pick<Workspace, "tables">, groupId: string) {
@@ -65,6 +66,7 @@ export function allocation(
     !payers.reduce((s, p) => s.plus(p.amountPaid), new Decimal(0)).eq(n)
   )
     throw Error("Payer amounts must exactly equal the total");
+  if (mode === "ADJUSTMENT") return calculateAdjustments(total, parties);
   const values = parties.map(
     (p) => new Decimal(mode === "EQUAL" ? 1 : (p.shareValue ?? -1)),
   );

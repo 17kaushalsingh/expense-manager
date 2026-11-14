@@ -10,6 +10,7 @@ import { useFormat } from "@/lib/format";
 import { ErrorMessage, Modal } from "@/components/ui/Controls";
 import { Receipts } from "@/components/receipts/Receipts";
 import { ItemSummary } from "@/components/receipts/ItemSummary";
+import { AdjustmentSummary } from "@/components/split/AdjustmentSummary";
 import { ExpenseComments } from "@/components/collaboration/GroupCollaboration";
 import { useAuthStore } from "@/store/auth";
 export default function SharedExpenseSearch() {
@@ -87,9 +88,11 @@ export default function SharedExpenseSearch() {
           Split method
           <select name="splitType" className="field">
             <option value="">Any method</option>
-            {["EQUAL", "EXACT", "PERCENTAGE", "SHARES"].map((m) => (
-              <option key={m}>{m}</option>
-            ))}
+            {["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"].map(
+              (m) => (
+                <option key={m}>{m}</option>
+              ),
+            )}
           </select>
         </label>
         <label className="label">
@@ -211,6 +214,10 @@ export default function SharedExpenseSearch() {
           ))}
           <ItemSummary
             value={detail.itemization}
+            memberName={(id) => memberName(detail, id)}
+          />
+          <AdjustmentSummary
+            split={detail}
             memberName={(id) => memberName(detail, id)}
           />
           <Receipts

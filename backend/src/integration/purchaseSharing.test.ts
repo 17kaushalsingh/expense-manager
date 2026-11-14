@@ -158,7 +158,7 @@ describe.skipIf(process.env.RUN_SUPABASE_INTEGRATION !== "1")(
           server.closeAllConnections();
         });
     });
-    it.each(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"])(
+    it.each(["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"])(
       "converts %s once, preserving cash and counting only each personal share",
       async (mode) => {
         const row = await purchase(),

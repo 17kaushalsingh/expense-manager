@@ -8,7 +8,7 @@ router.use(authenticate);
 const party = z
   .object({
     userId: z.uuid(),
-    shareValue: z.number().finite().nonnegative().optional(),
+    shareValue: z.number().finite().optional(),
   })
   .strict();
 const template = z
@@ -18,7 +18,13 @@ const template = z
       .object({
         description: z.string().trim().min(1),
         totalAmount: z.number().positive().nullable(),
-        splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
+        splitType: z.enum([
+          "EQUAL",
+          "EXACT",
+          "PERCENTAGE",
+          "SHARES",
+          "ADJUSTMENT",
+        ]),
         participants: z.array(party).min(1),
         payers: z
           .array(
@@ -45,14 +51,12 @@ router.post(
   "/groups/:groupId",
   validateBody(template),
   async (req: AuthRequest, res) =>
-    res
-      .status(201)
-      .json(
-        await rpc(req.db!, "manage_split_template", {
-          p_group_id: req.params.groupId,
-          p_input: req.body,
-        }),
-      ),
+    res.status(201).json(
+      await rpc(req.db!, "manage_split_template", {
+        p_group_id: req.params.groupId,
+        p_input: req.body,
+      }),
+    ),
 );
 router.put(
   "/groups/:groupId/:id",

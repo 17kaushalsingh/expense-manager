@@ -178,13 +178,20 @@ export function DeviceShared({
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
               >
-                {["EQUAL", "EXACT", "PERCENTAGE", "SHARES"].map((m) => (
-                  <option key={m} value={m}>
-                    <T text={m[0] + m.slice(1).toLowerCase()} />
-                  </option>
-                ))}
+                {["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"].map(
+                  (m) => (
+                    <option key={m} value={m}>
+                      <T text={m[0] + m.slice(1).toLowerCase()} />
+                    </option>
+                  ),
+                )}
               </select>
             </label>
+            {mode === "ADJUSTMENT" && (
+              <p className="text-xs text-text-secondary">
+                <T text="Enter each person’s extra or reduction. The remaining amount is shared equally; final shares cannot be negative." />
+              </p>
+            )}
             <fieldset className="space-y-3">
               <legend>
                 <T text="Participants" /> & <T text="Payers" />
@@ -218,18 +225,27 @@ export function DeviceShared({
                       }
                     />
                     <input
+                      key={mode}
                       className="field"
                       type="number"
-                      min="0"
-                      step="any"
+                      min={mode === "ADJUSTMENT" ? undefined : "0"}
+                      step={mode === "ADJUSTMENT" ? "0.01" : "any"}
                       disabled={mode === "EQUAL"}
                       name={`share:${m.user_id}`}
                       defaultValue={Number(
-                        w.tables.split_participants?.find(
-                          (p) =>
-                            p.split_expense_id === editing?.id &&
-                            p.user_id === m.user_id,
-                        )?.share_value ?? 1,
+                        (mode === "ADJUSTMENT" &&
+                        Array.isArray(editing?.adjustments)
+                          ? editing.adjustments.find(
+                              (p: { userId: string }) => p.userId === m.user_id,
+                            )?.shareValue
+                          : undefined) ??
+                          (mode === "ADJUSTMENT"
+                            ? 0
+                            : (w.tables.split_participants?.find(
+                                (p) =>
+                                  p.split_expense_id === editing?.id &&
+                                  p.user_id === m.user_id,
+                              )?.share_value ?? 1)),
                       )}
                     />
                   </label>

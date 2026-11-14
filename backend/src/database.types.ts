@@ -1985,6 +1985,7 @@ export type Database = {
       }
       split_expenses: {
         Row: {
+          adjustments: Json | null
           category_id: string | null
           created_at: string
           creator_id: string
@@ -1999,6 +2000,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjustments?: Json | null
           category_id?: string | null
           created_at?: string
           creator_id: string
@@ -2013,6 +2015,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjustments?: Json | null
           category_id?: string | null
           created_at?: string
           creator_id?: string

@@ -2,6 +2,7 @@
 import { T } from "@/components/i18n/Language";
 import { useState } from "react";
 import { Itemization, calculateItemization } from "@/lib/itemization";
+import { calculateAdjustments } from "@/lib/adjustments";
 import { ItemizationEditor } from "./ItemizationEditor";
 import { useAuthStore } from "@/store/auth";
 import { useAccounts } from "@/hooks/useDashboard";
@@ -17,6 +18,7 @@ import {
 import { Modal, ErrorMessage } from "@/components/ui/Controls";
 import { MemberPicker, Person } from "@/components/groups/MemberPicker";
 import { useFormat } from "@/lib/format";
+import { translate } from "@/lib/i18n/catalogs";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -103,7 +105,7 @@ function Editor({
   const seed = split ?? initial;
   const [templateName, setTemplateName] = useState(initialName);
   const user = useAuthStore((s) => s.user)!;
-  const { currency } = useFormat(),
+  const { currency, money, locale } = useFormat(),
     accounts = useAccounts(),
     categories = useResource<Category[]>("/categories");
   const [amount, setAmount] = useState(String(seed?.totalAmount ?? "")),
@@ -130,8 +132,10 @@ function Editor({
     ),
     [values, setValues] = useState<Record<string, string>>(
       Object.fromEntries(
-        seed?.participants.map((p) => [p.userId, String(p.shareValue ?? 1)]) ??
-          [],
+        (split?.adjustments ?? seed?.participants)?.map((p) => [
+          p.userId,
+          String(p.shareValue ?? (seed?.splitType === "ADJUSTMENT" ? 0 : 1)),
+        ]) ?? [],
       ),
     );
   const [multi, setMulti] = useState((seed?.payers.length ?? 0) > 1),
@@ -181,6 +185,21 @@ function Editor({
           (n, p) => n + Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")),
           0,
         );
+  let adjustmentPreview: ReturnType<typeof calculateAdjustments> | undefined;
+  let adjustmentError: unknown;
+  if (!itemized && mode === "ADJUSTMENT" && !missingTotal) {
+    try {
+      adjustmentPreview = calculateAdjustments(
+        total,
+        participants.map((p) => ({
+          userId: p.id,
+          shareValue: Number(values[p.id] ?? 0),
+        })),
+      );
+    } catch (error) {
+      adjustmentError = error;
+    }
+  }
   const payers = fundedPurchase
     ? [
         {
@@ -222,11 +241,13 @@ function Editor({
     (!itemized || !!itemPreview) &&
     (itemized ||
       mode === "EQUAL" ||
+      (mode === "ADJUSTMENT" && (missingTotal || !!adjustmentPreview)) ||
       (mode === "EXACT" &&
         (missingTotal ? shares > 0 : Math.abs(shares - total) < 0.001)) ||
       (mode === "PERCENTAGE" && Math.abs(shares - 100) < 0.00001) ||
       (mode === "SHARES" && shares > 0)) &&
     (itemized ||
+      mode === "ADJUSTMENT" ||
       participants.every(
         (p) => Number(values[p.id] ?? (mode === "SHARES" ? "1" : "0")) >= 0,
       ));
@@ -455,11 +476,20 @@ function Editor({
                 setValues({});
               }}
             >
-              {["EQUAL", "EXACT", "PERCENTAGE", "SHARES"].map((m) => (
-                <option key={m}>{m}</option>
-              ))}
+              {["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"].map(
+                (m) => (
+                  <option key={m} value={m}>
+                    <T text={m[0] + m.slice(1).toLowerCase()} />
+                  </option>
+                ),
+              )}
             </select>
           </label>
+        )}
+        {!itemized && mode === "ADJUSTMENT" && (
+          <p className="text-xs text-text-secondary">
+            <T text="Enter each person’s extra or reduction. The remaining amount is shared equally; final shares cannot be negative." />
+          </p>
         )}
         <div className="space-y-3">
           {people.map((p) => (
@@ -490,9 +520,20 @@ function Editor({
                     aria-label={`${p.name} ${mode.toLowerCase()} share`}
                     className="field max-w-32"
                     type="number"
-                    min="0"
-                    step={mode === "EXACT" ? "0.01" : "0.0001"}
-                    value={values[p.id] ?? (mode === "SHARES" ? "1" : "")}
+                    min={mode === "ADJUSTMENT" ? undefined : "0"}
+                    step={
+                      mode === "EXACT" || mode === "ADJUSTMENT"
+                        ? "0.01"
+                        : "0.0001"
+                    }
+                    value={
+                      values[p.id] ??
+                      (mode === "SHARES"
+                        ? "1"
+                        : mode === "ADJUSTMENT"
+                          ? "0"
+                          : "")
+                    }
                     onChange={(e) =>
                       setValues({ ...values, [p.id]: e.target.value })
                     }
@@ -501,10 +542,35 @@ function Editor({
             </div>
           ))}
         </div>
+        {adjustmentPreview && (
+          <div
+            className="rounded-lg border border-border-soft p-3 text-sm space-y-2"
+            role="status"
+          >
+            <p className="font-semibold">
+              <T text="Final shares" />
+            </p>
+            {adjustmentPreview.map((p) => (
+              <div className="flex justify-between gap-3" key={p.userId}>
+                <span>
+                  {people.find((person) => person.id === p.userId)?.name}
+                </span>
+                <span>{money(p.amountOwed, currency)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <ErrorMessage
+          error={
+            adjustmentError instanceof Error
+              ? new Error(translate(adjustmentError.message, locale))
+              : adjustmentError
+          }
+        />
         <p role="status" className="text-xs text-text-secondary">
           Paid {payerSum.toFixed(2)} /{" "}
           {Number.isFinite(total) ? total.toFixed(2) : "0.00"}
-          {mode !== "EQUAL"
+          {mode !== "EQUAL" && mode !== "ADJUSTMENT"
             ? ` · Allocated ${shares.toFixed(mode === "EXACT" ? 2 : 4)}${mode === "PERCENTAGE" ? "%" : ""}`
             : ""}
           . Remainder cents are assigned in participant order.

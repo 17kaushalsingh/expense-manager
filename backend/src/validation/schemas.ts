@@ -90,7 +90,7 @@ export const transferSchema = z.object({
 
 const splitPartySchema = z.object({
   userId: nonEmptyString,
-  shareValue: z.coerce.number().finite().nonnegative().optional(),
+  shareValue: z.coerce.number().finite().optional(),
 });
 
 export const createSplitExpenseSchema = z.object({
@@ -98,7 +98,7 @@ export const createSplitExpenseSchema = z.object({
   description: nonEmptyString,
   categoryId: z.uuid().nullable().optional(),
   totalAmount: money,
-  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES"]),
+  splitType: z.enum(["EQUAL", "EXACT", "PERCENTAGE", "SHARES", "ADJUSTMENT"]),
   payers: z
     .array(
       z.object({

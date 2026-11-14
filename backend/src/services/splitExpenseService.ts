@@ -18,6 +18,30 @@ export function calculateSplitParticipants(input: CreateSplitExpenseInput) {
   const total = decimal(input.totalAmount);
   if (total.lte(0) || !total.eq(total.toDecimalPlaces(2)))
     fail("Invalid amount");
+  if (input.splitType === "ADJUSTMENT") {
+    const extras = input.participants.map((p) => decimal(p.shareValue ?? 0));
+    if (
+      input.participants.length > 100 ||
+      extras.some((n) => n.abs().gte(1e12) || !n.eq(n.toDecimalPlaces(2)))
+    )
+      fail("Adjustments must be signed cent amounts");
+    const count = input.participants.length;
+    const common = total
+      .mul(100)
+      .minus(extras.reduce((sum, n) => sum.plus(n.mul(100)), decimal(0)));
+    const numerators = extras.map((n) => common.plus(n.mul(100).mul(count)));
+    if (numerators.some((n) => n.lt(0)))
+      fail("Adjustments cannot make a final share negative");
+    const cents = numerators.map((n) => n.div(count).floor());
+    const remainder = total
+      .mul(100)
+      .minus(cents.reduce((sum, n) => sum.plus(n), decimal(0)))
+      .toNumber();
+    return input.participants.map((p, i) => ({
+      ...p,
+      amountOwed: cents[i].plus(i < remainder ? 1 : 0).div(100),
+    }));
+  }
   const weights = input.participants.map((p) =>
     decimal(input.splitType === "EQUAL" ? 1 : (p.shareValue ?? -1)),
   );

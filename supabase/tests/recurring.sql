@@ -1,6 +1,17 @@
 -- No persistent fixtures or helper functions. All mutations roll back.
 begin;
-select set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
+-- SQL-only sessions exercise the same active-session policy as REST. These
+-- rows and claim constructors exist only inside this rollback transaction.
+insert into auth.sessions(id,user_id,not_after)
+select md5('sql-rollback-'||id::text)::uuid,id,now()+interval '1 hour'
+from auth.users where id in ('55555555-5555-4555-8555-555555555555','66666666-6666-4666-8666-666666666666','77777777-7777-4777-8777-777777777777');
+create function pg_temp.test_actor(actor uuid) returns void language plpgsql set search_path='' as $$
+begin
+ perform set_config('request.jwt.claim.sub',actor::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',actor,'role','authenticated','session_id',md5('sql-rollback-'||actor::text)::uuid)::text,true);
+end $$;
+
+select pg_temp.test_actor('55555555-5555-4555-8555-555555555555');
 do $$
 declare g uuid;t uuid;s uuid;d uuid;p jsonb;posted uuid;v jsonb;date_before date;idx_before int;
 begin
@@ -24,9 +35,9 @@ begin
  if (select sum(amount_owed) from public.split_participants where split_expense_id=posted)<>10.01 then raise exception 'Rounding not conserved';end if;
  perform public.manage_split_template(g,jsonb_build_object('name','Updated','payload',p||'{"description":"New rent"}'),t);
  if exists(select 1 from public.expense_drafts where schedule_id=s and payload->>'description'<>'Recurring rent') then raise exception 'Snapshot changed';end if;
- perform set_config('request.jwt.claim.sub','66666666-6666-4666-8666-666666666666',true);
+ perform pg_temp.test_actor('66666666-6666-4666-8666-666666666666');
  begin perform public.mutate_expense_draft(d,'SKIP');raise exception 'Unauthorized review';exception when insufficient_privilege then null;end;
- perform set_config('request.jwt.claim.sub','55555555-5555-4555-8555-555555555555',true);
+ perform pg_temp.test_actor('55555555-5555-4555-8555-555555555555');
  if private.occurrence_date('2024-02-29','YEARLY',1)<>'2025-02-28'::date or private.occurrence_date('2024-02-29','YEARLY',4)<>'2028-02-29'::date then raise exception 'Leap-year anchor lost';end if;
  -- Resume skips past dates without generating them.
  update public.expense_schedules set start_date=(now() at time zone 'UTC')::date-interval '28 days',end_date=null,frequency='WEEKLY',status='PAUSED',next_index=0 where id=s;

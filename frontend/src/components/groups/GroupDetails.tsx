@@ -25,6 +25,7 @@ import { GroupReport } from "@/components/groups/GroupReport";
 import { SettlementHistory } from "@/components/settlements/SettlementHistory";
 import { Receipts } from "@/components/receipts/Receipts";
 import { ItemSummary } from "@/components/receipts/ItemSummary";
+import { AdjustmentSummary } from "@/components/split/AdjustmentSummary";
 export default function GroupDetails({ id }: { id: string }) {
   const router = useRouter(),
     user = useAuthStore((s) => s.user),
@@ -246,6 +247,7 @@ export default function GroupDetails({ id }: { id: string }) {
           onClose={() => setEvidence(undefined)}
         >
           <ItemSummary value={evidence.itemization} memberName={memberName} />
+          <AdjustmentSummary split={evidence} memberName={memberName} />
           <Receipts
             splitId={evidence.id}
             canManage={owner || evidence.creatorId === user?.id}
