@@ -22,7 +22,7 @@ Requested after production release `f35d519` on 2026-11-11. Implementation was d
 
 ## Current environment limits
 
-Xcode 27.2 is installed at `/Applications/Xcode.app`; its license is now accepted. The app and WidgetKit extension compile for both simulator architectures with signing disabled. No simulator runtime or physical-device session is available. Android SDK/ADB are absent; the Gradle wrapper download also timed out. Native runtime, store distribution and signing checks remain outstanding. No paid provider, app-store purchase or real money movement was initiated.
+Xcode 27.2 is installed at `/Applications/Xcode.app`; its license is accepted. The app and WidgetKit extension compile for the simulator with signing disabled. The official iOS 27.2 runtime (24B8117) is now installed; an iPhone 18 Pro simulator booted, accepted the built app and launched its process. Native UI automation timed out for Xcode/Finder, so visual rendering, passcode/backup/offline flows and home-screen widget behavior remain unverified. A user-entered passphrase is needed for the credential walkthrough. Android SDK/ADB are absent; the Gradle wrapper download previously timed out. Store distribution, physical-device and signing checks remain outstanding. No paid provider, app-store purchase or real money movement was initiated.
 
 ## Implementation status — 12 November 2026
 

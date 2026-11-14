@@ -1,3 +1,10 @@
+# Native installation and launch — 14 November 2026
+
+- Installed Apple's official iOS 27.2 arm64 Simulator runtime, build 24B8117. The downloader then started another runtime build; that extra download was cancelled after the required runtime appeared in `simctl list runtimes`.
+- Refreshed native static export/sync and compiled app plus WidgetKit extension with `CODE_SIGNING_ALLOWED=NO`. Booted the generated iPhone 18 Pro simulator; `simctl bootstatus` reached Finished with exit 0. `simctl install` and `simctl launch` both succeeded. `get_app_container` resolved the installed bundle, and the launched app process was still running over a minute later. WebKit process/navigation events appear in simulator logs.
+- This is runtime **installation/process-launch evidence**, not proof of rendered UI, usable forms or widget visuals. Native UI control timed out for both Xcode and Finder; Simulator selection could not be obtained through the app-control tool. No alternative UI automation or credential bypass was used. A request for the user to create/submit the new device passphrase was left pending so passcode/backup/offline acceptance can continue.
+- No native signing/store publication, Android compilation, physical-device testing, Google consent or real email delivery is claimed. Web/API changes remain on `codex/account-sharing-completion`, unmerged and undeployed. The full remaining objective remains in docs/PARITY_COMPLETION_PLAN.md.
+
 # Adjustment splits — 14 November 2026
 
 - Signed personal extras/reductions are supported across split create/edit/recovery, multiple payers, recorded-purchase conversion, templates/defaults, recurring drafts, shared search and queued offline commands. The original intent is retained separately from normalized exact shares. New help/summary copy is translated in Hindi, Spanish and Arabic.

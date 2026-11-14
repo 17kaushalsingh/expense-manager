@@ -60,7 +60,7 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 For Android, install Android Studio/SDK and an appropriate supported JDK, sync assets, then open with `npm run native:android -w frontend`. The generated Gradle wrapper downloads its distribution; this machine timed out at that step and has no SDK/ADB configured. Android app compilation is not verified.
 
-iOS WidgetKit and Android AppWidget show a private, expiring summary and open the device workspace for entry. Amounts are hidden by default; explicitly sharing totals never shares accounts, identity, notes or credentials. Background/lock clears values. iOS uses `group.app.ledgersync.expenses`; configure the same App Group on the app and extension in your Apple signing team. Android disables OS backup and screen capture. Device signing, simulator runtimes, app-store distribution and actual widget rendering are outstanding checks; no paid Apple/Google service was provisioned.
+iOS WidgetKit and Android AppWidget show a private, expiring summary and open the device workspace for entry. Amounts are hidden by default; explicitly sharing totals never shares accounts, identity, notes or credentials. Background/lock clears values. iOS uses `group.app.ledgersync.expenses`; configure the same App Group on the app and extension in your Apple signing team. Android disables OS backup and screen capture. The official iOS 27.2 simulator runtime is installed, and installation/launch of the updated app passed on 14 November. GUI passcode/backup/offline flows, device signing, store distribution and actual widget rendering remain outstanding; no paid Apple/Google service was provisioned.
 
 ## Verification commands and acceptance limits
 

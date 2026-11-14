@@ -4,7 +4,7 @@ Full objective remains active. This checklist preserves the requested scope; a p
 
 | Milestone | Requirements | Current evidence / status |
 |---|---|---|
-| Device acceptance | Android compilation, real iOS/widgets, passcode/archives, cold-start offline/reconnection, signing/store release | iOS app compiles; official simulator runtime is being provisioned. Android SDK, GUI/real-device and distribution checks remain. |
+| Device acceptance | Android compilation, real iOS/widgets, passcode/archives, cold-start offline/reconnection, signing/store release | Refreshed app/widget compile. Official iOS 27.2 simulator installed; app installation and process launch pass. GUI automation timed out; credential walkthrough awaits user entry. Android, physical widgets/devices and distribution checks remain. |
 | Account controls | Device/session management, lifecycle/deletion/anonymization, duplicate identity merging, blocking/reporting | Session list/naming, selected/other/all-device revocation, own activity and immediate database JWT-session checks implemented. Remaining controls are open. |
 | Sharing | Shared refunds, adjustments, purchase-to-split, simplification toggle | Recorded purchases and signed adjustment splits are implemented. Refunds and the simplification toggle remain open. |
 | Current feature completion | Complete translations, advanced offline workflows, multi-currency wallets/groups/settlements | Existing device workspace and personal FX entries remain scoped foundations; all listed extensions remain open. |
